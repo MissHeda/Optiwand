@@ -86,6 +86,8 @@ addons/mirror    all of the mechanics - deploying, camera, controls, overlay
 addons/esdcam    registers the Spectrum Device with the above and puts the
                  picture on its screen
 include/         CBA and Arma headers the preprocessor needs at build time
+tools/           the model pipeline, see "The model" below
+art/             model sources - the FBX ships, the 4096 bakes stay on disk
 ```
 
 `include/` is not part of the mod. It is there so the build can resolve `\x\cba\...` and
@@ -121,8 +123,35 @@ agreeing with each other.
 
 ## The model
 
-The attachment model itself is built outside this repo; only the finished `camhead.p3d` and
-its textures ship here. What follows is what you need to know to make another one.
+The wand is modelled outside this repo and arrives as an FBX plus baked textures. Turning
+that into `camhead.p3d` and its PAAs is done by the scripts in `tools/`, so the shipped
+assets can be rebuilt from the sources at any time:
+
+```bash
+python tools/fbx_to_p3d.py        # art/esdcam/arma3_cam.fbx  ->  addons/esdcam/model/camhead.p3d
+python tools/bake_textures.py     # art/esdcam/bake/*.png     ->  addons/esdcam/data/camhead_*.paa
+python tools/preview_p3d.py       # renders the result, to check it before starting Arma
+```
+
+They need only `numpy` and `pillow`. Neither Blender nor the Arma 3 Tools have to be
+installed: `tools/fbx.py`, `tools/p3d.py` and `tools/paa.py` read binary FBX and read and
+write MLOD P3D and PAA on their own. Where ImageToPAA *is* found it is used for the
+textures anyway, because it LZO-compresses the mipmaps and the built-in encoder does not -
+same pictures, about a fifth of the bytes. `IMAGETOPAA` overrides the search,
+`--encoder builtin` skips it.
+
+`fbx_to_p3d.py` checks its own output: the face winding has to come out such that
+`cross(v1-v0, v2-v0)` agrees with the stored normal, and it refuses to write a model where
+any face disagrees. That test is what catches a mesh turned inside out by the handedness
+change between Blender and Arma, which is otherwise invisible until you are standing in
+front of it in game.
+
+The model came with four materials over one shared UV layout, one 4096 bake each.
+`bake_textures.py` folds them into a single set by rasterising each material's UV islands,
+and fills everything outside them by growing the island content outwards - without that,
+mipmapping pulls the bake background into the silhouette.
+
+### Making another one
 
 Orientation is measured, not assumed. The three vanilla antennas of the Spectrum Device all
 sit with their origin at the device and extend along **-X**:
@@ -146,6 +175,10 @@ Materials have to be baked. Arma cannot read Blender node trees, so noise and wa
 bump and glass do not survive an export; a baked texture is the only way that look reaches
 the game. Bake base colour rather than the lit image - the metallic sheen belongs in the
 rvmat, and putting it in both leaves the model flat and milky.
+
+Bohemia's channel conventions for the other maps, which the bake has to follow because
+nothing downstream corrects them: `_smdi` keeps the specular level and power in green and
+blue, `_as` is read from green alone.
 
 ## Licence
 

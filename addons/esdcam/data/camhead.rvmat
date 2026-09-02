@@ -1,18 +1,22 @@
 // Material of the camera attachment.
 //
-// Colour comes from camhead_co.paa, baked from the Blender materials (tools/
-// blender_camhead.py, BAKE = True). The gooseneck's structure sits in camhead_nohq - the
-// ribbing is procedural bump in Blender and does not exist as geometry at all, but it
-// comes along once baked.
+// The maps come from the Blender bake of the wand model (art/esdcam/), which arrived as
+// one 4096 set per material - Plastik, Schlauch, blitz, cam - over a single shared UV
+// layout. tools/bake_textures.py folds those four into the one set this file names, by
+// rasterising each material's UV islands and taking that material's bake inside them.
 //
-// Why the colour texture looks darker than the Blender render: what is baked is the base
-// colour, not the lit image. The metallic impression is produced further down through
-// specular - were it in the texture as well it would be in twice over in game, and the
-// model would look flat and milky.
+// So there is one texture set and one rvmat for the whole wand, and the difference
+// between matte body, ribbed hose and lens is carried by the maps rather than by four
+// separate materials.
+//
+// Channel conventions are Bohemia's, and the bake already follows them: _smdi keeps the
+// specular level and power in green and blue, _as is read from green alone. Both are
+// passed through untouched - the numbers below only scale what is in them.
 //
 // To adjust: higher specular means more reflection, higher specularPower a smaller and
 // harder highlight. The first number in the fresnel drives the bright rim at the
-// silhouette.
+// silhouette. Anything that should differ per part of the model belongs in the bake, not
+// here.
 
 class StageTI {
     texture = "a3\data_f\default_ti_ca.paa";
@@ -52,6 +56,8 @@ class Stage2 {
 };
 
 class Stage3 {
+    // No macro texture. The bake writes a _mc file, but it is a byte for byte copy of
+    // the colour map, which is not what a macro map is for - so this stays procedural.
     texture = "#(argb,8,8,3)color(0,0,0,0,mc)";
     uvSource = "tex";
     class uvTransform {
@@ -63,8 +69,10 @@ class Stage3 {
 };
 
 class Stage4 {
-    // No ambient occlusion texture baked, so neutral white.
-    texture = "#(argb,8,8,3)color(1,1,1,1)";
+    // Ambient shadow, baked. The fill outside the UV islands is white rather than the
+    // bake's own black background: black there would creep in through the mip chain and
+    // show as a dirty edge all round the silhouette.
+    texture = "z\opw\addons\esdcam\data\camhead_as.paa";
     uvSource = "tex";
     class uvTransform {
         aside[] = {1,0,0};
@@ -75,8 +83,9 @@ class Stage4 {
 };
 
 class Stage5 {
-    // Neutral SMDI. Anyone who bakes a real specular map later hangs it in here.
-    texture = "#(argb,8,8,3)color(1,1,1,1)";
+    // Specular, baked: the body reads matte, the hose picks up a sheen, and the lens and
+    // the LEDs at the head are the brightest thing on the model.
+    texture = "z\opw\addons\esdcam\data\camhead_smdi.paa";
     uvSource = "tex";
     class uvTransform {
         aside[] = {1,0,0};

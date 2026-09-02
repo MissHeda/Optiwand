@@ -75,8 +75,10 @@
 #define CAM_ITEM_CLASS opw_muzzle_camera
 #define CAM_ITEM QUOTE(CAM_ITEM_CLASS)
 
-// Our own model: the gooseneck camera. 42 cm long, mount at the origin, head towards -X -
-// the same placement as the three vanilla antennas, measured from their p3d.
+// Our own model: the inspection wand - flanged base, thin shaft, camera head with a ring
+// of LEDs. 42 cm long, mount at the origin, head towards -X, the same placement as the
+// three vanilla antennas, measured from their p3d. Built from art/esdcam/arma3_cam.fbx by
+// tools/fbx_to_p3d.py; see "The model" in the README.
 #define CAM_MODEL QPATHTOF(model\camhead.p3d)
 
 // Inventory picture still borrowed from the vanilla antenna. It lives in Contact, which we
