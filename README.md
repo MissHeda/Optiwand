@@ -55,8 +55,11 @@ All of these are CBA keybinds and can be remapped under Configure Addons > Optiw
 | R | recentre |
 | Right mouse button | leave the aimed view, which retracts the camera |
 
-Zoom deliberately avoids the numpad so Arma's own field-of-view zoom stays free - that is
-what keeps the small device screen readable.
+Zoom is on Page Up and Page Down, not the numpad. Numpad + and - are Arma's own zoom, and
+because the overlay is a title layer and takes no input focus, the game went on acting on
+them underneath the picture. They are swallowed while the monitor is up and work normally
+the rest of the time - clear the *Swallow Arma's zoom while peeking* binding to get them
+back.
 
 Note that Arma binds the arrow keys to movement by default as a duplicate of WASD. If you
 actually walk with the arrow keys, remap one side or the other.
