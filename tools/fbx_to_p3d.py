@@ -20,7 +20,7 @@ In the FBX the long axis is the mesh's local Y, with the head at +Y - read out o
 it, not assumed: the `cam` and `blitz` materials sit at the +Y extreme.
 
 --------------------------------------------------------------------------------
-Axes and winding
+Axes, winding and normals
 
 Blender is right handed (X right, Y forward, Z up), Arma is left handed (X right,
 Y up, Z forward). Naming the same physical directions therefore flips handedness,
@@ -28,11 +28,25 @@ and on top of that the model's long axis has to move from Y to -X:
 
     arma = (-by, bz, bx) * scale
 
-That map has determinant -1, so the cross product of a face's edges comes out
-mirrored and every face has to be wound the other way round. The convention it
-has to meet was read out of the model this one replaces: over its flat shaded
-faces, cross(v1-v0, v2-v0) agrees with the stored normal 44 times out of 44.
---check re-runs that test on the output.
+That map has determinant -1, which is a mirroring, and two things follow from it.
+The vertex order is left exactly as it is - the mirroring already turns Blender's
+"counter clockwise seen from outside" into Arma's "clockwise seen from outside".
+And the normals get an extra minus, because a normal is a pseudovector: under a
+map M it transforms as det(M) * M^-T * n, which for an orthogonal M is -M*n.
+
+    normal = -(-ny, nz, nx) = (ny, -nz, -nx)
+
+Both of those are measured, not argued. Over Bohemia's own MLOD samples - the
+house, the heli, the car and the boat in Arma 3 Samples - the signed volume of
+the mesh and the flux of the stored normals both come out negative, evaluated
+with the ordinary right handed formulas. A model that comes out positive in
+either is inside out, and Arma culls its front faces: you look straight through
+it. check() below measures both and refuses to write a model that fails.
+
+Note what check() deliberately does NOT rely on: that cross(v1-v0, v2-v0) agrees
+with the stored normal. It does, in Bohemia's models and in ours - but a model
+with both flipped passes that test just as happily, so on its own it proves
+nothing about which way round the thing is.
 """
 
 import argparse
@@ -102,7 +116,8 @@ def build(path, length, name_note):
         return (-(p[1] - y_min) * scale, (p[2] - cz) * scale, (p[0] - cx) * scale)
 
     def dir_to_arma(n):
-        v = (-n[1], n[2], n[0])
+        # -M*n, not M*n: see "Axes, winding and normals" at the top.
+        v = (n[1], -n[2], -n[0])
         d = math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2) or 1.0
         return (v[0] / d, v[1] / d, v[2] / d)
 
@@ -115,7 +130,7 @@ def build(path, length, name_note):
     for face in faces:
         for piece in fan(face):
             verts = [(point, normal, uv[u * 2], 1.0 - uv[u * 2 + 1])
-                     for point, normal, u in reversed(piece)]
+                     for point, normal, u in piece]
             lod.faces.append(p3d.Face(verts, TEXTURE, MATERIAL))
             uv_pairs.extend((v[2], v[3]) for v in verts)
 
@@ -169,27 +184,46 @@ def memory_lod(length, tip_gap):
     return lod
 
 
-def check(lod):
-    """cross(v1-v0, v2-v0) has to agree with the stored normal, or the model is inside
-    out. Only flat shaded faces are conclusive, so those are what gets counted."""
-    agree = oppose = skipped = 0
+def triangles(lod):
     for face in lod.faces:
-        normals = [lod.normals[v[1]] for v in face.verts]
-        if max(abs(normals[0][i] - n[i]) for n in normals for i in range(3)) > 1e-4:
-            skipped += 1
-            continue
         pts = [lod.points[v[0]][:3] for v in face.verts]
-        a = [pts[1][i] - pts[0][i] for i in range(3)]
-        b = [pts[2][i] - pts[0][i] for i in range(3)]
-        cross = (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
-        dot = sum(cross[i] * normals[0][i] for i in range(3))
-        if dot > 1e-12:
-            agree += 1
-        elif dot < -1e-12:
-            oppose += 1
-        else:
-            skipped += 1
-    return agree, oppose, skipped
+        nrm = [lod.normals[v[1]] for v in face.verts]
+        for k in range(1, len(pts) - 1):
+            yield (pts[0], pts[k], pts[k + 1]), (nrm[0], nrm[k], nrm[k + 1])
+
+
+def _cross(u, w):
+    return (u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0])
+
+
+def check(lod):
+    """Is the model the right way out?
+
+    Two numbers, both evaluated with the ordinary right handed formulas, and both
+    negative in every MLOD Bohemia ships:
+
+      volume   the signed volume the winding describes.  Sign says whether the faces
+               are wound clockwise or counter clockwise seen from outside.
+      flux     the divergence integral of the stored normals, which for a closed
+               surface is three times the volume.  Sign says which way the normals
+               point, independently of the winding.
+
+    Checking them separately matters. Flip both and the model still looks consistent
+    with itself while being inside out, which is exactly the mistake this catches.
+    """
+    volume = flux = 0.0
+    for pts, nrm in triangles(lod):
+        a, b, c = pts
+        volume += (a[0] * (b[1] * c[2] - b[2] * c[1])
+                   - a[1] * (b[0] * c[2] - b[2] * c[0])
+                   + a[2] * (b[0] * c[1] - b[1] * c[0])) / 6.0
+        edge = _cross([b[i] - a[i] for i in range(3)], [c[i] - a[i] for i in range(3)])
+        area = 0.5 * math.sqrt(sum(x * x for x in edge))
+        n = [(nrm[0][i] + nrm[1][i] + nrm[2][i]) / 3.0 for i in range(3)]
+        length = math.sqrt(sum(x * x for x in n)) or 1.0
+        mid = [(a[i] + b[i] + c[i]) / 3.0 for i in range(3)]
+        flux += area * sum(mid[i] * n[i] / length for i in range(3)) / 3.0
+    return volume, flux
 
 
 def main():
@@ -202,7 +236,7 @@ def main():
     args = ap.parse_args()
 
     lod, box, scale, origin = build(args.fbx, args.length, None)
-    agree, oppose, skipped = check(lod)
+    volume, flux = check(lod)
 
     lods = [lod,
             geometry_lod(box, args.mass),
@@ -215,10 +249,14 @@ def main():
     print("  scale           %.6f  (mount ring centred on %.4f, %.4f in FBX X/Z)" %
           (scale, origin[0], origin[2]))
     print("  bounding box    x %.3f .. %.3f   y %.3f .. %.3f   z %.3f .. %.3f" % box)
-    print("  winding         %d faces agree, %d oppose, %d inconclusive" % (agree, oppose, skipped))
+    print("  winding         signed volume %+.6f  %s" %
+          (volume, "ok" if volume < 0 else "INSIDE OUT"))
+    print("  normals         flux          %+.6f  %s" %
+          (flux, "ok" if flux < 0 else "INSIDE OUT"))
     print("  %d bytes" % size)
-    if oppose:
-        raise SystemExit("winding check failed: %d faces are inside out" % oppose)
+    if volume >= 0 or flux >= 0:
+        raise SystemExit("model is inside out - Arma would cull its front faces and you "
+                         "would look straight through it")
 
 
 if __name__ == "__main__":

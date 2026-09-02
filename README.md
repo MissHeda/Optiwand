@@ -140,11 +140,28 @@ textures anyway, because it LZO-compresses the mipmaps and the built-in encoder 
 same pictures, about a fifth of the bytes. `IMAGETOPAA` overrides the search,
 `--encoder builtin` skips it.
 
-`fbx_to_p3d.py` checks its own output: the face winding has to come out such that
-`cross(v1-v0, v2-v0)` agrees with the stored normal, and it refuses to write a model where
-any face disagrees. That test is what catches a mesh turned inside out by the handedness
-change between Blender and Arma, which is otherwise invisible until you are standing in
-front of it in game.
+### Which way round the model is
+
+Blender is right handed and Arma is left handed, so the conversion is a mirroring, and a
+mirroring gets both the winding and the normals wrong if you are not careful. Get it wrong
+and Arma culls the front faces instead of the back ones: the model is there, the texture is
+right, and you look straight through it.
+
+The convention was measured off Bohemia's own MLOD samples in `Arma 3 Samples` - the house,
+the heli, the car and the boat. Evaluated with the ordinary right handed formulas, all of
+them come out **negative** on both of these, and `fbx_to_p3d.py` refuses to write a model
+that does not:
+
+| | |
+|---|---|
+| signed volume of the mesh | which way the faces are wound |
+| divergence flux of the stored normals | which way the normals point |
+
+Both, separately. The tempting test - does `cross(v1-v0, v2-v0)` agree with the stored
+normal - proves nothing on its own: flip the winding *and* the normals and the model is
+still perfectly consistent with itself while being inside out. That is exactly the mistake
+these two numbers exist to catch, and it is not one you can see in a preview render either,
+since a rasteriser without backface culling draws both cases identically.
 
 The model came with four materials over one shared UV layout, one 4096 bake each.
 `bake_textures.py` folds them into a single set by rasterising each material's UV islands,

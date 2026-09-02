@@ -50,7 +50,11 @@ def render(lod, texture, size, yaw, pitch, background):
     rot = np.array([[cy, 0, -sy], [sp * sy, cp, sp * cy], [cp * sy, -sp, cp * cy]])
 
     pts = (np.array([p[:3] for p in lod.points]) - centre) @ rot.T
-    nrm = np.array(lod.normals) @ rot.T
+    # Negated: p3d normals follow Arma's left handed convention, and this rasteriser
+    # shades with the ordinary right handed one. Without the minus the model comes out
+    # lit from the inside - which is also what a correct model looks like here, so do
+    # not read a preview as proof that the orientation is right. check() does that.
+    nrm = -np.array(lod.normals) @ rot.T
 
     scale = size * 0.86 / extent
     sx = size / 2 + pts[:, 0] * scale
