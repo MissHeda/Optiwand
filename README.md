@@ -181,6 +181,23 @@ per channel gain rather than an offset, so the bake's own contrast survives, and
 touches `Plastik` and `Schlauch` - the lens and the LEDs are signal colours. `--tint none`
 leaves the bake alone.
 
+### The inventory picture
+
+`render_icon.py` writes `data/ui/gear_camhead_ca.paa`. Its layout is not composed by eye -
+Arma hangs an attachment's picture over the weapon's, so the mount has to land where the
+weapon's muzzle is, and all three vanilla antenna pictures agree on where that is:
+
+| | mount | axis |
+|---|---|---|
+| `gear_muzzle_antenna_01_ca` | 496.9, 250.0 | 11.4 deg |
+| `gear_muzzle_antenna_02_ca` | 502.2, 103.1 | 5.9 deg |
+| `gear_muzzle_antenna_03_ca` | 500.0, 228.8 | 9.0 deg |
+
+x = 500 in all three, running away to the left at a shallow angle and filling the frame -
+they are not on the diagonal. The renderer places two model points on two frame points
+rather than centring, so the wand's mount lands on that anchor and its tip in the lower
+left; the result comes out at 501.8, 237.1 against antenna 3's 500.0, 228.8.
+
 ### Where the size comes from
 
 The FBX carries no real world scale - 13.2 units, which taken literally would be a 13 metre

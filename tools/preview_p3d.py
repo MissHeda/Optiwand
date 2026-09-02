@@ -39,7 +39,7 @@ def load_texture(path):
 
 
 def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
-           exposure=2.6, ambient=0.22, coverage=False, fit=None):
+           exposure=2.6, ambient=0.22, coverage=False, fit=None, place=None):
     xs = [p[0] for p in lod.points]
     ys = [p[1] for p in lod.points]
     zs = [p[2] for p in lod.points]
@@ -60,11 +60,37 @@ def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
     # not read a preview as proof that the orientation is right. check() does that.
     nrm = -np.array(lod.normals) @ rot.T
 
-    if fit is None:
+    if place is not None:
+        # Two points, placed. `place` is (model a, model b, screen a, screen b): the two
+        # model space points are projected, and the 2D similarity that carries them onto the
+        # two screen points is applied to everything. Rotation and uniform scale only, so
+        # nothing is distorted - it is a way of saying "this end goes here, that end goes
+        # there" instead of guessing a roll and a zoom.
+        model_a, model_b, screen_a, screen_b = place
+        flat = []
+        for point in (model_a, model_b):
+            q = (np.array(point, float) - centre) @ rot.T
+            flat.append(np.array([q[0], -q[1]]))
+        source = flat[1] - flat[0]
+        target = np.array(screen_b, float) - np.array(screen_a, float)
+        source_len = np.linalg.norm(source)
+        if source_len < 1e-9:
+            raise SystemExit("place: the two model points project onto each other")
+        scale = float(np.linalg.norm(target) / source_len)
+        angle = math.atan2(target[1], target[0]) - math.atan2(source[1], source[0])
+        ca, sa = math.cos(angle), math.sin(angle)
+        planar = np.array([[ca, -sa], [sa, ca]]) * scale
+        flat_pts = np.stack([pts[:, 0], -pts[:, 1]], axis=1) @ planar.T
+        offset = np.array(screen_a, float) - flat[0] @ planar.T
+        sx = flat_pts[:, 0] + offset[0]
+        sy_ = flat_pts[:, 1] + offset[1]
+    elif fit is None:
         # Scale off the model's own longest axis. Steady across views, which is what a
         # comparison sheet wants - the object does not resize as it turns.
         scale = size * 0.86 / extent
         ox = oy = size / 2.0
+        sx = ox + pts[:, 0] * scale
+        sy_ = oy - pts[:, 1] * scale
     else:
         # Fit what is actually on screen after the rotation, with `fit` as the fraction of
         # the frame to fill. An icon wants the object as large as it will go, and a long
@@ -75,9 +101,8 @@ def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
         mid = (pts[:, :2].max(axis=0) + pts[:, :2].min(axis=0)) / 2.0
         ox = size / 2.0 - mid[0] * scale
         oy = size / 2.0 + mid[1] * scale
-
-    sx = ox + pts[:, 0] * scale
-    sy_ = oy - pts[:, 1] * scale
+        sx = ox + pts[:, 0] * scale
+        sy_ = oy - pts[:, 1] * scale
 
     colour = np.zeros((size, size, 3), np.float32)
     colour[:] = background

@@ -35,11 +35,21 @@ from bake_textures import find_imagetopaa
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Three quarter view, then rolled so the wand runs across the square corner to corner -
-# the same composition as the vanilla antenna pictures.
+# Three quarter view. The tilt and the framing are not set here - they come out of the two
+# point placement below, which is what actually matches Bohemia's layout.
 YAW = 0.62
 PITCH = 0.30
-ROLL = -0.60
+
+# Where the mount and the tip go, in the 512 frame. Measured off all three vanilla antenna
+# pictures rather than composed by eye: every one of them puts the mount at x = 497..502 and
+# runs away to the left at 6 to 11 degrees, filling the frame. That shared right hand anchor
+# is the point the picture is hung on over the weapon.
+#
+#     antenna 01   mount (496.9, 250.0)   axis 11.4 deg
+#     antenna 02   mount (502.2, 103.1)   axis  5.9 deg
+#     antenna 03   mount (500.0, 228.8)   axis  9.0 deg
+MOUNT_AT = (500.0, 236.0)
+TIP_AT = (6.0, 314.0)          # 494 px to the left and 78 down, which is 9 degrees
 
 # Key light from the upper left and in front, which is where Bohemia's is. The ambient is
 # high and the exposure low: an icon is read at 64 px in a list, and deep shadow there just
@@ -58,9 +68,6 @@ def main():
                                                   "gear_camhead_ca.paa"))
     ap.add_argument("--size", type=int, default=512)
     ap.add_argument("--supersample", type=int, default=4)
-    ap.add_argument("--fill", type=float, default=0.96,
-                    help="fraction of the frame the object fills; Bohemia's antenna 3 sits "
-                         "at about 1.0 across and this matches it")
     ap.add_argument("--png", help="also keep the rendered PNG here")
     args = ap.parse_args()
 
@@ -68,11 +75,18 @@ def main():
     lod = min(lods, key=lambda l: l.resolution)
     texture = preview_p3d.load_texture(args.texture)
 
+    # The mount is the model's origin by construction, and the tip is the far end of it.
+    mount = (0.0, 0.0, 0.0)
+    tip = min(lod.points, key=lambda p: p[0])[:3]
+
     big = args.size * args.supersample
+    scale = float(big) / args.size
     rgb, drawn = preview_p3d.render(
         lod, texture, big, YAW, PITCH, (0.0, 0.0, 0.0),
-        roll=ROLL, light=LIGHT, exposure=EXPOSURE, ambient=AMBIENT, coverage=True,
-        fit=args.fill)
+        light=LIGHT, exposure=EXPOSURE, ambient=AMBIENT, coverage=True,
+        place=(mount, tip,
+               (MOUNT_AT[0] * scale, MOUNT_AT[1] * scale),
+               (TIP_AT[0] * scale, TIP_AT[1] * scale)))
 
     rgba = np.dstack([rgb, np.where(drawn, 255, 0).astype(np.uint8)])
     # Premultiply before the downsample, or the transparent black around the silhouette
