@@ -1,18 +1,18 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Ob die Waffe in der Hand als Spiegelstab zaehlt.
+ * Whether the weapon in hand counts as a mirror wand.
  *
- * Zwei Stufen: die Klasse muss eingetragen sein, und falls fuer sie ein Muendungsaufsatz
- * hinterlegt ist, muss auch der sitzen. Letzteres gibt es wegen des Spectrum Device - ohne
- * Kamerakopf ist das ein Spektrumanalysator und soll sich auch weiter so verhalten, sonst
- * wuerde jedes Zielen damit unseren Monitor aufziehen.
+ * Two stages: the class has to be registered, and if a muzzle attachment is recorded for
+ * it, that has to be fitted as well. The second stage exists because of the Spectrum
+ * Device - without a camera head it is a spectrum analyser and should keep behaving like
+ * one, or every time you aimed it our view would come up.
  *
  * Arguments:
- * 0: Einheit <OBJECT>
+ * 0: Unit <OBJECT>
  *
  * Return Value:
- * Zaehlt als Stab <BOOL>
+ * Counts as a wand <BOOL>
  *
  * Example:
  * [ACE_player] call opw_mirror_fnc_isWand
@@ -28,6 +28,6 @@ if !(_weapon in GVAR(wandClasses)) exitWith {false};
 private _needed = GVAR(wandMuzzle) getOrDefault [_weapon, ""];
 if (_needed isEqualTo "") exitWith {true};
 
-// handgunItems liefert [Muendung, Zeiger, Optik, Magazin]. Alle bisherigen Staebe sitzen
-// im Pistolenslot, und nur fuer die wird ueberhaupt ein Aufsatz verlangt.
+// handgunItems returns [muzzle, pointer, optic, magazine]. Every wand so far sits in the
+// handgun slot, and those are the only ones an attachment is demanded for.
 _needed isEqualTo ((handgunItems _unit) param [0, ""])

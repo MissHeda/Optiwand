@@ -22,30 +22,30 @@ GVAR(zoomFar)    = 0.40;
 GVAR(requireClearance) = true;
 GVAR(guiMode)    = 0;
 GVAR(freeExtend) = FREE_EXTEND;
-// Wird vor jedem Ausbringen gesetzt: ueber die ACE-Interaktion kommt der Monitor immer
-// mit, ueber Zielen oder Taste richtet er sich nach der Einstellung.
+// Set before every deploy: through the ACE interaction the monitor always comes along,
+// while aiming or the keybind follow the setting.
 GVAR(viaInteraction) = false;
 GVAR(aimLatched) = false;
 
-// Welche Waffen als Spiegelstab zaehlen. Bewusst eine Liste: die Waffen-Addons tragen
-// sich selbst ein, dieses Addon kennt keine einzige Waffenklasse.
+// Which weapons count as a mirror wand. Deliberately a list: device addons register
+// themselves, and this addon knows not one weapon class.
 if (isNil QGVAR(wandClasses)) then {GVAR(wandClasses) = []};
 
-// Waffenklasse -> benoetigter Muendungsaufsatz, fuer Geraete, die nur mit dem passenden
-// Kopf als Stab zaehlen. Das Spectrum Device etwa bleibt ohne Kamera ein Spektrumanalysator.
-// Wer hier nichts eintraegt, zaehlt wie bisher immer.
+// Weapon class -> required muzzle attachment, for devices that only count as a wand with
+// the right head fitted. The Spectrum Device, for one, stays a plain spectrum analyser
+// without a camera. Anything not listed here counts unconditionally, as before.
 if (isNil QGVAR(wandMuzzle)) then {GVAR(wandMuzzle) = createHashMap};
 
 // Wands whose own model carries the render target on a screen surface. For those the
-// monitor panel stays hidden - the picture is on the device, putting a second copy of it
-// in front of the player's face would be absurd. The dialog itself still opens, because it
-// is what captures the keys.
+// monitor panel stays hidden - the picture is on the device, and putting a second copy of
+// it in front of the player's face would be absurd. The overlay layer still comes up,
+// because it carries the key legend.
 if (isNil QGVAR(screenWands)) then {GVAR(screenWands) = []};
 GVAR(viewBefore) = "INTERNAL";
 GVAR(mode)       = MODE_DOOR;
 GVAR(basePitch)  = PITCH_DEFAULT;
-// Freihand jeden Frame neu gemessen: die Blickrichtung, auf die GVAR(pitch) als
-// Ablage aufaddiert wird. An der Tuer unbenutzt.
+// Measured fresh every frame in freehand mode: the look direction that GVAR(pitch) is
+// added to as an offset. Unused at a door.
 GVAR(freeLookPitch) = 0;
 GVAR(freeOffsetForward) = 0.2;
 GVAR(freeOffsetRight) = 0;

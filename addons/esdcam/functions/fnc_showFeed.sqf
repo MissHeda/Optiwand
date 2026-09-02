@@ -1,13 +1,13 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Blendet das Kamerabild auf der Gerätescheibe ein oder aus.
+ * Fades the camera picture on the device screen in or out.
  *
  * Arguments:
- * 0: Anzeigen <BOOL>
+ * 0: Show <BOOL>
  *
  * Return Value:
- * Keiner
+ * None
  *
  * Example:
  * [true] call opw_esdcam_fnc_showFeed

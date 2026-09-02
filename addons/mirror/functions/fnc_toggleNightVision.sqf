@@ -1,14 +1,14 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Schaltet die Restlichtverstaerkung der Kamera um. Die Kamera hat ihre eigene, es spielt
- * also keine Rolle, was der Spieler auf dem Kopf traegt.
+ * Toggles the camera's image intensifier. The camera has its own, so it makes no
+ * difference what the player is wearing on their head.
  *
  * Arguments:
- * Keine
+ * None
  *
  * Return Value:
- * Behandelt <BOOL>
+ * Handled <BOOL>
  *
  * Example:
  * call opw_mirror_fnc_toggleNightVision
@@ -20,9 +20,8 @@ if (!GVAR(active)) exitWith {false};
 
 GVAR(nightVision) = !GVAR(nightVision);
 
-// Zwei Haelften: der Effekt im Render-Target und ein Schleier ueber der Anzeige. Der
-// Schleier macht den Schaltvorgang auch dort unmissverstaendlich, wo der Render-Effekt
-// kaum etwas bewirkt.
+// Two halves: the effect in the render target, and a wash over the display. The wash is
+// what makes the switch unmistakable even where the render effect does little.
 RTT_NAME setPiPEffect [parseNumber GVAR(nightVision)];
 
 private _ctrlIrTint = uiNamespace getVariable [QGVAR(ctrlIrTint), controlNull];
@@ -30,7 +29,7 @@ if (!isNull _ctrlIrTint) then {
     _ctrlIrTint ctrlShow GVAR(nightVision);
 };
 
-// Erzwingt, dass die Anzeige im selben Frame neu zeichnet
+// Force the readout to redraw in the same frame
 GVAR(readoutState) = [];
 
 true

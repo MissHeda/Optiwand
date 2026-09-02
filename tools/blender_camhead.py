@@ -1,32 +1,32 @@
 # -*- coding: utf-8 -*-
 """
-Macht aus dem Kameramodell in Blender den Muendungsaufsatz camhead.p3d - inklusive
-gebackener Textur, damit die Materialien aus Blender im Spiel ankommen.
+Turns the camera model in Blender into the muzzle attachment camhead.p3d, baked texture
+included, so the Blender materials reach the game.
 
-Ausfuehren: die .blend oeffnen, Scripting-Tab, diese Datei laden, Run.
-Die Quellobjekte bleiben unangetastet - gearbeitet wird auf einer Kopie namens OPW_CamHead.
-
---------------------------------------------------------------------------------------
-Warum gebacken wird
-
-Arma liest keine Blender-Node-Baeume. Rausch- und Wellentexturen, Bump, Glas - all das
-existiert nur in Blender. Der einzige Weg, dieses Aussehen ins Spiel zu bringen, ist es
-in ein Bild zu backen und dieses Bild als Textur mitzugeben. Genau das macht BAKE hier.
+To run: open the .blend, Scripting tab, load this file, Run.
+The source objects are left untouched - work happens on a copy called OPW_CamHead.
 
 --------------------------------------------------------------------------------------
-Warum die Ausrichtung so ist, wie sie ist
+Why anything is baked
 
-Gemessen an den drei Vanilla-Antennen des Spectrum Device, ausgelesen aus deren p3d:
+Arma cannot read Blender node trees. Noise and wave textures, bump, glass - all of that
+exists only in Blender. The one way to bring that look into the game is to bake it into an
+image and ship that image as a texture. BAKE below is what does it.
+
+--------------------------------------------------------------------------------------
+Why the orientation is what it is
+
+Measured against the three vanilla antennas of the Spectrum Device, read out of their p3d:
 
     muzzle_antenna_01_F   X -0.392 .. +0.007    40 cm
     muzzle_antenna_02_F   X -0.410 .. +0.298    71 cm
     muzzle_antenna_03_F   X -0.557 .. +0.000    56 cm
 
-Alle drei sitzen mit dem Ursprung am Geraet und erstrecken sich nach -X. Genau dorthin
-bringt dieses Skript das Modell: Halterung auf (0,0,0), Kamerakopf bei x = -LENGTH.
+All three sit with their origin at the device and extend along -X. That is exactly where
+this script puts the model: mount at (0,0,0), camera head at x = -LENGTH.
 
-Achsen: der Exporter schreibt Blender (x,y,z) als Arma (x,z,y). Die Laengsachse liegt also
-in beiden Welten auf X.
+Axes: the exporter writes Blender (x,y,z) as Arma (x,z,y), so the long axis lies on X in
+both worlds.
 """
 
 import math
@@ -36,32 +36,32 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
-# ---------------------------------------------------------------------------- Stellschrauben
-SRC_NAMES = []                  # leer = alle sichtbaren Mesh-Objekte der Szene nehmen
-SKIP_PREFIX = ("REF_", "OPW_")  # Referenzrig und eigene Arbeitskopien nie einsammeln
+# ---------------------------------------------------------------------------------- Knobs
+SRC_NAMES = []                  # empty = take every visible mesh object in the scene
+SKIP_PREFIX = ("REF_", "OPW_")  # never collect the reference rig or our own work copies
 
 WORK = "OPW_CamHead"
-LENGTH = 0.42                   # Gesamtlaenge in Metern
-MASS = 0.5                      # kg im Geometrie-LOD
+LENGTH = 0.42                   # overall length in metres
+MASS = 0.5                      # kg in the geometry LOD
 
-# Welches Ende steckt im Geraet.
+# Which end goes into the device.
 #
-# False, also das dicke: der Flansch ist die Halterung, der Kamerakopf ist das duenne Ende.
-# Andersherum gemessen hatte ich es zuerst falsch - die vielen Vertices am duennen Ende sind
-# die konzentrischen Ringe der Optik, nicht ein Stecker.
+# False, meaning the thick one: the flange is the mount and the camera head is the thin end.
+# This was read the wrong way round at first - the many vertices at the thin end are the
+# concentric rings of the optic, not a connector.
 MOUNT_AT_THIN_END = False
 
-BAKE = True                     # Blender-Materialien in eine Textur backen
+BAKE = True                     # bake the Blender materials into a texture
 BAKE_SIZE = 2048
-BAKE_NORMAL = True              # zusaetzlich eine Normal Map (holt die Riffelung mit)
-REUNWRAP = True                 # neu auspacken, wenn die vorhandene UV zu wenig Flaeche nutzt
-# Gesunde Spanne fuer die belegte UV-Flaeche. Zu wenig heisst verschenkte Aufloesung,
-# ueber 1.0 heisst ueberlappende Inseln - dann malt eine Stelle der Textur mehrere Stellen
-# des Modells an und der Bake wird unbrauchbar. Das Modell kam mit 3.95, also stark ueberlappt.
+BAKE_NORMAL = True              # also a normal map, which brings the ribbing along
+REUNWRAP = True                 # re-unwrap when the existing UV uses too little of the tile
+# Healthy band for the occupied UV area. Too little means wasted resolution; above 1.0 means
+# overlapping islands, where one spot in the texture paints several spots on the model and
+# the bake becomes useless. The model came in at 3.95, so heavily overlapped.
 UV_MIN_COVERAGE = 0.35
 UV_MAX_COVERAGE = 1.05
 
-LOD_RESOLUTION = "-1.0"         # Toolbox-Enum, der Zahlenwert steckt in lodDistance
+LOD_RESOLUTION = "-1.0"         # Toolbox enum; the numeric value lives in lodDistance
 LOD_GEOMETRY = "1.000e+13"
 LOD_MEMORY = "1.000e+15"
 
@@ -73,10 +73,10 @@ CANDIDATES = [
 notes = {}
 
 
-# ---------------------------------------------------------------------------- Werkzeug
+# -------------------------------------------------------------------------------- Tools
 def enable_toolbox():
     if hasattr(bpy.types.Object, "armaObjProps"):
-        return "lief schon"
+        return "was already on"
     names = ["bl_ext.user_default.ArmaToolbox", "ArmaToolbox"]
     try:
         import addon_utils
@@ -89,16 +89,16 @@ def enable_toolbox():
         try:
             bpy.ops.preferences.addon_enable(module=name)
             if hasattr(bpy.types.Object, "armaObjProps"):
-                return "eingeschaltet: %s" % name
+                return "switched on: %s" % name
         except Exception:
             continue
-    return "FEHLGESCHLAGEN - von Hand unter Edit > Preferences > Add-ons einschalten"
+    return "FAILED - enable it by hand under Edit > Preferences > Add-ons"
 
 
 def set_lod(obj, lod_id, distance=0.0):
     p = getattr(obj, "armaObjProps", None)
     if p is None:
-        return "kein armaObjProps"
+        return "no armaObjProps"
     bad = []
     for attr, val in (("isArmaObject", True), ("lod", lod_id), ("lodDistance", distance)):
         try:
@@ -111,7 +111,7 @@ def set_lod(obj, lod_id, distance=0.0):
 def set_material(mat, texture, rvmat=""):
     p = getattr(mat, "armaMatProps", None)
     if p is None:
-        return "kein armaMatProps"
+        return "no armaMatProps"
     for attr, val in (("texType", "Texture"), ("texture", texture), ("rvMat", rvmat)):
         try:
             setattr(p, attr, val)
@@ -121,7 +121,7 @@ def set_material(mat, texture, rvmat=""):
 
 
 def drop(name, keep_active):
-    """Objekt entfernen. Nie das aktive - Blender stuerzt sonst ohne Fehlermeldung ab."""
+    """Remove an object. Never the active one - Blender hard crashes with no error."""
     old = bpy.data.objects.get(name)
     if old is None:
         return
@@ -145,8 +145,8 @@ else:
     sources = [o for o in bpy.context.scene.objects
                if o.type == "MESH" and not o.name.startswith(SKIP_PREFIX)]
 if not sources:
-    raise SystemExit("Keine Quellobjekte gefunden")
-notes["quellen"] = [o.name for o in sources]
+    raise SystemExit("No source objects found")
+notes["sources"] = [o.name for o in sources]
 
 coll = sources[0].users_collection[0] if sources[0].users_collection \
     else bpy.context.scene.collection
@@ -154,10 +154,10 @@ coll = sources[0].users_collection[0] if sources[0].users_collection \
 for nm in (WORK, WORK + "Geo", WORK + "Mem"):
     drop(nm, sources[0])
 
-# ---------------------------------------------------------------- Teile zusammenfassen
+# ---------------------------------------------------------------------- Merge the parts
 #
-# Ueber das ausgewertete Objekt, damit Modifier mitkommen - das Modell benutzt Mirror fuer
-# die Halterung und "Smooth by Angle" fuer die Kanten. Ohne das fehlte die halbe Geometrie.
+# Through the evaluated object so modifiers come along - the model uses Mirror for the mount
+# and "Smooth by Angle" for the edges. Without that half the geometry would be missing.
 dg = bpy.context.evaluated_depsgraph_get()
 copies = []
 for o in sources:
@@ -178,12 +178,12 @@ work = bpy.context.view_layer.objects.active
 work.name = WORK
 work.data.name = WORK
 
-# Transformationen einbacken, ohne Operator: die Objektmatrix direkt auf die Vertices legen.
+# Bake the transforms in without an operator: apply the object matrix straight to the verts.
 work.data.transform(work.matrix_world)
 work.matrix_world = Matrix.Identity(4)
 me = work.data
 
-# N-Gons aufloesen. Nur die - Vierecke laesst der Exporter durch.
+# Resolve n-gons. Only those - the exporter accepts quads.
 bm = bmesh.new()
 bm.from_mesh(me)
 ngons = [f for f in bm.faces if len(f.verts) > 4]
@@ -200,7 +200,7 @@ def bounds():
     return lo, hi
 
 
-# ---------------------------------------------------------------- Ausrichten
+# ------------------------------------------------------------------------------- Orient
 lo, hi = bounds()
 long_ax = max(range(3), key=lambda i: hi[i] - lo[i])
 perp = [i for i in range(3) if i != long_ax]
@@ -219,10 +219,10 @@ def edge_radius(at_max):
 
 
 thin_at_max = edge_radius(True) < edge_radius(False)
-notes["duennes_ende"] = "max" if thin_at_max else "min"
+notes["thin_end"] = "max" if thin_at_max else "min"
 mount_at_max = thin_at_max if MOUNT_AT_THIN_END else (not thin_at_max)
 
-# Laengsachse auf X drehen, Montage-Ende nach +X.
+# Turn the long axis onto X, with the mount end towards +X.
 if long_ax == 1:
     me.transform(Matrix.Rotation(math.radians(-90.0 if mount_at_max else 90.0), 4, "Z"))
 elif long_ax == 2:
@@ -235,16 +235,16 @@ me.transform(Matrix.Translation((-hi.x, -(lo.y + hi.y) / 2.0, -(lo.z + hi.z) / 2
 lo, hi = bounds()
 me.transform(Matrix.Scale(LENGTH / (hi.x - lo.x), 4))
 lo, hi = bounds()
-notes["laenge_cm"] = round((hi.x - lo.x) * 100, 2)
-notes["quer_cm"] = [round((hi.y - lo.y) * 100, 2), round((hi.z - lo.z) * 100, 2)]
+notes["length_cm"] = round((hi.x - lo.x) * 100, 2)
+notes["across_cm"] = [round((hi.y - lo.y) * 100, 2), round((hi.z - lo.z) * 100, 2)]
 
-# ---------------------------------------------------------------- UV pruefen
+# ----------------------------------------------------------------------------- Check UV
 root = next((p for p in CANDIDATES if os.path.isdir(p)), None)
 notes["repo"] = root
 
 
 def uv_coverage():
-    """Anteil der Kachel, den die Inseln flaechenmaessig belegen.
+    """Fraction of the tile the islands occupy by area.
 
     Ueber die Dreiecksflaeche, nicht ueber abgetastete Eckpunkte: eine grosse Insel hat nur
     drei Ecken und wuerde beim Abtasten als fast leer gelten. Genau daran hat die erste
@@ -264,12 +264,12 @@ def uv_coverage():
 
 
 cov = uv_coverage()
-notes["uv_abdeckung_vorher"] = round(cov, 3)
+notes["uv_coverage_before"] = round(cov, 3)
 
 if BAKE and REUNWRAP and (cov < UV_MIN_COVERAGE or cov > UV_MAX_COVERAGE):
-    # Die mitgelieferte UV nutzt zu wenig der Kachel - gebacken waere die Textur dann
-    # groesstenteils leer und das Modell im Spiel entsprechend grob. Neu auspacken kostet
-    # nichts, weil die Blender-Materialien prozedural sind und gar keine UV brauchen.
+    # The supplied UV uses too little of the tile - baked, the texture would be mostly empty
+    # and the model correspondingly coarse in game. Re-unwrapping costs nothing here, because
+    # the Blender materials are procedural and need no UV at all.
     for ob in bpy.context.view_layer.objects:
         ob.select_set(False)
     work.select_set(True)
@@ -277,8 +277,8 @@ if BAKE and REUNWRAP and (cov < UV_MIN_COVERAGE or cov > UV_MAX_COVERAGE):
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
     bpy.ops.uv.smart_project(angle_limit=math.radians(66.0), island_margin=0.01)
-    # Nach dem Auspacken noch einmal dicht packen. Smart Project laesst sonst viel Kachel
-    # ungenutzt, und ungenutzte Kachel heisst verschenkte Aufloesung auf dem Modell.
+    # Pack tightly again after unwrapping. Smart Project otherwise leaves much of the tile
+    # unused, and unused tile means resolution thrown away on the model.
     try:
         bpy.ops.uv.select_all(action="SELECT")
         bpy.ops.uv.average_islands_scale()
@@ -286,10 +286,10 @@ if BAKE and REUNWRAP and (cov < UV_MIN_COVERAGE or cov > UV_MAX_COVERAGE):
     except Exception as exc:
         notes["uv_pack"] = str(exc)
     bpy.ops.object.mode_set(mode="OBJECT")
-    notes["uv"] = "neu ausgepackt"
-    notes["uv_abdeckung_nachher"] = round(uv_coverage(), 3)
+    notes["uv"] = "re-unwrapped"
+    notes["uv_coverage_after"] = round(uv_coverage(), 3)
 else:
-    notes["uv"] = "vorhandene benutzt"
+    notes["uv"] = "used existing"
 
 # ---------------------------------------------------------------- Backen
 BAKED_CO = "camhead_co"
@@ -298,34 +298,33 @@ art = os.path.join(root, "art", "esdcam") if root else None
 
 
 def relink_missing_images():
-    """Fehlende Bildtexturen neben der .blend suchen.
+    """Look for missing image textures next to the .blend.
 
-    Fehlt eine, backt Blender an dieser Stelle Magenta - im ersten Durchgang war genau das
-    an der Optik zu sehen.
+    If one is missing, Blender bakes magenta at that spot - which is exactly what showed up
+    on the optic in the first run.
     """
     missing = [i.name for i in bpy.data.images
                if i.source == "FILE" and i.filepath
                and not os.path.exists(bpy.path.abspath(i.filepath))]
     if not missing:
-        return "keine fehlten"
+        return "none were missing"
     here = os.path.dirname(bpy.data.filepath) or os.path.expanduser("~")
     try:
         bpy.ops.file.find_missing_files(directory=here)
     except Exception as exc:
-        return "Suche fehlgeschlagen: %s" % exc
+        return "search failed: %s" % exc
     still = [i.name for i in bpy.data.images
              if i.source == "FILE" and i.filepath
              and not os.path.exists(bpy.path.abspath(i.filepath))]
-    return "%d gefehlt, %d weiterhin fehlend" % (len(missing), len(still))
+    return "%d were missing, %d still missing" % (len(missing), len(still))
 
 
 def demetal(restore=None):
-    """Metallic vor dem Backen auf null, danach zurueck.
+    """Metallic to zero before baking, back afterwards.
 
-    Ein Diffuse-Bake liefert base_color * (1 - metallic). Bei metallischen Materialien ist
-    das per Definition Schwarz - der erste Durchgang kam deshalb fast komplett schwarz
-    heraus. Fuer Arma wollen wir die Grundfarbe in der _co-Textur; der metallische Eindruck
-    entsteht dort ohnehin ueber den Glanz in der rvmat.
+    A diffuse bake yields base_color * (1 - metallic). For metallic materials that is black
+    by definition. For Arma we want the base colour in the _co texture; the metallic
+    impression comes from the specular in the rvmat anyway.
     """
     if restore is not None:
         for node, val in restore:
@@ -345,7 +344,7 @@ def demetal(restore=None):
 
 
 def bake_pass(kind, image_name, filename, colorspace):
-    """Ein Backdurchgang auf ein neues Bild, danach als PNG gespeichert."""
+    """One bake pass onto a fresh image, then saved as PNG."""
     img = bpy.data.images.get(image_name)
     if img is not None:
         bpy.data.images.remove(img)
@@ -353,14 +352,14 @@ def bake_pass(kind, image_name, filename, colorspace):
                               alpha=False, float_buffer=False)
     img.colorspace_settings.name = colorspace
 
-    # Jedes Material braucht einen aktiven Bildtextur-Knoten als Backziel.
+    # Every material needs an active image texture node as the bake target.
     nodes_added = []
     for slot in work.material_slots:
         mat = slot.material
         if mat is None:
-            # Leerer Slot - beim Zusammenfassen kommt der von Teilen ohne eigenes Material.
-            # Ohne Fuellung meldet der Backvorgang "No active image found in material slot"
-            # und laesst diese Flaechen unbemalt.
+            # Empty slot - merging brings these in from parts with no material of their own.
+            # Left unfilled, the bake reports "No active image found in material slot" and
+            # leaves those faces unpainted.
             mat = bpy.data.materials.get("opw_camhead_fill") \
                 or bpy.data.materials.new("opw_camhead_fill")
             mat.use_nodes = True
@@ -412,24 +411,24 @@ if BAKE and root:
     sc.render.bake.use_pass_color = True
     sc.render.bake.margin = 8
 
-    notes["bilder"] = relink_missing_images()
+    notes["images"] = relink_missing_images()
 
-    # Metallic nur fuer den Farbdurchgang aushaengen, fuer die Normal Map ist es egal.
+    # Unhook metallic for the colour pass only; for the normal map it makes no difference.
     saved = demetal()
-    notes["metallic_genullt"] = len(saved)
-    notes["bake_co"], notes["pfad_co"] = bake_pass(
+    notes["metallic_zeroed"] = len(saved)
+    notes["bake_co"], notes["path_co"] = bake_pass(
         "DIFFUSE", BAKED_CO, "camhead_co.png", "sRGB")
     demetal(saved)
 
     if BAKE_NORMAL:
-        notes["bake_nohq"], notes["pfad_nohq"] = bake_pass(
+        notes["bake_nohq"], notes["path_nohq"] = bake_pass(
             "NORMAL", BAKED_NOHQ, "camhead_nohq.png", "Non-Color")
     sc.render.engine = prev_engine
 
-# ---------------------------------------------------------------- Arma-Material
+# ----------------------------------------------------------------------- Arma material
 #
-# Nach dem Backen traegt ein einziges Material die gesamte Optik. Die Farbe kommt aus der
-# gebackenen Textur, die Beleuchtung aus der rvmat.
+# After baking, a single material carries the whole look. Colour comes from the baked
+# texture, lighting from the rvmat.
 me.materials.clear()
 mat = bpy.data.materials.get("opw_camhead") or bpy.data.materials.new("opw_camhead")
 sep = os.sep
@@ -444,11 +443,11 @@ for p in me.polygons:
     p.material_index = 0
 me.update()
 
-# ---------------------------------------------------------------- LODs
+# ------------------------------------------------------------------------------- LODs
 notes["resolution"] = set_lod(work, LOD_RESOLUTION, 0.0)
 
-# Geometrie: ein einfacher Quader. Arma will hier konvexe Koerper, und eine Kopie des
-# Sichtmodells waere weder konvex noch noetig - der Aufsatz wird nicht beschossen.
+# Geometry: a simple box. Arma wants convex bodies here, and a copy of the visual model
+# would be neither convex nor necessary - the attachment does not get shot at.
 lo, hi = bounds()
 gv = [(x, y, z) for x in (lo.x, hi.x) for y in (lo.y, hi.y) for z in (lo.z, hi.z)]
 gf = [(0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)]
@@ -459,8 +458,8 @@ geo = bpy.data.objects.new(WORK + "Geo", gme)
 coll.objects.link(geo)
 notes["geometry"] = set_lod(geo, LOD_GEOMETRY, 0.0)
 
-# Masse liest der Exporter aus einem bmesh-Float-Layer "FHQWeights", nicht aus
-# armaObjProps.mass. Fehlt der Layer, bricht der Export mit einem KeyError ab.
+# The exporter reads mass from a bmesh float layer called "FHQWeights", not from
+# armaObjProps.mass. Without that layer the export aborts with a KeyError.
 bm = bmesh.new()
 bm.from_mesh(geo.data)
 layer = bm.verts.layers.float.get("FHQWeights") or bm.verts.layers.float.new("FHQWeights")
@@ -473,8 +472,8 @@ try:
 except Exception:
     pass
 
-# Speicherpunkte. muzzlePos und muzzleEnd aus der ItemInfo zeigen hierher; der Vektor von
-# "konec hlavne" nach "usti hlavne" ist die Blickrichtung, hier -X wie bei den Antennen.
+# Memory points. muzzlePos and muzzleEnd from the ItemInfo point here; the vector from
+# "konec hlavne" to "usti hlavne" is the view direction, -X here as on the antennas.
 mme = bpy.data.meshes.new(WORK + "Mem")
 mme.from_pydata([(lo.x, 0.0, 0.0), (lo.x + 0.05, 0.0, 0.0)], [], [])
 mme.update()
@@ -484,7 +483,7 @@ notes["memory"] = set_lod(mem, LOD_MEMORY, 1.0)
 for gname, idx in (("usti hlavne", 0), ("konec hlavne", 1)):
     mem.vertex_groups.new(name=gname).add([idx], 1.0, "REPLACE")
 
-# ---------------------------------------------------------------- Export
+# ----------------------------------------------------------------------------- Export
 out = os.path.join(root, "addons", "esdcam", "model", "camhead.p3d") if root else None
 
 for ob in bpy.context.view_layer.objects:
@@ -506,34 +505,34 @@ picked = next((f for f in found if "export" in (f[0] + f[1]).lower()
                and "batch" not in f[1].lower()), None)
 
 if picked is None:
-    notes["export"] = "kein p3d-Export-Operator gefunden"
+    notes["export"] = "no p3d export operator found"
 elif out is None:
-    notes["export"] = "Repo nicht gefunden - CANDIDATES anpassen"
+    notes["export"] = "repo not found - adjust CANDIDATES"
 else:
     op = getattr(getattr(bpy.ops, picked[0]), picked[1])
     try:
         keys = sorted(op.get_rna_type().properties.keys())
     except Exception:
         keys = []
-    # mergeSameLOD aus: ein Objekt je LOD, da gibt es nichts zu verschmelzen.
+    # mergeSameLOD off: one object per LOD, so there is nothing to merge.
     extra = {"mergeSameLOD": False} if "mergeSameLOD" in keys else {}
     if not os.path.isdir(os.path.dirname(out)):
         os.makedirs(os.path.dirname(out))
     try:
         op(filepath=out, **extra)
         notes["export"] = ("ok, %d KB" % (os.path.getsize(out) // 1024)) \
-            if os.path.exists(out) else "Operator lief, Datei fehlt"
+            if os.path.exists(out) else "operator ran, file missing"
     except Exception as exc:
         notes["export"] = "FEHLER: %s" % exc
 
 notes["tris"] = sum(len(p.vertices) - 2 for p in me.polygons)
-notes["ziel"] = out
+notes["target"] = out
 
 print("=" * 74)
-for k in ("toolbox", "quellen", "ngons", "duennes_ende", "laenge_cm", "quer_cm", "tris",
-          "uv", "uv_abdeckung_vorher", "uv_abdeckung_nachher", "uv_pack",
-          "bilder", "metallic_genullt",
-          "bake_co", "pfad_co", "bake_nohq", "pfad_nohq",
-          "material", "resolution", "geometry", "memory", "export", "ziel"):
+for k in ("toolbox", "sources", "ngons", "thin_end", "length_cm", "across_cm", "tris",
+          "uv", "uv_coverage_before", "uv_coverage_after", "uv_pack",
+          "images", "metallic_zeroed",
+          "bake_co", "path_co", "bake_nohq", "path_nohq",
+          "material", "resolution", "geometry", "memory", "export", "target"):
     if k in notes:
         print("  %-20s %s" % (k, notes[k]))

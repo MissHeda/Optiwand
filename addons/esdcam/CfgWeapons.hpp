@@ -2,8 +2,8 @@ class CfgWeapons {
     class ItemCore;
     class InventoryMuzzleItem_Base_F;
 
-    // Basis der Vanilla-Antennen. Wer sie erbt, passt ohne weiteres Zutun in den
-    // Muendungsslot des Geraets und bringt muzzlePos/muzzleEnd schon mit.
+    // Base class of the vanilla antennas. Inheriting from it fits the device's muzzle
+    // slot with no further work and brings muzzlePos/muzzleEnd along already.
     class muzzle_antenna_base_01_F: ItemCore {
         class ItemInfo;
     };
@@ -19,13 +19,13 @@ class CfgWeapons {
         model = CAM_MODEL;
         picture = CAM_PICTURE;
 
-        // Kein Eintrag "class EM { antenna = ... }".
+        // No "class EM { antenna = ... }" entry.
         //
-        // Das ist Absicht und der Kern des Ganzen: ohne EM-Block liefert das Geraet keine
-        // Frequenzen, also bleibt der Spektrumteil leer und wir haben den Bildschirm frei.
-        // Crows Electronic Warfare kommt damit ebenfalls klar - deren getSpectrumDefaultFreq
-        // gibt fuer unbekannte Aufsaetze antenna = -1 zurueck, und spectrumTrackingLocal
-        // steigt bei -1 aus, statt zu stolpern.
+        // That omission is deliberate and is the crux of the whole thing: with no EM block
+        // the device reports no frequencies, so the spectrum side stays empty and the
+        // screen is ours to use. Crows Electronic Warfare copes with it too - its
+        // getSpectrumDefaultFreq returns antenna = -1 for unknown attachments, and
+        // spectrumTrackingLocal bows out on -1 rather than stumbling.
         GVAR(isCamera) = 1;
 
         class ItemInfo: InventoryMuzzleItem_Base_F {
@@ -37,19 +37,19 @@ class CfgWeapons {
     };
 
     // -----------------------------------------------------------------------------------
-    // Den Aufsatz am Geraet zulassen.
+    // Allow the attachment on the device.
     //
-    // compatibleItems wird mit += ergaenzt statt ersetzt: sonst haetten wir mit dem Einbau
-    // der Kamera die drei Vanilla-Antennen aus dem Muendungsslot geworfen.
+    // compatibleItems is extended with += rather than replaced: otherwise fitting the
+    // camera would have thrown the three vanilla antennas out of the muzzle slot.
     // -----------------------------------------------------------------------------------
     class Pistol;
     class Pistol_Base_F: Pistol;
 
     class hgun_esd_01_base_F: Pistol_Base_F {
-        // Ohne ": WeaponSlotsInfo". Die Klasse hat im Vanilla-Geraet keine Elternklasse; sie
-        // ihr hier zu geben, waere eine Aenderung an fremder Config ohne Gegenwert - das Log
-        // meldet sie als "Updating base class ''->'WeaponSlotsInfo'". Wir wollen nur einen
-        // Eintrag in einer Liste ergaenzen, also fassen wir auch nur den an.
+        // No ": WeaponSlotsInfo". The class has no parent on the vanilla device; giving it
+        // one here would change somebody else's config for no gain - the log reports it as
+        // "Updating base class ''->'WeaponSlotsInfo'". All we want is one more entry in one
+        // list, so that is all we touch.
         class WeaponSlotsInfo {
             class MuzzleSlot {
                 compatibleItems[] += {CAM_ITEM};

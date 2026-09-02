@@ -4,45 +4,45 @@
 #include "\z\opw\addons\main\script_macros.hpp"
 
 // ---------------------------------------------------------------------------------------
-// Kameraaufsatz fuer das Spectrum Device aus der Contact-Erweiterung.
+// Camera attachment for the Spectrum Device from the Contact platform.
 //
-// Aus dessen eigener Config abgelesen (a3\Weapons_F_Enoch\Pistols\ESD_01\config.bin):
+// Read out of its own config (a3\Weapons_F_Enoch\Pistols\ESD_01\config.bin):
 //
 //   hgun_esd_01_base_F   weaponInfoType = "RscWeaponSpectrumAnalyzerGeneric"
 //                        WeaponSlotsInfo > MuzzleSlot / MuzzleSlot2 / MuzzleSlot3
-//   muzzle_antenna_0*_f  class EM { antenna = ... }, Basis muzzle_antenna_base_01_F
+//   muzzle_antenna_0*_f  class EM { antenna = ... }, base muzzle_antenna_base_01_F
 //
-// Wir haengen in MuzzleSlot - denselben Platz, den sonst die Richtantenne belegt. Damit ist
-// die Kamera eine echte Alternative zur Antenne und keine zweite Waffe.
+// We hang in MuzzleSlot - the same place the directional antenna normally occupies. That
+// makes the camera a real alternative to an antenna rather than a second weapon.
 //
 // ---------------------------------------------------------------------------------------
-// Das Bild liegt auf der Scheibe des Geraets
+// The picture sits on the device's own screen
 //
-// Die Geraeteanzeige zeichnet ihre Controls ueber "class Areas > Usertexture" auf ein
-// echtes 3D-Modell (analyzer_screen.p3d). Da hinein haengen wir das Kamerabild - zwischen
-// den Kompass und die Signalanzeige von Bohemia, also genau dorthin, wo es hingehoert.
+// The device display draws its controls onto a real 3D model (analyzer_screen.p3d) through
+// "class Areas > Usertexture". That is where the camera picture goes - between Bohemia's
+// compass and its signal readout, which is exactly where it belongs.
 //
-// Wichtig: die gesperrte Steuerung steht dem nicht im Weg. Der Dialog aus fnc_openView
-// faengt zwar Tastatur und Maus ab, wirft den Spieler aber NICHT aus dem Zielen - das
-// Geraet bleibt in der Hand und seine Anzeige offen. Ich hatte das Gegenteil behauptet;
-// im Spiel ist unten am Bildrand das Geraet weiterhin zu sehen.
+// Locked controls do not stand in the way of this. The overlay from fnc_openView captures
+// keyboard and mouse, but it does NOT throw the player out of the aimed view - the device
+// stays in hand and its display stays open. In game the device remains visible along the
+// bottom edge of the screen.
 //
-// Eine eigene Kamera braucht es dafuer nicht: der Spiegel-Teil betreibt bereits eine und
-// rendert nach opw_mirror_rtt. Wir zeigen dasselbe Ziel nur an einer zweiten Stelle an.
+// No camera of our own is needed: the mirror component already runs one and renders to
+// opw_mirror_rtt. We only show that same target in a second place.
 // ---------------------------------------------------------------------------------------
 
-// Muss zu RTT_NAME und RTT_SIZE in addons\mirror\script_component.hpp passen.
+// Must match RTT_NAME and RTT_SIZE in addons\mirror\script_component.hpp.
 #define FEED_TEXTURE "#(argb,2048,2048,1)r2t(opw_mirror_rtt,1)"
 
-// Eigene Controls. Hoch genug, dass sie keiner Vanilla-Vergabe in die Quere kommen:
-// belegt sind dort 10/11, 999, 1994-1999, 3000-3xxx, 4000-4005, 5500-5802, 6700-6714.
+// Our own controls. High enough not to collide with any vanilla assignment: taken there are
+// 10/11, 999, 1994-1999, 3000-3xxx, 4000-4005, 5500-5802 and 6700-6714.
 #define IDC_FEED 71010
 #define IDC_FEED_GRAIN 71012
 
-// Vanilla-Controls, die im Kamerabetrieb weg muessen. Aus ui_f_enoch abgelesen: das Bild
-// deckt die Plotflaeche ab, die Beschriftungen liegen aber daneben - LabelsV links davon,
-// LabelsH und der ausgewaehlte Text darunter. Die blieben sonst stehen und wuerden zu einem
-// Kamerabild dBm und MHz anzeigen.
+// Vanilla controls that have to go while the camera runs. Read out of ui_f_enoch: the
+// picture covers the plot area, but the labels sit beside it - LabelsV to its left,
+// LabelsH and the selected-signal text below. Left alone they would keep showing dBm and
+// MHz next to a camera image.
 #define IDC_LINES 1999
 #define IDC_LABELS_V 5550
 #define IDC_LABELS_H 5650
@@ -53,33 +53,34 @@
 #define IDC_PROGRESS 4005
 #define IDC_SELECTED_TEXT 4001
 
-// Der Kompass bleibt bewusst an. Er sitzt oberhalb der Plotflaeche und ist der Grund,
-// warum das Ganze nach Werkszustand aussieht statt nach Aufsatz.
+// The compass deliberately stays on. It sits above the plot area, and it is the reason the
+// whole thing reads as factory equipment rather than as an add-on.
 #define IDC_COMPASS 5700
 
 #define SPECTRUM_DISPLAY "RscWeaponSpectrumAnalyzerGeneric"
 
-// Faengt alle Varianten des Geraets ab: hgun_esd_01_F selbst und die drei mit fest
-// verbauter Antenne.
+// Catches every variant of the device: hgun_esd_01_F itself and the three that ship with an
+// antenna already fitted.
 #define ESD_WEAPON_PREFIX "hgun_esd_"
 
-// Muss zu MODE_DOOR in addons\mirror\script_component.hpp passen. Der Spiegel-Teil
-// schickt den Modus im deployed-Ereignis mit.
+// Must match MODE_DOOR in addons\mirror\script_component.hpp. The mirror component passes
+// the mode along in its deployed event.
 #define MODE_DOOR 0
 
 #define FADE_SHOW 0
 #define FADE_HIDE 1
 
-// Zwei Schreibweisen desselben Namens: die Klasse wird unquotiert deklariert, ueberall
-// sonst - weapons[], compatibleItems[], Vergleiche im Skript - steht die Zeichenkette.
+// Two spellings of the same name: the class is declared unquoted, while everywhere else -
+// weapons[], compatibleItems[], comparisons in script - the string is what is wanted.
 #define CAM_ITEM_CLASS opw_muzzle_camera
 #define CAM_ITEM QUOTE(CAM_ITEM_CLASS)
 
-// Eigenes Modell: die Schwanenhalskamera aus mia.blend, ueber tools/blender_camhead.py
-// ausgerichtet und exportiert. 42 cm lang, Stecker im Ursprung, Kopf nach -X - dieselbe
-// Lage wie die drei Vanilla-Antennen, gemessen aus deren p3d.
+// Our own model: the gooseneck camera, oriented and exported through
+// tools/blender_camhead.py. 42 cm long, mount at the origin, head towards -X - the same
+// placement as the three vanilla antennas, measured from their p3d.
 #define CAM_MODEL QPATHTOF(model\camhead.p3d)
 
-// Inventarbild noch von der Vanilla-Antenne. Liegt in Contact, das wir ohnehin voraussetzen,
-// also kein fehlender Pfad - aber ein Platzhalter, bis ein Render des eigenen Modells da ist.
+// Inventory picture still borrowed from the vanilla antenna. It lives in Contact, which we
+// require anyway, so the path cannot go missing - but it is a placeholder until a render of
+// our own model replaces it.
 #define CAM_PICTURE "\a3\Weapons_F_Enoch\Pistols\ESD_01\data\ui\gear_muzzle_antenna_01_ca.paa"

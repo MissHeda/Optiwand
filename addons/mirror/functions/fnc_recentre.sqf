@@ -1,13 +1,13 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Setzt Kopfschwenk, Ausfahrweite und Zoom auf die Ausgangslage zurueck.
+ * Resets swivel, reach and zoom to their starting positions.
  *
  * Arguments:
- * Keine
+ * None
  *
  * Return Value:
- * Behandelt <BOOL>
+ * Handled <BOOL>
  *
  * Example:
  * call opw_mirror_fnc_recentre
@@ -18,8 +18,8 @@
 if (!GVAR(active)) exitWith {false};
 
 GVAR(yaw) = 0;
-// Funktioniert in beiden Modi: an der Tuer ist basePitch der Ruhewinkel, freihand ist er
-// null und GVAR(pitch) damit die Ablage auf die Blickrichtung.
+// Works in both modes: at a door basePitch is the resting angle, freehand it is zero and
+// GVAR(pitch) is therefore the offset on the look direction.
 GVAR(pitch) = GVAR(basePitch);
 GVAR(depth) = GVAR(depthDefault);
 GVAR(slide) = 0;
@@ -30,7 +30,7 @@ if (!isNull GVAR(camera)) then {
     GVAR(camera) camCommit 0;
 };
 
-// Die Kollisionspruefung darf von der neuen Lage aus neu bewerten
+// Let the collision sweep re-evaluate from wherever the head ends up
 GVAR(lastCamPosASL) = [];
 
 true

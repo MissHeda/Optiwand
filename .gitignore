@@ -9,5 +9,10 @@ keys/*
 .hemttout
 hemtt.exe
 
-# Alte Release-Bauten im Archiv - reine Artefakte, jederzeit neu baubar
+# Old release builds in the archive - pure artefacts, rebuildable at any time
 _attic/*.zip
+
+# Archive of the old standalone wand. Stays on disk, but does not belong in the repo -
+# the first commit has it, so it can be recovered from there at any time:
+#   git checkout 5cf04f1 -- _attic
+_attic/

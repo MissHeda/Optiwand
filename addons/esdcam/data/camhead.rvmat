@@ -1,17 +1,18 @@
-// Material des Kameraaufsatzes.
+// Material of the camera attachment.
 //
-// Die Farbe kommt aus camhead_co.paa, gebacken aus den Blender-Materialien (tools/
-// blender_camhead.py, BAKE = True). Die Struktur des Schwanenhalses steckt in camhead_nohq
-// - die Riffelung ist in Blender prozeduraler Bump und existiert als Geometrie gar nicht,
-// gebacken kommt sie trotzdem mit.
+// Colour comes from camhead_co.paa, baked from the Blender materials (tools/
+// blender_camhead.py, BAKE = True). The gooseneck's structure sits in camhead_nohq - the
+// ribbing is procedural bump in Blender and does not exist as geometry at all, but it
+// comes along once baked.
 //
-// Warum die Farbtextur dunkler wirkt als der Blender-Render: gebacken wird die Grundfarbe,
-// nicht das beleuchtete Bild. Der metallische Eindruck entsteht hier unten ueber specular -
-// steckte er schon in der Textur, waere er im Spiel doppelt drin und das Modell wuerde
-// flach und milchig aussehen.
+// Why the colour texture looks darker than the Blender render: what is baked is the base
+// colour, not the lit image. The metallic impression is produced further down through
+// specular - were it in the texture as well it would be in twice over in game, and the
+// model would look flat and milky.
 //
-// Zum Nachdrehen: specular hoch = mehr Reflexion, specularPower hoch = kleineres, haerteres
-// Glanzlicht. Die erste Zahl im Fresnel steuert den hellen Rand an der Silhouette.
+// To adjust: higher specular means more reflection, higher specularPower a smaller and
+// harder highlight. The first number in the fresnel drives the bright rim at the
+// silhouette.
 
 class StageTI {
     texture = "a3\data_f\default_ti_ca.paa";
@@ -27,9 +28,9 @@ PixelShaderID="Super";
 VertexShaderID="Super";
 
 class Stage1 {
-    // Kein fuehrender Backslash: beim mainprefix z loest Arma "\z\opw\..." nicht auf,
-    // "z\opw\..." dagegen schon. Das ist belegt - beim alten Stab luden genau die Pfade
-    // mit Backslash nicht.
+    // No leading backslash: with mainprefix z, Arma does not resolve "\z\opw\..." but does
+    // resolve "z\opw\...". This is established from the RPT - on the old wand it was exactly
+    // the paths with a leading backslash that failed to load.
     texture = "z\opw\addons\esdcam\data\camhead_nohq.paa";
     uvSource = "tex";
     class uvTransform {
@@ -63,7 +64,7 @@ class Stage3 {
 };
 
 class Stage4 {
-    // Keine Ambient-Occlusion-Textur gebacken, also neutral weiss.
+    // No ambient occlusion texture baked, so neutral white.
     texture = "#(argb,8,8,3)color(1,1,1,1)";
     uvSource = "tex";
     class uvTransform {
@@ -75,7 +76,7 @@ class Stage4 {
 };
 
 class Stage5 {
-    // SMDI neutral. Wer spaeter eine echte Specular-Map backt, haengt sie hier ein.
+    // Neutral SMDI. Anyone who bakes a real specular map later hangs it in here.
     texture = "#(argb,8,8,3)color(1,1,1,1)";
     uvSource = "tex";
     class uvTransform {
@@ -98,8 +99,8 @@ class Stage6 {
 };
 
 class Stage7 {
-    // Schwarz statt env_land_ca: ein glattes Rohr mit Umgebungsspiegelung kippt auf der
-    // weissen VR-Karte sofort in Chrom. Das war beim alten Stab schon einmal das Problem.
+    // Black rather than env_land_ca: a smooth tube with environment reflection tips straight
+    // into chrome on the white VR map. That was already the problem once on the old wand.
     texture = "#(argb,8,8,3)color(0,0,0,1)";
     uvSource = "tex";
     class uvTransform {

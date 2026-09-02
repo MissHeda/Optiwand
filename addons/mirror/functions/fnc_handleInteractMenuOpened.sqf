@@ -42,9 +42,9 @@ GVAR(scanPfhId) = [{
         GVAR(helper) = objNull;
     };
 
-    // Ein zweiter Durchlauf von derselben Stelle findet dieselbe Tuer, also wird nur
-    // gesucht, wenn der Spieler sich tatsaechlich bewegt hat. Frueher hing das am Blick -
-    // jetzt an der Position, weil die Suche selbst nicht mehr am Blick haengt.
+    // A second pass from the same spot finds the same door, so the search only runs when the
+    // player has actually moved. This used to hang off the view direction - now off the
+    // position, because the search itself no longer depends on where you look.
     private _camAGL = getPosATL ACE_player;
     private _aheadAGL = _camAGL;
 
@@ -60,8 +60,8 @@ GVAR(scanPfhId) = [{
 
     GVAR(lastScan) = [_camAGL, _aheadAGL];
 
-    // Faecher rundherum, in Tuergriffhoehe. Die naechstgelegene Tuer gewinnt - egal, ob der
-    // Spieler sie gerade ansieht oder mit dem Ruecken zu ihr steht.
+    // A fan all the way round, at door handle height. The nearest door wins - whether the
+    // player happens to be looking at it or standing with their back to it.
     private _originAGL = ACE_player modelToWorldVisual [0, 0, DOOR_SEARCH_HEIGHT];
     private _best = [objNull, "", [], []];
     private _bestDist = 1e6;

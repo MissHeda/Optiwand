@@ -160,9 +160,9 @@ class GVAR(dialog) {
             text = "";
             colorBackground[] = OPW_NONE;
             shadow = 0;
-            // Im Panel sitzt die Legende auf dunklem Grund und darf klein und gedaempft
-            // bleiben. Ohne Panel steht sie frei ueber der Welt - dann wird sie in
-            // fnc_openView groesser und weiss gesetzt, nur dort.
+            // Inside the panel the legend sits on a dark background and can stay small and
+            // muted. Without the panel it floats over the world - fnc_openView then sets it
+            // larger and white, and only there.
             size = 0.019;
             x = 0.3; y = 0.9; w = 0.4; h = 0.05;
             class Attributes {
@@ -190,15 +190,15 @@ class GVAR(dialog) {
 };
 
 // ---------------------------------------------------------------------------------------
-// Dieselben Controls noch einmal als Titelebene.
+// The same controls again, as a title layer.
 //
-// Ein Dialog faengt jede Eingabe ab - das ist genau der Grund, warum der Spieler damit
-// festgenagelt war. Eine RscTitles-Ebene zeichnet dasselbe Bild, nimmt aber keine Eingaben
-// entgegen: Laufen, Umsehen und Waffe bleiben frei. Die Tasten laufen dafuer nicht mehr
-// ueber displayAddEventHandler, sondern ueber CBA-Keybinds (siehe XEH_postInit).
+// A dialog captures every input - which is exactly why the player was pinned in place by
+// it. An RscTitles layer draws the same picture but takes no input: walking, looking around
+// and the weapon all stay free. The keys in turn no longer come from displayAddEventHandler
+// but from CBA keybinds (see XEH_postInit).
 //
-// duration absichtlich riesig: die Ebene soll stehen bleiben, bis fnc_closeView sie
-// wegnimmt, und nicht von selbst auslaufen.
+// duration is deliberately enormous: the layer should stand until fnc_closeView takes it
+// away, not time out on its own.
 // ---------------------------------------------------------------------------------------
 class RscTitles {
     class GVAR(layer): GVAR(dialog) {
@@ -206,8 +206,9 @@ class RscTitles {
         duration = 1e11;
         fadeIn = 0;
         fadeOut = 0;
-        // Kein closeView im onUnload. Beim Dialog war das die Notbremse fuer Escape; hier
-        // raeumt closeView die Ebene selbst ab, und ein Rueckruf von dort waere eine Schleife.
+        // No closeView in onUnload. With the dialog that was the emergency brake for
+        // Escape; here closeView removes the layer itself, and a call back from it would
+        // loop.
         onLoad = QUOTE(uiNamespace setVariable [ARR_2(QQGVAR(display),_this select 0)];);
         onUnload = QUOTE(uiNamespace setVariable [ARR_2(QQGVAR(display),displayNull)];);
     };

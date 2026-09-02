@@ -40,16 +40,16 @@
     1
 ] call CBA_fnc_addSetting;
 
-// Wann der externe Monitor mitkommt - getrennt nach Einsatzart, weil sich die beiden
-// unterschiedlich anfuehlen: an der Tuer steht man ruhig und schaut, freihand haelt man das
-// Geraet vor sich und will die Sicht frei haben.
+// When the carried monitor comes along - split by mode, because the two feel different: at
+// a door you stand still and look, while freehand you hold the device out in front of you
+// and want the view clear.
 //
-// Aus by default: der Bildschirm am Geraet ist das, was das Ding ausmacht. Ueber die
-// ACE-Interaktion kommt der Monitor trotzdem immer mit - dort zielt niemand, also kommt das
-// Auge auch nicht nah genug an den kleinen Bildschirm heran.
-// Ohne Freiraum kann der Kopf nicht ausfahren, und das Geraet sagt das auch. Wer die
-// Meldung nicht will - weil die Einheit ohnehin nicht damit rechnet, durch Waende zu
-// schauen -, schaltet die Pruefung ab und bringt den Spiegel ueberall aus.
+// Off by default: the screen on the device is the whole point of the thing. Through the ACE
+// interaction the monitor comes up regardless - nobody is aiming there, so the eye never
+// gets close enough to read the small screen.
+// With no clearance the head cannot extend, and the device says so. Anyone who does not
+// want the message - because their unit does not expect to see through walls anyway -
+// turns the check off and deploys the mirror anywhere.
 [
     QGVAR(requireClearance), "CHECKBOX",
     [LSTRING(Setting_RequireClearance), LSTRING(Setting_RequireClearance_Description)],
@@ -70,11 +70,11 @@
     0
 ] call CBA_fnc_addSetting;
 
-// Drei Werte, die zusammengehoeren: die beiden Grenzen und der Startwert dazwischen.
+// Three values that belong together: the two limits and the starting value between them.
 //
-// Der Startwert wird beim Ausbringen in die Grenzen gezwungen. Sonst koennte man mit einem
-// Ausschnitt beginnen, den man mit Q und E nie wieder erreicht - das war vorher so, als der
-// Grundwert ueber der Obergrenze liegen konnte.
+// The starting value is forced into those limits on deploy. Otherwise you could begin at a
+// field of view the zoom keys can never reach again - which is what happened while the base
+// value was allowed to sit above the upper limit.
 [
     QGVAR(zoomNear), "SLIDER",
     [LSTRING(Setting_ZoomNear), LSTRING(Setting_ZoomNear_Description)],
@@ -99,10 +99,10 @@
     0
 ] call CBA_fnc_addSetting;
 
-// Wie weit sich der Kopf im Freihandmodus ueber die Ausgangslage hinaus schieben laesst.
-// Der Arm ist ausgestreckt, viel mehr als ein Nachfassen gibt die Haltung nicht her - wer es
-// trotzdem weiter haben will, dreht hier. Die Wandpruefung stoppt weiterhin frueher, wenn
-// etwas im Weg ist.
+// How much further than its starting position the head can be pushed in freehand mode.
+// The arm is already extended, and the posture does not allow much beyond a regrip - anyone
+// who wants more turns it up here. The wall check still stops it earlier when something is
+// in the way.
 [
     QGVAR(freeExtend), "SLIDER",
     [LSTRING(Setting_FreeExtend), LSTRING(Setting_FreeExtend_Description)],
@@ -136,12 +136,12 @@
 ] call CBA_fnc_addSetting;
 
 // ---------------------------------------------------------------------------------------
-// Feinversatz der Freihandkamera, relativ zur Blickrichtung.
+// Fine offset of the freehand camera, relative to the look direction.
 //
-// Als Einstellung statt als Konstante, weil sich das nur im Spiel beurteilen laesst: die
-// Kamera darf weder im eigenen Modell stecken noch neben dem Geraet schweben. Drei Achsen,
-// weil ein einzelner Wert das nicht trifft - beim letzten Versuch wanderte die Kamera zur
-// Seite, obwohl sie nach hinten sollte.
+// A setting rather than a constant, because it can only be judged in game: the camera must
+// sit neither inside the device model nor floating beside it. Three axes, because a single
+// number does not describe the problem - the last attempt moved the camera sideways when it
+// was meant to go backwards.
 // ---------------------------------------------------------------------------------------
 [
     QGVAR(freeOffsetForward), "SLIDER",

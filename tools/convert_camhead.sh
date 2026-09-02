@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# Gebackene Texturen des Kameraaufsatzes nach PAA wandeln.
+# Convert the baked camera attachment textures to PAA.
 #
-# Reihenfolge: erst tools/blender_camhead.py in Blender laufen lassen - das legt die PNGs
-# unter art/esdcam ab -, danach dieses Skript. Die p3d zeigt bereits auf die PAA-Namen, es
-# muss also nichts weiter angepasst werden.
+# Order of operations: run tools/blender_camhead.py in Blender first - that writes the PNGs
+# to art/esdcam - then this script. The p3d already points at the PAA names, so nothing else
+# needs adjusting.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PAA="D:/Steam/steamapps/common/Arma 3 Tools/ImageToPAA/ImageToPAA.exe"
 
 if [ ! -f "$PAA" ]; then
-    echo "ImageToPAA nicht gefunden: $PAA" >&2
-    echo "Pfad oben anpassen, falls die Arma 3 Tools woanders liegen." >&2
+    echo "ImageToPAA not found: $PAA" >&2
+    echo "Adjust the path above if the Arma 3 Tools live somewhere else." >&2
     exit 1
 fi
 
@@ -19,7 +19,7 @@ for name in co nohq; do
     src="$ROOT/art/esdcam/camhead_$name.png"
     dst="$ROOT/addons/esdcam/data/camhead_$name.paa"
     if [ ! -f "$src" ]; then
-        echo "fehlt, uebersprungen: $src"
+        echo "missing, skipped: $src"
         continue
     fi
     "$PAA" "$src" "$dst" >/dev/null 2>&1

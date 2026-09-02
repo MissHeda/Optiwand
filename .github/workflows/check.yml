@@ -1,0 +1,44 @@
+# Runs HEMTT's config and SQF checks on every push and pull request.
+#
+# The point is to catch the class of mistake that otherwise only shows up when you start
+# the game: a macro that rapify cannot evaluate, a broken include path, an SQF syntax
+# error. Those cost a full test round each.
+#
+# HEMTT is pinned rather than tracking the latest release, so CI produces exactly the same
+# result as your local build. When you update HEMTT locally, bump the version below to
+# match - otherwise CI may flag something you cannot reproduce, or miss something you can.
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Superseded runs on the same branch are pointless - cancel them instead of queueing.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HEMTT_VERSION: "1.11.2"
+
+jobs:
+  hemtt:
+    name: hemtt check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install HEMTT
+        run: |
+          curl -sSfL -o hemtt.zip \
+            "https://github.com/BrettMayson/HEMTT/releases/download/v${HEMTT_VERSION}/linux-x64.zip"
+          unzip -q hemtt.zip
+          chmod +x hemtt
+          ./hemtt --version
+
+      - name: Check configs and SQF
+        run: ./hemtt check

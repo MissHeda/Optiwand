@@ -69,18 +69,19 @@ addMissionEventHandler ["Ended", {call FUNC(closeView)}];
 // ---------------------------------------------------------------------------------------
 // Steuerung
 //
-// Frueher hingen die Tasten an den KeyDown-Handlern des Dialogs. Der Dialog ist weg - eine
-// Titelebene bekommt keinen Eingabefokus -, also laufen sie jetzt ueber CBA-Keybinds.
+// The keys used to hang off the dialog's KeyDown handlers. The dialog is gone - a title
+// layer gets no input focus - so they run through CBA keybinds now.
 //
-// Das ist ohnehin die bessere Loesung: der Spieler bewegt sich waehrend des Spaehens weiter,
-// die Tasten teilen sich also die Tastatur mit der normalen Steuerung. Ueber CBA laesst sich
-// jede davon umlegen.
+// That is the better answer anyway: the player keeps moving while peeking, so these keys
+// share the keyboard with the normal controls. Through CBA every one of them can be
+// remapped.
 //
-// Die Pfeiltasten sind in Arma ab Werk doppelt belegt (Vorwaerts/Rueckwaerts/Drehen). Wer
-// mit WASD laeuft, merkt davon nichts; wer die Pfeiltasten zum Laufen benutzt, legt hier
-// oder dort um.
+// Arma binds the arrow keys by default as a duplicate of WASD (forward/back/turn). Anyone
+// walking with WASD will never notice; anyone who walks with the arrow keys remaps one
+// side or the other.
 //
-// Gehaltene Tasten rasten nur eine Achse ein - bewegt wird in fnc_update, bildratenunabhaengig.
+// Held keys only latch an axis - the actual movement happens in fnc_update, frame rate
+// independently.
 // ---------------------------------------------------------------------------------------
 
 private _fnc_addAxis = {
@@ -91,8 +92,8 @@ private _fnc_addAxis = {
             "if (!%1) exitWith {false}; (%2) set [%3, %4]; true",
             QGVAR(active), QGVAR(axes), _axis, _value
         ],
-        // Beim Loslassen nur dann nullen, wenn diese Taste die Achse auch wirklich treibt -
-        // sonst wuerde das Loslassen von Links eine bereits gedrueckte Rechts-Taste abwuergen.
+        // On release only zero the axis if this key is actually the one driving it -
+        // otherwise letting go of left would kill an already held right.
         compile format [
             "if (!%1) exitWith {false}; if (((%2) select %3) isEqualTo %4) then {(%2) set [%3, 0]}; true",
             QGVAR(active), QGVAR(axes), _axis, _value
@@ -107,21 +108,21 @@ private _fnc_addAxis = {
 {
     _x call _fnc_addAxis;
 } forEach [
-    // Kopf schwenken: blanke Pfeiltasten
+    // Swivel the head: bare arrow keys
     [QGVAR(headUp),     LLSTRING(Keybind_HeadUp),     AXIS_PITCH, 1,  DIK_UP,    MOD_NONE],
     [QGVAR(headDown),   LLSTRING(Keybind_HeadDown),   AXIS_PITCH, -1, DIK_DOWN,  MOD_NONE],
     [QGVAR(headLeft),   LLSTRING(Keybind_HeadLeft),   AXIS_YAW,   -1, DIK_LEFT,  MOD_NONE],
     [QGVAR(headRight),  LLSTRING(Keybind_HeadRight),  AXIS_YAW,   1,  DIK_RIGHT, MOD_NONE],
 
-    // Stab bewegen: dieselben Pfeiltasten mit Strg. Bleibt unter einer Hand, und die
-    // Zuordnung ist dieselbe wie beim Schwenken - hoch faehrt aus, links schiebt links.
+    // Moving the shaft: the same arrow keys with Ctrl. Stays under one hand, and the
+    // mapping matches the swivel - up extends, left slides left.
     [QGVAR(extend),     LLSTRING(Keybind_Extend),     AXIS_DEPTH, 1,  DIK_UP,    MOD_CTRL],
     [QGVAR(retract),    LLSTRING(Keybind_Retract),    AXIS_DEPTH, -1, DIK_DOWN,  MOD_CTRL],
     [QGVAR(slideLeft),  LLSTRING(Keybind_SlideLeft),  AXIS_SLIDE, -1, DIK_LEFT,  MOD_CTRL],
     [QGVAR(slideRight), LLSTRING(Keybind_SlideRight), AXIS_SLIDE, 1,  DIK_RIGHT, MOD_CTRL],
 
-    // Zoom auf Bild auf/ab. Das Numpad bleibt damit frei fuer den Sichtfeld-Zoom von Arma
-    // selbst - der haelt den Monitor herangezogen, und das soll er auch weiter tun.
+    // Zoom on Page Up/Down. That leaves the numpad free for Arma's own field-of-view zoom -
+    // which is what keeps the device screen pulled in close, and should go on doing so.
     [QGVAR(zoomIn),     LLSTRING(Keybind_ZoomIn),     AXIS_FOV,   -1, DIK_PRIOR, MOD_NONE],
     [QGVAR(zoomOut),    LLSTRING(Keybind_ZoomOut),    AXIS_FOV,   1,  DIK_NEXT,  MOD_NONE]
 ];
@@ -134,8 +135,8 @@ private _fnc_addAxis = {
     [DIK_N, MOD_NONE]
 ] call CBA_fnc_addKeybind;
 
-// R statt Entf. Nachladen tut mit dem Geraet in der Hand ohnehin nichts, die Taste ist
-// also frei - und sie liegt da, wo die Hand beim Laufen sowieso ist.
+// R rather than Delete. Reloading does nothing with the device in hand, so the key is
+// free - and it sits where the hand already rests while walking.
 [
     "OPW", QGVAR(recentre),
     [LLSTRING(Keybind_Recentre), ""],

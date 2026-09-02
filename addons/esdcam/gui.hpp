@@ -1,38 +1,37 @@
-// Vorwaertsdeklarationen aus ui_f, damit wir davon erben duerfen
+// Forward declarations from ui_f so we are allowed to inherit from them
 class RscPicture;
 class RscObject;
 
 // ---------------------------------------------------------------------------------------
-// Die Anzeige des Spectrum Device erweitern.
+// Extend the Spectrum Device display.
 //
-// Arma fuehrt Configs gleichen Namens zusammen, statt sie zu ersetzen - die Vanilla-Controls
-// (Kompass, Linien, Beschriftungen) bleiben also stehen, wir haengen nur eigene daneben.
+// Arma merges configs of the same name rather than replacing them, so the vanilla controls
+// (compass, traces, labels) stay put and we only hang our own alongside.
 //
-// Bei jeder wieder aufgemachten Klasse MUSS die Vererbung mitgeschrieben werden. Ohne
-// ": RscObject" wird die Elternklasse nicht beibehalten, sondern entfernt; das RPT meldet
-// das als "Updating base class 'RscObject'->''". Der Bildschirm verliert dann alles, was er
-// von RscObject erbt.
+// Every class reopened here MUST carry its inheritance. Without ": RscObject" the parent is
+// not kept but removed; the RPT reports it as "Updating base class 'RscObject'->''", and
+// the screen then loses everything it inherits from RscObject.
 //
-// Nichts davon wird zur Laufzeit erzeugt: die Controls stehen fest in der Config und werden
-// nur ein- und ausgeblendet. Im Betrieb kostet das nichts.
+// None of this is created at runtime: the controls sit in the config and are only faded in
+// and out. That costs nothing while playing.
 // ---------------------------------------------------------------------------------------
-// Wie weit das Geraet im Bild angehoben wird.
+// How far the device is lifted within the view.
 //
-// Vanilla setzt position[] = {0,-0.04,0.2} und positionBack[] = {0,0,0.2}; damit sitzt es
-// so tief, dass die Scheibe am unteren Bildrand abgeschnitten wird. Hier beide um 0.075
-// angehoben. Groesserer Mittelwert = weiter oben.
+// Vanilla sets position[] = {0,-0.04,0.2} and positionBack[] = {0,0,0.2}, which puts it low
+// enough that the screen is clipped by the bottom edge. Both are raised by 0.075 here. A
+// larger middle value means higher up.
 //
-// Ausgerechnet statt gerechnet: rapify wertet in Arrays keine Ausdruecke aus, "-0.04 +
-// 0.075" laesst den Build mit "invalid macro result" scheitern.
+// Worked out rather than calculated: rapify does not evaluate expressions inside arrays, so
+// "-0.04 + 0.075" fails the build with "invalid macro result".
 #define OPW_POS {0, 0.035, 0.2}
 #define OPW_POS_BACK {0, 0.075, 0.2}
 
 class RscIngameUI {
     class RscWeaponSpectrumAnalyzerGeneric {
         class Objects {
-            // Gehaeuse und Scheibe sind zwei getrennte Objekte im selben Display. Beide
-            // erben von RscObject - die Vererbung MUSS beim Wiederaufmachen mitgeschrieben
-            // werden, sonst entfernt Arma sie (RPT: "Updating base class 'RscObject'->''").
+            // Housing and screen are two separate objects in the same display. Both inherit
+            // from RscObject - that inheritance MUST be written out when reopening them, or
+            // Arma drops it (RPT: "Updating base class 'RscObject'->''").
             class Model: RscObject {
                 position[] = OPW_POS;
                 positionBack[] = OPW_POS_BACK;
@@ -46,8 +45,8 @@ class RscIngameUI {
                     class Usertexture {
                         class Controls {
 
-                            // Masse uebernommen aus der Vanilla-Gruppe "Selected", damit das
-                            // Bild genau die Flaeche fuellt, auf der sonst das Spektrum liegt.
+                            // Dimensions taken from the vanilla "Selected" group, so the
+                            // picture fills exactly the area the spectrum normally occupies.
                             class OPW_Feed: RscPicture {
                                 idc = IDC_FEED;
                                 x = "(0.083 * 1 + 0)";
@@ -56,13 +55,13 @@ class RscIngameUI {
                                 h = "(0.704 * 1.05)";
                                 text = FEED_TEXTURE;
                                 colorText[] = {1,1,1,1};
-                                fade = 1;               // startet unsichtbar
+                                fade = 1;               // starts hidden
                                 shadow = 0;
                             };
 
-                            // Darueber das Rauschbild, das Bohemia fuer Kamerabilder benutzt.
-                            // Bewusst deren eigenes Material: so sieht der Kamerabetrieb nach
-                            // demselben Geraet aus und nicht nach einem Fremdkoerper.
+                            // Over it, the grain overlay Bohemia uses for camera feeds.
+                            // Deliberately their own asset: that way the camera mode looks
+                            // like the same device rather than something bolted on.
                             class OPW_FeedGrain: RscPicture {
                                 idc = IDC_FEED_GRAIN;
                                 x = "(0.083 * 1 + 0)";

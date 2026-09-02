@@ -21,9 +21,9 @@ if (isNil QGVAR(active) || {!GVAR(active)}) exitWith {};
 
 GVAR(active) = false;
 
-// Die Anzeige geht zuerst weg. Sie ist zwar nur noch eine Titelebene und sperrt niemanden
-// mehr ein, aber sie waere das Einzige, was stehen bliebe, falls ein spaeterer Schritt hier
-// hochgeht - also kommt sie vor allem anderen.
+// The overlay goes first. It is only a title layer now and traps nobody, but it would be
+// the one thing left standing should a later step in here throw - so it goes before
+// anything else.
 QGVAR(layer) call BIS_fnc_rscLayer cutText ["", "PLAIN", 0];
 
 if (!isNull GVAR(camera)) then {
