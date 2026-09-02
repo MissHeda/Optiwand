@@ -16,7 +16,3 @@ _attic/*.zip
 # the first commit has it, so it can be recovered from there at any time:
 #   git checkout 5cf04f1 -- _attic
 _attic/
-
-# Python byproducts from the tool scripts
-__pycache__/
-*.pyc

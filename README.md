@@ -85,8 +85,12 @@ addons/main      framework, version, macros
 addons/mirror    all of the mechanics - deploying, camera, controls, overlay
 addons/esdcam    registers the Spectrum Device with the above and puts the
                  picture on its screen
-tools/           the Blender pipeline for the model
+include/         CBA and Arma headers the preprocessor needs at build time
 ```
+
+`include/` is not part of the mod. It is there so the build can resolve `\x\cba\...` and
+`\a3\...` includes without a P-drive, which is what lets CI build on a machine with no Arma
+installed. Removing it breaks the build immediately.
 
 `mirror` knows no weapon class of its own. Devices register themselves in
 `opw_mirror_wandClasses`, and if they only count with a particular attachment fitted, in
@@ -117,10 +121,8 @@ agreeing with each other.
 
 ## The model
 
-`tools/blender_camhead.py` takes the model from Blender to `camhead.p3d` in one run: it
-merges the parts with their modifiers applied, resolves n-gons, orients and scales the
-result, bakes the Blender materials into a texture, builds the geometry and memory LODs and
-exports.
+The attachment model itself is built outside this repo; only the finished `camhead.p3d` and
+its textures ship here. What follows is what you need to know to make another one.
 
 Orientation is measured, not assumed. The three vanilla antennas of the Spectrum Device all
 sit with their origin at the device and extend along **-X**:
@@ -131,16 +133,19 @@ sit with their origin at the device and extend along **-X**:
 | `muzzle_antenna_02_F` | X -0.410 .. +0.298, 71 cm |
 | `muzzle_antenna_03_F` | X -0.557 .. 0.000, 56 cm |
 
-The exact mount point comes from the device's own muzzle proxy, at
-(-0.0982, -0.0238, -0.0771) in Blender with no rotation.
+So: mount at the origin, camera head towards -X, around 40 to 55 cm long. The exact mount
+point is the device's own muzzle proxy, at (-0.0982, -0.0238, -0.0771) in Blender with no
+rotation. Note that `muzzle_antenna_02_F` reaches back to +0.298, so a connector may wrap
+back over the front of the device.
 
-Baking is not optional decoration: Arma cannot read Blender node trees. Noise and wave
-textures, bump, glass - none of that survives an export. The baked texture is the only way
-that look reaches the game. Note that the baked `_co` looks darker than the Blender render,
-and should: it holds base colour only, with the metallic sheen coming from the rvmat. Put
-the sheen in both and the model turns flat and milky.
+Three LODs are needed: a resolution LOD, a convex geometry LOD carrying the mass, and a
+memory LOD with `usti hlavne` and `konec hlavne` - the vector between those two is the
+direction the head looks.
 
-After a bake, convert the PNGs with `tools/convert_camhead.sh`.
+Materials have to be baked. Arma cannot read Blender node trees, so noise and wave textures,
+bump and glass do not survive an export; a baked texture is the only way that look reaches
+the game. Bake base colour rather than the lit image - the metallic sheen belongs in the
+rvmat, and putting it in both leaves the model flat and milky.
 
 ## Licence
 

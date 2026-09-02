@@ -75,9 +75,8 @@
 #define CAM_ITEM_CLASS opw_muzzle_camera
 #define CAM_ITEM QUOTE(CAM_ITEM_CLASS)
 
-// Our own model: the gooseneck camera, oriented and exported through
-// tools/blender_camhead.py. 42 cm long, mount at the origin, head towards -X - the same
-// placement as the three vanilla antennas, measured from their p3d.
+// Our own model: the gooseneck camera. 42 cm long, mount at the origin, head towards -X -
+// the same placement as the three vanilla antennas, measured from their p3d.
 #define CAM_MODEL QPATHTOF(model\camhead.p3d)
 
 // Inventory picture still borrowed from the vanilla antenna. It lives in Contact, which we
