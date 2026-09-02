@@ -168,6 +168,27 @@ The model came with four materials over one shared UV layout, one 4096 bake each
 and fills everything outside them by growing the island content outwards - without that,
 mipmapping pulls the bake background into the silhouette.
 
+### Where the size comes from
+
+The FBX carries no real world scale - 13.2 units, which taken literally would be a 13 metre
+wand - so the length had to come from somewhere else. It comes from the model itself: the
+mount head was built off `muzzle_antenna_03_F`, the SD Jammer Antenna, and there is exactly
+one scale at which every feature of it lands on the vanilla one.
+
+| distance from the device | antenna 03 | this model |
+|---|---|---|
+| 1 mm | 42.6 mm | 42.5 mm | 
+| 30 mm | 42.6 mm | 42.5 mm |
+| 41 mm | 81.0 mm | 81.0 mm |
+| 60 mm | 123.3 mm | 123.3 mm |
+| 75 mm | 66.2 mm | 66.2 mm |
+
+That scale puts the whole wand at **57.9 cm**, against the antenna's 55.6 cm, and it is the
+default in `fbx_to_p3d.py`. `--fit-mount <antenna.p3d>` re-derives it rather than trusting
+the constant; feed it an MLOD copy of a vanilla antenna. Such a copy is a Bohemia asset, so
+it belongs under `art/esdcam/reference/` and never inside `addons/` - anything under there
+is packed into the PBO and shipped.
+
 ### Making another one
 
 Orientation is measured, not assumed. The three vanilla antennas of the Spectrum Device all

@@ -27,3 +27,4 @@ art/esdcam/*-empty-export.p3d
 # Python bytecode from tools/
 __pycache__/
 *.pyc
+art/esdcam/reference/

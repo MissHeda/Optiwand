@@ -20,6 +20,27 @@ In the FBX the long axis is the mesh's local Y, with the head at +Y - read out o
 it, not assumed: the `cam` and `blitz` materials sit at the +Y extreme.
 
 --------------------------------------------------------------------------------
+Scale
+
+The FBX carries no real world scale - 13.2 units, which taken literally would be a
+13 metre wand - so the size has to come from somewhere else. It comes from the
+model itself: the mount head was built off muzzle_antenna_03_F, the SD Jammer
+Antenna, and at one single scale factor every feature of it lands on the vanilla
+one. Measured against a MLOD copy of that antenna:
+
+    distance from device    antenna 03    this model
+              1 mm            42.6 mm       42.5 mm     mounting collar
+             30 mm            42.6 mm       42.5 mm
+             41 mm            81.0 mm       81.0 mm     shoulder
+             60 mm           123.3 mm      123.3 mm     flange
+             75 mm            66.2 mm       66.2 mm     start of the tube
+             87 mm            65.9 mm       65.9 mm
+
+That is the whole justification for DEFAULT_LENGTH below. --fit-mount re-derives
+it from a reference p3d rather than trusting the constant; the reference is a
+Bohemia asset, so it lives under art/ and is not part of the repo.
+
+--------------------------------------------------------------------------------
 Axes, winding and normals
 
 Blender is right handed (X right, Y forward, Z up), Arma is left handed (X right,
@@ -61,6 +82,10 @@ import p3d
 
 TEXTURE = r"z\opw\addons\esdcam\data\camhead_co.paa"
 MATERIAL = r"z\opw\addons\esdcam\data\camhead.rvmat"
+
+# Overall length in metres, so that the mount head comes out the size of the vanilla
+# antenna's - see "Scale" above. muzzle_antenna_03_F itself is 55.6 cm.
+DEFAULT_LENGTH = 0.579
 
 
 def read_mesh(path):
@@ -176,12 +201,65 @@ def geometry_lod(box, mass):
     return lod
 
 
-def memory_lod(length, tip_gap):
+def memory_lod(length):
+    """The vector from konec hlavne to usti hlavne is the direction the head looks, so
+    the gap between them only has to be long enough to be well conditioned. A fixed
+    fraction of the length keeps it that way at any scale."""
     lod = p3d.Lod(p3d.LOD_MEMORY)
-    lod.points = [(-length, 0.0, 0.0, 0), (-length + tip_gap, 0.0, 0.0, 0)]
+    lod.points = [(-length, 0.0, 0.0, 0), (-length * 0.88, 0.0, 0.0, 0)]
     lod.add_selection("usti hlavne", [1, 0], [])
     lod.add_selection("konec hlavne", [0, 1], [])
     return lod
+
+
+def radius_profile(path, limit, step=0.0005):
+    """Largest radius around the X axis per slice, over the first `limit` metres from
+    the device. The shape of the mount head, in a form two models can be compared in."""
+    lods, _ = p3d.read(path)
+    lod = min(lods, key=lambda l: l.resolution)
+    bins = {}
+    for x, y, z, _flags in lod.points:
+        distance = -x
+        if 0.0 <= distance <= limit:
+            slot = int(distance / step)
+            bins[slot] = max(bins.get(slot, 0.0), math.hypot(y, z))
+    return bins, step
+
+
+def fit_mount(reference, model, limit=0.12):
+    """Scale factor that lays this model's mount head onto the reference antenna's.
+
+    The score is the median of the per-slice relative differences, not the mean: the
+    two profiles have sharp steps that never land on exactly the same slice, and a
+    handful of those outliers would drag a least squares fit off an otherwise exact
+    match. Returns (factor, median relative deviation)."""
+    ref, step = radius_profile(reference, limit)
+    ours, _ = radius_profile(model, limit)
+
+    def at(bins, distance, window=3):
+        slot = int(distance / step)
+        found = [bins[j] for j in range(slot - window, slot + window + 1) if j in bins]
+        return max(found) if found else None
+
+    best = None
+    for thousandths in range(500, 4001):
+        factor = thousandths / 1000.0
+        errors = []
+        for j in range(2, int(limit / step)):
+            distance = j * step
+            want = at(ref, distance)
+            have = at(ours, distance / factor)
+            if want is None or have is None or want < 0.002:
+                continue
+            errors.append(abs(math.log(have * factor / want)))
+        if len(errors) < 20:
+            continue
+        score = sorted(errors)[len(errors) // 2]
+        if best is None or score < best[0]:
+            best = (score, factor)
+    if best is None:
+        raise SystemExit("cannot fit: %s and %s do not overlap" % (reference, model))
+    return best[1], best[0]
 
 
 def triangles(lod):
@@ -231,19 +309,32 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fbx", default=os.path.join(here, "art", "esdcam", "arma3_cam.fbx"))
     ap.add_argument("--out", default=os.path.join(here, "addons", "esdcam", "model", "camhead.p3d"))
-    ap.add_argument("--length", type=float, default=0.42, help="overall length in metres")
+    ap.add_argument("--length", type=float, default=DEFAULT_LENGTH,
+                    help="overall length in metres (default %.3f)" % DEFAULT_LENGTH)
     ap.add_argument("--mass", type=float, default=0.5, help="kg, geometry LOD")
+    ap.add_argument("--fit-mount", metavar="REFERENCE.p3d",
+                    help="derive the length by matching the mount head to a vanilla "
+                         "antenna instead of using --length")
     args = ap.parse_args()
 
-    lod, box, scale, origin = build(args.fbx, args.length, None)
+    length = args.length
+    if args.fit_mount:
+        # Fit against the current output, then carry its length through the factor.
+        lods, _ = p3d.read(args.out)
+        current = max(-p[0] for p in min(lods, key=lambda l: l.resolution).points)
+        factor, deviation = fit_mount(args.fit_mount, args.out)
+        length = round(current * factor, 4)
+        print("fitted to %s: factor %.4f, median deviation %.2f %% -> length %.4f m"
+              % (os.path.basename(args.fit_mount), factor, 100 * deviation, length))
+
+    lod, box, scale, origin = build(args.fbx, length, None)
     volume, flux = check(lod)
 
-    lods = [lod,
-            geometry_lod(box, args.mass),
-            memory_lod(args.length, 0.05)]
+    lods = [lod, geometry_lod(box, args.mass), memory_lod(length)]
     size = p3d.write(args.out, lods)
 
     print("%s" % os.path.relpath(args.out, here))
+    print("  length          %.1f cm" % (100 * length))
     print("  resolution LOD  %d points, %d normals, %d faces" %
           (len(lod.points), len(lod.normals), len(lod.faces)))
     print("  scale           %.6f  (mount ring centred on %.4f, %.4f in FBX X/Z)" %

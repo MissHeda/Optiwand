@@ -76,9 +76,13 @@
 #define CAM_ITEM QUOTE(CAM_ITEM_CLASS)
 
 // Our own model: the inspection wand - flanged base, thin shaft, camera head with a ring
-// of LEDs. 42 cm long, mount at the origin, head towards -X, the same placement as the
-// three vanilla antennas, measured from their p3d. Built from art/esdcam/arma3_cam.fbx by
-// tools/fbx_to_p3d.py; see "The model" in the README.
+// of LEDs. Mount at the origin, head towards -X, the same placement as the three vanilla
+// antennas, measured from their p3d.
+//
+// 57.9 cm long, and that number is not free either: the mount head was modelled off
+// muzzle_antenna_03_F, and this is the length at which it comes out the same size as the
+// vanilla one, to within a tenth of a percent across collar, shoulder and flange. Built
+// from art/esdcam/arma3_cam.fbx by tools/fbx_to_p3d.py; see "The model" in the README.
 #define CAM_MODEL QPATHTOF(model\camhead.p3d)
 
 // Inventory picture still borrowed from the vanilla antenna. It lives in Contact, which we
