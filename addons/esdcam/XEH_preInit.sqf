@@ -17,7 +17,7 @@ uiNamespace setVariable [QGVAR(hidden), []];   // [control, original fade]
 //
 // The wandMuzzle entry is the decisive one: without it, aiming the device would bring our
 // view up even with an antenna fitted. This way the device without a camera stays exactly
-// what it is in vanilla, and Crows Electronic Warfare notices nothing.
+// what it is in vanilla.
 //
 // The isNil guards cover the case where this addon runs before the mirror component -
 // its preInit creates the same containers.

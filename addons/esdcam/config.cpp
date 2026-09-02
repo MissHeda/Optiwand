@@ -10,9 +10,7 @@ class CfgPatches {
         // Spectrum Device to attach anything to, so this is a hard dependency.
         // opw_mirror carries all of the mechanics and has to load before us, so the
         // containers we register into already exist.
-        //
-        // Crows Electronic Warfare is explicitly NOT required: the muzzle slots and the
-        // antennas are vanilla and already scope = 2 there.
+
         requiredAddons[] = {"opw_mirror", "A3_Weapons_F_Enoch_Pistols_ESD"};
         author = "Miss Heda";
         url = ECSTRING(main,URL);

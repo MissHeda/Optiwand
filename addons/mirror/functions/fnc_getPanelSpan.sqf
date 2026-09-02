@@ -3,7 +3,7 @@
  * Author: Miss Heda
  * Measures a door leaf by walking rays through it sideways and downwards until they stop
  * hitting it. selectionPosition on a door gives a point somewhere on the leaf, not reliably
- * its middle, which is why the interaction used to sit off by the handle. This gives the real
+ * its middle, so the geometric centre sits off by the handle. This gives the real
  * centre and half width instead, and the height of the bottom edge.
  *
  * Result is cached per building type, in model space, so it only ever runs once per door

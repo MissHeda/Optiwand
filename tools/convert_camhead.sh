@@ -7,11 +7,22 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PAA="D:/Steam/steamapps/common/Arma 3 Tools/ImageToPAA/ImageToPAA.exe"
+# ImageToPAA ships with the Arma 3 Tools. Set IMAGETOPAA if yours lives somewhere the
+# search below does not cover.
+PAA="${IMAGETOPAA:-}"
+if [ -z "$PAA" ]; then
+    for drive in C D E F; do
+        for lib in "Steam" "SteamLibrary" "Program Files (x86)/Steam"; do
+            cand="$drive:/$lib/steamapps/common/Arma 3 Tools/ImageToPAA/ImageToPAA.exe"
+            [ -f "$cand" ] && PAA="$cand" && break 2
+        done
+    done
+fi
 
 if [ ! -f "$PAA" ]; then
-    echo "ImageToPAA not found: $PAA" >&2
-    echo "Adjust the path above if the Arma 3 Tools live somewhere else." >&2
+    echo "ImageToPAA not found." >&2
+    echo 'Set IMAGETOPAA to its full path, e.g.' >&2
+    echo '  IMAGETOPAA="C:/SteamLibrary/steamapps/common/Arma 3 Tools/ImageToPAA/ImageToPAA.exe"' >&2
     exit 1
 fi
 

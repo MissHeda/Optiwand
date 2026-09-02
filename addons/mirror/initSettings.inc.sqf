@@ -72,9 +72,8 @@
 
 // Three values that belong together: the two limits and the starting value between them.
 //
-// The starting value is forced into those limits on deploy. Otherwise you could begin at a
-// field of view the zoom keys can never reach again - which is what happened while the base
-// value was allowed to sit above the upper limit.
+// The starting value is forced into those limits on deploy, so it can never begin at a
+// field of view the zoom keys are unable to reach again.
 [
     QGVAR(zoomNear), "SLIDER",
     [LSTRING(Setting_ZoomNear), LSTRING(Setting_ZoomNear_Description)],
@@ -139,9 +138,8 @@
 // Fine offset of the freehand camera, relative to the look direction.
 //
 // A setting rather than a constant, because it can only be judged in game: the camera must
-// sit neither inside the device model nor floating beside it. Three axes, because a single
-// number does not describe the problem - the last attempt moved the camera sideways when it
-// was meant to go backwards.
+// sit neither inside the device model nor floating beside it. Three axes, because reach
+// along the line of sight and offset across it are separate problems.
 // ---------------------------------------------------------------------------------------
 [
     QGVAR(freeOffsetForward), "SLIDER",

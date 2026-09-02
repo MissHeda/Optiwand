@@ -65,10 +65,33 @@ LOD_RESOLUTION = "-1.0"         # Toolbox enum; the numeric value lives in lodDi
 LOD_GEOMETRY = "1.000e+13"
 LOD_MEMORY = "1.000e+15"
 
-CANDIDATES = [
-    r"C:\Users\Heda\GitHub Repos\Optiwand",
-    r"C:\Users\Heda\GitHub Repos\Tactical-Mirror-Wand",
-]
+# Where to write the p3d and the baked textures.
+#
+# Normally found on its own: this file lives in <repo>/tools, so the repo is one level up.
+# Blender's text editor does not always set __file__ though - when the script is pasted in
+# rather than opened from disk - so there are two fallbacks: the OPTIWAND_ROOT environment
+# variable, and REPO_ROOT below for setting it by hand.
+REPO_ROOT = ""
+
+
+def find_repo():
+    def looks_right(p):
+        return bool(p) and os.path.isdir(os.path.join(p, "addons"))
+
+    if looks_right(REPO_ROOT):
+        return REPO_ROOT
+
+    here = globals().get("__file__")
+    if here:
+        guess = os.path.dirname(os.path.dirname(os.path.abspath(here)))
+        if looks_right(guess):
+            return guess
+
+    env = os.environ.get("OPTIWAND_ROOT")
+    if looks_right(env):
+        return env
+
+    return None
 
 notes = {}
 
@@ -239,7 +262,7 @@ notes["length_cm"] = round((hi.x - lo.x) * 100, 2)
 notes["across_cm"] = [round((hi.y - lo.y) * 100, 2), round((hi.z - lo.z) * 100, 2)]
 
 # ----------------------------------------------------------------------------- Check UV
-root = next((p for p in CANDIDATES if os.path.isdir(p)), None)
+root = find_repo()
 notes["repo"] = root
 
 
@@ -507,7 +530,7 @@ picked = next((f for f in found if "export" in (f[0] + f[1]).lower()
 if picked is None:
     notes["export"] = "no p3d export operator found"
 elif out is None:
-    notes["export"] = "repo not found - adjust CANDIDATES"
+    notes["export"] = "repo not found - set REPO_ROOT or OPTIWAND_ROOT"
 else:
     op = getattr(getattr(bpy.ops, picked[0]), picked[1])
     try:

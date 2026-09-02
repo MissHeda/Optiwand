@@ -43,8 +43,8 @@ GVAR(scanPfhId) = [{
     };
 
     // A second pass from the same spot finds the same door, so the search only runs when the
-    // player has actually moved. This used to hang off the view direction - now off the
-    // position, because the search itself no longer depends on where you look.
+    // player has actually moved. Gated on position rather than on view direction, because
+    // the search itself does not depend on where you look.
     private _camAGL = getPosATL ACE_player;
     private _aheadAGL = _camAGL;
 

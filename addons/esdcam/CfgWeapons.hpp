@@ -23,9 +23,8 @@ class CfgWeapons {
         //
         // That omission is deliberate and is the crux of the whole thing: with no EM block
         // the device reports no frequencies, so the spectrum side stays empty and the
-        // screen is ours to use. Crows Electronic Warfare copes with it too - its
-        // getSpectrumDefaultFreq returns antenna = -1 for unknown attachments, and
-        // spectrumTrackingLocal bows out on -1 rather than stumbling.
+        // screen is ours to use. Mods that drive the spectrum read the attachment for its
+        // frequency band and fall through when there is none, so they are unaffected.
         GVAR(isCamera) = 1;
 
         class ItemInfo: InventoryMuzzleItem_Base_F {
