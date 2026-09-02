@@ -46,5 +46,8 @@ if (GVAR(acquire) >= 1) then {
     GVAR(acquired) = true;
     missionNamespace setVariable ["#EM_Transmit", false];
     missionNamespace setVariable ["#EM_Progress", 0];
-    [true] call FUNC(showFeed);
+    // Acquiring against a wall is allowed - the bar is the operator transmitting, not the
+    // head seeing something. The picture itself waits until there is room; the fault event
+    // brings it up the moment there is.
+    [!EGVAR(mirror,faulted)] call FUNC(showFeed);
 };

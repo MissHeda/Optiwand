@@ -46,8 +46,17 @@ NEUTRAL = {
 }
 SOURCE_SUFFIX = {"co": "CO", "nohq": "NOHQ", "smdi": "SMDI", "as": "AS"}
 
+# Materials that make up the housing. These are the ones --tint acts on; the lens and the
+# LEDs are signal colours and are left where the artist put them.
+HOUSING = ("Plastik", "Schlauch")
 
-def load_uv_islands(fbx_path, size, margin):
+# Median of Bohemia's own esd_01_co.paa, the Spectrum Device's colour texture, measured over
+# the whole sheet. The wand's own bake sits at 19/19/19 - next to the device it reads almost
+# black, which is what --tint is for.
+SPECTRUM_GREY = (35, 36, 38)
+
+
+def load_uv_islands(fbx_path, size, margin=0):
     """One 0/255 mask per material, in texture space (image row 0 is v = 1)."""
     root, _ = fbx.parse(fbx_path)
     geo = root.find("Objects").find("Geometry")
@@ -98,20 +107,73 @@ def dilate(rgba, filled, rounds):
     return rgba, filled
 
 
-def composite(source_dir, masks, kind, size):
+def tint_housing(sources, exact, target):
+    """Lift the housing to a target colour, per channel, by gain rather than by offset.
+
+    A gain keeps the bake's own contrast - panel lines, wear, the darker recesses stay
+    exactly as far apart as they were, the whole thing just sits at a different level. An
+    offset would flatten all of that towards the target.
+
+    The gain is set from the median rather than the mean so a few blown highlights in the
+    bake cannot drag it."""
+    reference = np.concatenate(
+        [sources[MATERIALS.index(m)][exact[MATERIALS.index(m)]][:, :3] for m in HOUSING],
+        axis=0)
+    if reference.size == 0:
+        return sources, None, None
+
+    median = np.median(reference, axis=0)
+    gain = np.array(target, float) / np.maximum(median, 1.0)
+
+    out = list(sources)
+    for material in HOUSING:
+        index = MATERIALS.index(material)
+        data = sources[index].astype(np.float32)
+        data[:, :, :3] = np.clip(data[:, :, :3] * gain, 0, 255)
+        out[index] = data.astype(np.uint8)
+    return out, median, gain
+
+
+def composite(source_dir, exact, grown, kind, size, tint=None):
+    """Paint each material inside its own UV islands, then let the margins spread only
+    into texels no material owns.
+
+    The margin used to be applied before painting, which let a material's margin write
+    over the next one's real surface. blitz - eight tiny scattered islands over a brown
+    LED bake - put 209 brown texels into the middle of the grey body that way, and they
+    showed up in game as a scatter of small brown dots. Ownership comes first now, and the
+    margin only ever fills no man's land."""
     out = np.zeros((size, size, 4), np.uint8)
     out[:] = NEUTRAL[kind]
-    filled = np.zeros((size, size), bool)
-    for mat_id, name in enumerate(MATERIALS):
+    owned = np.zeros((size, size), bool)
+    for mask in exact:
+        owned |= mask
+
+    sources = []
+    for name in MATERIALS:
         path = os.path.join(source_dir, "%s_%s.png" % (name, SOURCE_SUFFIX[kind]))
         img = Image.open(path).convert("RGBA")
         if img.size != (size, size):
             img = img.resize((size, size), Image.BOX)
-        data = np.array(img)
-        # Later materials win where islands touch: blitz and cam are the small,
-        # specific ones, Plastik is the catch-all body.
-        out = np.where(masks[mat_id][:, :, None], data, out)
-        filled |= masks[mat_id]
+        sources.append(np.array(img))
+
+    # Colour only. Tinting a normal map would bend the normals, and _smdi and _as are not
+    # colours at all - green and blue there are specular and occlusion.
+    if tint is not None and kind == "co":
+        sources, median, gain = tint_housing(sources, exact, tint)
+        if median is not None:
+            print("  housing tinted  rgb %s -> %s   (gain %s)"
+                  % (median.astype(int).tolist(), list(tint), gain.round(2).tolist()))
+
+    filled = np.zeros((size, size), bool)
+    for mat_id, data in enumerate(sources):
+        out = np.where(exact[mat_id][:, :, None], data, out)
+        filled |= exact[mat_id]
+    for mat_id, data in enumerate(sources):
+        margin = grown[mat_id] & ~owned & ~filled
+        out = np.where(margin[:, :, None], data, out)
+        filled |= margin
+
     out, _ = dilate(out, filled, rounds=max(8, size // 64))
     return out
 
@@ -193,7 +255,16 @@ def main():
     ap.add_argument("--size", type=int, default=1024)
     ap.add_argument("--margin", type=int, default=2)
     ap.add_argument("--encoder", choices=("auto", "imagetopaa", "builtin"), default="auto")
+    ap.add_argument("--tint", default=",".join(str(c) for c in SPECTRUM_GREY),
+                    help="target colour of the housing as R,G,B, or 'none' to keep the bake "
+                         "as it is. Default is the Spectrum Device's own grey.")
     args = ap.parse_args()
+
+    tint = None
+    if args.tint.lower() not in ("none", "off", ""):
+        tint = [int(v) for v in args.tint.replace(" ", "").split(",")]
+        if len(tint) != 3:
+            raise SystemExit("--tint wants three numbers, e.g. --tint 35,36,38")
 
     tool = None if args.encoder == "builtin" else find_imagetopaa()
     if args.encoder == "imagetopaa" and not tool:
@@ -201,12 +272,13 @@ def main():
     print("encoder: %s" % (tool or "built in (tools/paa.py)"))
 
     print("UV islands from %s at %d px" % (os.path.basename(args.fbx), args.size))
-    masks = load_uv_islands(args.fbx, args.size, args.margin)
-    for name, mask in zip(MATERIALS, masks):
+    exact = load_uv_islands(args.fbx, args.size)
+    grown = load_uv_islands(args.fbx, args.size, args.margin)
+    for name, mask in zip(MATERIALS, exact):
         print("  %-9s %5.2f %% of the sheet" % (name, 100.0 * mask.mean()))
 
     for kind in ("co", "nohq", "smdi", "as"):
-        rgba = composite(args.source, masks, kind, args.size)
+        rgba = composite(args.source, exact, grown, kind, args.size, tint)
         out = os.path.join(args.out, "%s_%s.paa" % (args.name, kind))
         if tool:
             size = convert_with_imagetopaa(tool, rgba, out)

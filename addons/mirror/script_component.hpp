@@ -136,8 +136,8 @@
 // Deploy modes
 #define MODE_DOOR           0
 #define MODE_FREE           1
-// Nothing to show, just the device reporting it cannot be worked here
-#define MODE_FAULT          2
+// There is no fault mode. Having no room to work is a state, not a way of deploying - see
+// fnc_setFault.
 
 // Freehand: the head sits on the end of the shaft. Base drops below the eye, roughly where
 // the wand is actually held, and the reach is fixed - no pushing it further out from there.

@@ -10,6 +10,7 @@ PREP(handleInteractMenuOpened);
 PREP(isWand);
 PREP(openView);
 PREP(recentre);
+PREP(setFault);
 PREP(startDeploy);
 PREP(toggleNightVision);
 PREP(update);

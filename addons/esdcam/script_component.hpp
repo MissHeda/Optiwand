@@ -85,7 +85,34 @@
 // from art/esdcam/arma3_cam.fbx by tools/fbx_to_p3d.py; see "The model" in the README.
 #define CAM_MODEL QPATHTOF(model\camhead.p3d)
 
-// Inventory picture still borrowed from the vanilla antenna. It lives in Contact, which we
-// require anyway, so the path cannot go missing - but it is a placeholder until a render of
-// our own model replaces it.
-#define CAM_PICTURE "\a3\Weapons_F_Enoch\Pistols\ESD_01\data\ui\gear_muzzle_antenna_01_ca.paa"
+// Inventory picture, rendered from our own model by tools/render_icon.py. 512x512 with
+// alpha, the object across the diagonal, lit from the upper left - all measured off
+// Bohemia's gear_muzzle_antenna_01_ca and _03_ca, so it sits in the arsenal list looking
+// like it belongs between them rather than next to them.
+#define CAM_PICTURE QPATHTOF(data\ui\gear_camhead_ca.paa)
+
+////////////////////////////////////////////////////////////////////////////////
+// The device in the view
+////////////////////////////////////////////////////////////////////////////////
+
+// The two objects of the vanilla display, read out of ui_f_enoch's config:
+//
+//   class Model:  RscObject { type=82; idc=11; scale=0.7; position[]={0,-0.04,0.2}; }
+//   class Screen: RscObject { type=82; idc=10; scale=0.7; position[]={0,-0.04,0.2}; }
+#define IDC_ESD_SCREEN  10
+#define IDC_ESD_MODEL   11
+
+// Where the device hangs in front of the camera. Vanilla is {0,-0.04,0.2}; the lift is what
+// keeps the screen clear of the bottom edge of the view. Must agree with OPW_POS in gui.hpp,
+// which is the same two numbers for the config side.
+#define SCREEN_LIFT     0.035
+#define SCREEN_DISTANCE 0.2
+
+// Tangent of the half vertical view angle at Arma's stock fovTop of 0.75. fovTop is the full
+// height at unit distance, so half of it is that tangent. The correction in
+// fnc_fitDeviceScreen is a ratio against this, which makes it exactly 1 - and a no-op - for
+// anyone on default settings.
+#define SCREEN_FOV_BASELINE 0.375
+// Far enough that a metre of offset is a small angle, near enough to stay well in front of
+// any near clip plane.
+#define FOV_PROBE_DISTANCE 10

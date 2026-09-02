@@ -204,6 +204,12 @@
         <Key ID="STR_opw_mirror_Keybind_ZoomOut">
             <English>Zoom out</English>
         </Key>
+        <Key ID="STR_opw_mirror_Keybind_BlockZoom">
+            <English>Swallow Arma's zoom while peeking</English>
+        </Key>
+        <Key ID="STR_opw_mirror_Keybind_BlockZoom_Description">
+            <English>Bound to the numpad + and - keys. While the monitor is up these are swallowed, so the game's own zoom cannot pull the view in and out from under the picture. Outside of peeking they work exactly as before. Clear the binding to get the game's zoom back while peeking too.</English>
+        </Key>
         <Key ID="STR_opw_mirror_Keybind_NightVision">
             <English>Toggle night vision</English>
         </Key>

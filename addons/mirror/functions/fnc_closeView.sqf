@@ -46,6 +46,7 @@ GVAR(helper) = objNull;
 GVAR(axes) = [0, 0, 0, 0, 0];
 GVAR(keyAxes) = createHashMap;
 GVAR(nightVision) = false;
+GVAR(faulted) = false;
 GVAR(lastCamPosASL) = [];
 GVAR(lastAppliedPos) = [];
 GVAR(lastAppliedDir) = [];

@@ -121,10 +121,39 @@ private _fnc_addAxis = {
     [QGVAR(slideLeft),  LLSTRING(Keybind_SlideLeft),  AXIS_SLIDE, -1, DIK_LEFT,  MOD_CTRL],
     [QGVAR(slideRight), LLSTRING(Keybind_SlideRight), AXIS_SLIDE, 1,  DIK_RIGHT, MOD_CTRL],
 
-    // Zoom on Page Up/Down. That leaves the numpad free for Arma's own field-of-view zoom -
-    // which is what keeps the device screen pulled in close, and should go on doing so.
-    [QGVAR(zoomIn),     LLSTRING(Keybind_ZoomIn),     AXIS_FOV,   -1, DIK_PRIOR, MOD_NONE],
-    [QGVAR(zoomOut),    LLSTRING(Keybind_ZoomOut),    AXIS_FOV,   1,  DIK_NEXT,  MOD_NONE]
+    // Zoom on Page Up/Down, not on the numpad.
+    //
+    // The action names carry a 2: CBA remembers a binding under its action name for the
+    // life of the profile, and a changed default never reaches anyone who already has the
+    // old one stored. Renaming is the only way to hand out a new default, at the cost of
+    // resetting these two bindings once.
+    [QGVAR(zoomIn2),    LLSTRING(Keybind_ZoomIn),     AXIS_FOV,   -1, DIK_PRIOR, MOD_NONE],
+    [QGVAR(zoomOut2),   LLSTRING(Keybind_ZoomOut),    AXIS_FOV,   1,  DIK_NEXT,  MOD_NONE]
+];
+
+// ---------------------------------------------------------------------------------------
+// Numpad + and - while the monitor is up.
+//
+// Those are Arma's own zoom, and the overlay is a title layer, which takes no input focus -
+// so the game goes on acting on them underneath us. On the Spectrum Device that pulls the
+// whole view in and out from under the picture.
+//
+// A CBA keybind that returns true consumes the key, which is what stops the engine acting on
+// it. Returning false while the monitor is down leaves Arma's zoom exactly as it was during
+// normal play - this only ever bites while peeking.
+// ---------------------------------------------------------------------------------------
+{
+    _x params ["_name", "_key"];
+    [
+        "OPW", _name,
+        [LLSTRING(Keybind_BlockZoom), LLSTRING(Keybind_BlockZoom_Description)],
+        {GVAR(active)},
+        {GVAR(active)},
+        [_key, MOD_NONE]
+    ] call CBA_fnc_addKeybind;
+} forEach [
+    [QGVAR(blockZoomIn), DIK_ADD],
+    [QGVAR(blockZoomOut), DIK_SUBTRACT]
 ];
 
 [

@@ -27,6 +27,9 @@ if (!hasInterface) exitWith {};
         diag_log text "OPW-ESDCAM  device display not open, picture stays on the monitor";
     };
 
+    // Put the device where the player can read it, whatever field of view they run.
+    call FUNC(fitDeviceScreen);
+
     // Mute the spectrum side. The original fade is remembered rather than assumed - some of
     // these controls are hidden by default and should be hidden again afterwards.
     //
@@ -59,6 +62,25 @@ if (!hasInterface) exitWith {};
         missionNamespace setVariable ["#EM_Transmit", false];
         missionNamespace setVariable ["#EM_Progress", 0];
         GVAR(pfh) = [FUNC(acquireTick), 0] call CBA_fnc_addPerFrameHandler;
+    };
+}] call CBA_fnc_addEventHandler;
+
+// The head ran out of room, or found some again. The mirror component reports it as a state
+// rather than refusing the deploy, so all that is needed here is to take the picture off the
+// screen and put it back - the operator stays in control the whole time.
+[QEGVAR(mirror,fault), {
+    params [["_faulted", false, [false]]];
+
+    if (!GVAR(useDeviceScreen)) exitWith {};
+
+    if (_faulted) exitWith {
+        [false] call FUNC(showFeed);
+    };
+
+    // Only back on if it had been acquired in the first place - a fault clearing must not
+    // hand out a picture the operator has not held the button for yet.
+    if (GVAR(acquired)) then {
+        [true] call FUNC(showFeed);
     };
 }] call CBA_fnc_addEventHandler;
 

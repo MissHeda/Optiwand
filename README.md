@@ -130,6 +130,7 @@ assets can be rebuilt from the sources at any time:
 ```bash
 python tools/fbx_to_p3d.py        # art/esdcam/arma3_cam.fbx  ->  addons/esdcam/model/camhead.p3d
 python tools/bake_textures.py     # art/esdcam/bake/*.png     ->  addons/esdcam/data/camhead_*.paa
+python tools/render_icon.py       # the model                 ->  data/ui/gear_camhead_ca.paa
 python tools/preview_p3d.py       # renders the result, to check it before starting Arma
 ```
 
@@ -167,6 +168,18 @@ The model came with four materials over one shared UV layout, one 4096 bake each
 `bake_textures.py` folds them into a single set by rasterising each material's UV islands,
 and fills everything outside them by growing the island content outwards - without that,
 mipmapping pulls the bake background into the silhouette.
+
+Ownership comes before that growing, and the order matters. Grow first and a material's
+margin writes over the next one's real surface: `blitz` is eight tiny scattered islands over
+a brown LED bake, and it put 209 brown texels into the middle of the grey body that way -
+visible in game as a scatter of small brown dots.
+
+`--tint R,G,B` sets what the housing should look like. The wand's own bake sits at 19/19/19,
+which reads almost black next to the device; the default target is 35/36/38, the median of
+Bohemia's own `esd_01_co.paa`, so the attachment matches the thing it is bolted to. It is a
+per channel gain rather than an offset, so the bake's own contrast survives, and it only
+touches `Plastik` and `Schlauch` - the lens and the LEDs are signal colours. `--tint none`
+leaves the bake alone.
 
 ### Where the size comes from
 

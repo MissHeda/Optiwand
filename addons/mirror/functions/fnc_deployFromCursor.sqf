@@ -54,16 +54,13 @@ private _fnc_freehand = {
         _reach = (_baseASL vectorDistance ((_blocked select 0) select 0)) - COLLISION_CLEARANCE;
     };
 
-    // With no clearance the head cannot extend. Nothing happening at all reads as a broken
-    // mod, so the device says so itself.
+    // No clearance check here.
     //
-    // Switchable: anyone who does not want the check gets the mirror deployed right up
-    // against a wall too. The head then sits wherever there was still room.
-    if (GVAR(requireClearance) && {_reach < FREE_MIN_CLEAR}) exitWith {
-        [objNull, "", [], [], 0, MODE_FAULT] call FUNC(openView);
-        true
-    };
-
+    // It used to refuse the deploy outright, which put the report on the screen at the
+    // moment the device was raised rather than at the moment it would have shown a picture -
+    // and left the operator with a monitor that nothing was left running to close. The check
+    // is in fnc_update now, measured against the reach the head actually achieves, and shown
+    // through fnc_setFault. Walk back a step and the picture arrives by itself.
     _reach = _reach max DEPTH_MIN;
 
     [objNull, "", _baseASL, _lookDir, 0, MODE_FREE, _reach] call FUNC(openView);

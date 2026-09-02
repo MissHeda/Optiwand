@@ -22,7 +22,12 @@ class RscObject;
 // larger middle value means higher up.
 //
 // Worked out rather than calculated: rapify does not evaluate expressions inside arrays, so
-// "-0.04 + 0.075" fails the build with "invalid macro result".
+// "-0.04 + 0.075" fails the build with "invalid macro result". SCREEN_LIFT and
+// SCREEN_DISTANCE in script_component.hpp carry the same two numbers for the runtime side.
+//
+// This only holds at the stock field of view. These are real 3D objects hung in front of the
+// camera, so how far down and how large they land depends on the projection - everything
+// else is corrected at runtime by fnc_fitDeviceScreen.
 #define OPW_POS {0, 0.035, 0.2}
 #define OPW_POS_BACK {0, 0.075, 0.2}
 

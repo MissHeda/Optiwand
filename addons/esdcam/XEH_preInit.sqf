@@ -11,6 +11,11 @@ GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;
 
+// Defaults for the two view settings, in case anything reaches fnc_fitDeviceScreen before
+// CBA has read the profile.
+GVAR(fitDeviceScreen) = true;
+GVAR(screenNudge) = 0;
+
 uiNamespace setVariable [QGVAR(hidden), []];   // [control, original fade]
 
 // Register the Spectrum Device with the mirror component - but only with a camera head on.

@@ -38,7 +38,8 @@ def load_texture(path):
     return out
 
 
-def render(lod, texture, size, yaw, pitch, background):
+def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
+           exposure=2.6, ambient=0.22, coverage=False, fit=None):
     xs = [p[0] for p in lod.points]
     ys = [p[1] for p in lod.points]
     zs = [p[2] for p in lod.points]
@@ -48,6 +49,9 @@ def render(lod, texture, size, yaw, pitch, background):
     cy, sy = math.cos(yaw), math.sin(yaw)
     cp, sp = math.cos(pitch), math.sin(pitch)
     rot = np.array([[cy, 0, -sy], [sp * sy, cp, sp * cy], [cp * sy, -sp, cp * cy]])
+    if roll:
+        cr, sr = math.cos(roll), math.sin(roll)
+        rot = np.array([[cr, -sr, 0], [sr, cr, 0], [0, 0, 1]]) @ rot
 
     pts = (np.array([p[:3] for p in lod.points]) - centre) @ rot.T
     # Negated: p3d normals follow Arma's left handed convention, and this rasteriser
@@ -56,16 +60,32 @@ def render(lod, texture, size, yaw, pitch, background):
     # not read a preview as proof that the orientation is right. check() does that.
     nrm = -np.array(lod.normals) @ rot.T
 
-    scale = size * 0.86 / extent
-    sx = size / 2 + pts[:, 0] * scale
-    sy_ = size / 2 - pts[:, 1] * scale
+    if fit is None:
+        # Scale off the model's own longest axis. Steady across views, which is what a
+        # comparison sheet wants - the object does not resize as it turns.
+        scale = size * 0.86 / extent
+        ox = oy = size / 2.0
+    else:
+        # Fit what is actually on screen after the rotation, with `fit` as the fraction of
+        # the frame to fill. An icon wants the object as large as it will go, and a long
+        # thin thing laid across the diagonal is much larger on screen than its own extent
+        # suggests.
+        span = np.maximum(pts[:, :2].max(axis=0) - pts[:, :2].min(axis=0), 1e-9)
+        scale = float(size * fit / span.max())
+        mid = (pts[:, :2].max(axis=0) + pts[:, :2].min(axis=0)) / 2.0
+        ox = size / 2.0 - mid[0] * scale
+        oy = size / 2.0 + mid[1] * scale
+
+    sx = ox + pts[:, 0] * scale
+    sy_ = oy - pts[:, 1] * scale
 
     colour = np.zeros((size, size, 3), np.float32)
     colour[:] = background
     depth = np.full((size, size), 1e9, np.float32)
+    drawn = np.zeros((size, size), bool)
 
     th, tw = texture.shape[:2]
-    light = np.array([0.35, 0.55, -0.75])
+    light = np.array(light if light is not None else [0.35, 0.55, -0.75], float)
     light = light / np.linalg.norm(light)
 
     tris = []
@@ -108,13 +128,17 @@ def render(lod, texture, size, yaw, pitch, background):
              + w2[..., None] * nrm[tri[2][1]])
         n /= np.maximum(np.linalg.norm(n, axis=2, keepdims=True), 1e-9)
         lambert = np.clip((n * light).sum(axis=2), 0, 1)
-        shade = 0.22 + 0.9 * lambert
-        rgb = np.clip(albedo * shade[..., None] * 2.6, 0, 1)
+        shade = ambient + 0.9 * lambert
+        rgb = np.clip(albedo * shade[..., None] * exposure, 0, 1)
 
         window[hit] = z[hit]
         target = colour[y0:y1, x0:x1]
         target[hit] = rgb[hit]
-    return (colour * 255).astype(np.uint8)
+        drawn[y0:y1, x0:x1][hit] = True
+    pixels = (colour * 255).astype(np.uint8)
+    if coverage:
+        return pixels, drawn
+    return pixels
 
 
 def main():

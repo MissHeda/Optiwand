@@ -17,6 +17,18 @@
         <Key ID="STR_opw_esdcam_Setting_RequireAcquire_Description">
             <English>Hold the left mouse button to bring the\npicture up, using the device's own transmit\nbar.\n\nOff: the picture is there the moment the\ncamera is deployed.</English>
         </Key>
+        <Key ID="STR_opw_esdcam_Setting_FitDeviceScreen">
+            <English>Hold the device steady across fields of view</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_FitDeviceScreen_Description">
+            <English>The Spectrum Device's display is a real model hung in front of the camera, so a wider field of view drops it down the screen and shrinks it. This pulls it closer by the same factor the view widened, which holds both its place and its size. Does nothing at the game's stock field of view.</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_ScreenNudge">
+            <English>Device height in the view</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_ScreenNudge_Description">
+            <English>Moves the device up or down within the view, on top of the correction above. Only needed if the automatic fit lands it somewhere you would rather it did not.</English>
+        </Key>
         <Key ID="STR_opw_esdcam_Setting_AcquireTime">
             <English>Acquire time</English>
         </Key>

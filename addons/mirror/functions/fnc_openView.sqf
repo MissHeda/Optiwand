@@ -11,8 +11,10 @@
  *   MODE_DOOR   the head sits in the door slit, rides the floor and slides along the gap
  *   MODE_FREE   the head sits on the end of the shaft, wherever the operator pointed it -
  *               for looking over a wall or round a corner. No floor, no sideways slide.
- *   MODE_FAULT  no camera at all, just the device reporting it has no room to work. Better
- *               than nothing happening, which reads as a broken mod.
+ *
+ * There is no fault mode any more. Having no room to work is a state the head can be in and
+ * come out of again, so it is measured every frame in fnc_update and shown through
+ * fnc_setFault - see the note there for why the old mode had to go.
  *
  * Arguments:
  * 0: House <OBJECT> (objNull in free mode)
@@ -36,7 +38,7 @@ params ["_house", "_door", "_basePosASL", "_reachDir", ["_halfWidth", PANEL_FALL
 
 if (!hasInterface) exitWith {};
 if (GVAR(active)) exitWith {};
-if (_mode isNotEqualTo MODE_FAULT && {_basePosASL isEqualTo [] || {_reachDir isEqualTo []}}) exitWith {};
+if (_basePosASL isEqualTo [] || {_reachDir isEqualTo []}) exitWith {};
 if (_mode isEqualTo MODE_DOOR && {isNull _house}) exitWith {};
 
 GVAR(active) = true;
@@ -85,6 +87,9 @@ GVAR(fovFar) = GVAR(zoomNear) max GVAR(zoomFar);
 GVAR(fovStart) = (GVAR(defaultFov) max GVAR(fovNear)) min GVAR(fovFar);
 GVAR(fov) = GVAR(fovStart);
 GVAR(nightVision) = false;
+// Cleared here rather than in fnc_setFault: that one only acts on a change, so it has to
+// start from a known state or the first real measurement is swallowed as "no change".
+GVAR(faulted) = false;
 GVAR(axes) = [0, 0, 0, 0, 0];
 GVAR(keyAxes) = createHashMap;
 GVAR(readoutState) = [];
@@ -116,14 +121,11 @@ GVAR(lastCamPosASL) = [[], _basePosASL] select (_mode isEqualTo MODE_FREE);
 // Camera
 ////////////////////////////////////////////////////////////////////////////////
 
-// A fault has nothing to show, so it gets no camera and no render target
-if (_mode isNotEqualTo MODE_FAULT) then {
-    GVAR(camera) = "camera" camCreate (ASLToAGL _basePosASL);
-    GVAR(camera) cameraEffect ["INTERNAL", "BACK", RTT_NAME];
-    RTT_NAME setPiPEffect [0];
-    GVAR(camera) camSetFov GVAR(fov);
-    GVAR(camera) camCommit 0;
-};
+GVAR(camera) = "camera" camCreate (ASLToAGL _basePosASL);
+GVAR(camera) cameraEffect ["INTERNAL", "BACK", RTT_NAME];
+RTT_NAME setPiPEffect [0];
+GVAR(camera) camSetFov GVAR(fov);
+GVAR(camera) camCommit 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Monitor
@@ -253,31 +255,30 @@ private _feedTexture = format ["#(argb,%1,%1,1)r2t(%2,1)", RTT_SIZE, RTT_NAME];
 // larger and white.
 private _hintText = "";
 
+_ctrlFault ctrlShow false;
+
+private _titleText = "";
 switch (_mode) do {
-    case MODE_FAULT: {
-        (_display displayCtrl IDC_FEED) ctrlSetText "#(argb,8,8,3)color(0.02,0.02,0.02,1)";
-        (_display displayCtrl IDC_TITLE) ctrlSetText LLSTRING(Feed_Title_Fault);
-        _hintText = LLSTRING(Feed_Hints_Fault);
-        (_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
-        _ctrlFault ctrlSetPosition [_screenX, _screenY, _screenW, _screenH];
-        _ctrlFault ctrlSetStructuredText parseText LLSTRING(Fault_NoClearance);
-        _ctrlFault ctrlCommit 0;
-    };
     case MODE_FREE: {
-        (_display displayCtrl IDC_FEED) ctrlSetText _feedTexture;
-        (_display displayCtrl IDC_TITLE) ctrlSetText LLSTRING(Feed_Title_Free);
+        _titleText = LLSTRING(Feed_Title_Free);
         _hintText = LLSTRING(Feed_Hints_Free);
-        (_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
-        _ctrlFault ctrlShow false;
     };
     default {
-        (_display displayCtrl IDC_FEED) ctrlSetText _feedTexture;
-        (_display displayCtrl IDC_TITLE) ctrlSetText LLSTRING(Feed_Title);
+        _titleText = LLSTRING(Feed_Title);
         _hintText = LLSTRING(Feed_Hints);
-        (_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
-        _ctrlFault ctrlShow false;
     };
 };
+
+(_display displayCtrl IDC_FEED) ctrlSetText _feedTexture;
+(_display displayCtrl IDC_TITLE) ctrlSetText _titleText;
+(_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
+
+// fnc_setFault redraws these when the head runs out of room, so it needs the pieces the
+// layout produced here rather than working them out a second time.
+GVAR(screenRect) = [_screenX, _screenY, _screenW, _screenH];
+GVAR(feedTexture) = _feedTexture;
+GVAR(titleText) = _titleText;
+GVAR(hintText) = _hintText;
 
 private _housing = [
     IDC_BODY, IDC_BEZEL, IDC_TOPBAR, IDC_TITLE, IDC_READOUT, IDC_BOTBAR, IDC_HINTS,
@@ -300,7 +301,9 @@ private _wantPanel = GVAR(viaInteraction) || {
     }
 };
 
-if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
+GVAR(panelShown) = !((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel});
+
+if (!GVAR(panelShown)) then {
     {
         (_display displayCtrl _x) ctrlShow false;
     } forEach (_housing + [IDC_SCREENMASK]);
@@ -331,11 +334,18 @@ if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
     // note.
     // Text only, no bar behind it. With a background it looked like a leftover piece of
     // panel that had no business being there.
-    private _fault = _mode isEqualTo MODE_FAULT;
-    private _stripH = (0.030 * safezoneH) * ([1, 2.2] select _fault);
+    //
+    // Two rectangles, because the fault message is two lines and needs the room. Both are
+    // worked out here and handed to fnc_setFault, which switches between them.
+    private _stripH = 0.030 * safezoneH;
+    private _stripHFault = _stripH * 2.2;
     private _stripW = 0.6 * safezoneW;
     private _stripX = safezoneX + (safezoneW - _stripW) / 2;
     private _stripY = safezoneY + safezoneH - _stripH - 0.045 * safezoneH;
+    private _stripYFault = safezoneY + safezoneH - _stripHFault - 0.045 * safezoneH;
+
+    GVAR(stripRect) = [_stripX, _stripY, _stripW, _stripH];
+    GVAR(stripRectFault) = [_stripX, _stripYFault, _stripW, _stripHFault];
 
     (_display displayCtrl IDC_BOTBAR) ctrlShow false;
 
@@ -350,15 +360,9 @@ if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
     //
     // The green key names override the colour within their own span and inherit the size
     // from here.
-    private _fnc_big = {
-        format ["<t size='1.9' color='#ffffff' shadow='1'>%1</t>", _this]
-    };
-
-    if (_fault) then {
-        _hintText = format ["%1<br/>%2", LLSTRING(Fault_NoClearance), LLSTRING(Feed_Hints_Fault)];
-    };
-
-    _hints ctrlSetStructuredText parseText (_hintText call _fnc_big);
+    _hints ctrlSetStructuredText parseText (format [
+        "<t size='1.9' color='#ffffff' shadow='1'>%1</t>", _hintText
+    ]);
 } else {
     // Full panel. That also applies to any wand with no screen of its own - without the
     // panel there would simply be nothing to look at.
@@ -386,9 +390,8 @@ uiNamespace setVariable [QGVAR(ctrlReadout), _display displayCtrl IDC_READOUT];
 playSound "ACE_Sound_Click";
 [QGVAR(deployed), [ACE_player, _house, _door, _mode]] call CBA_fnc_localEvent;
 
-// A fault screen has no camera to drive, so it needs no per frame handler either
-if (_mode isNotEqualTo MODE_FAULT) then {
-    GVAR(pfhId) = [{call FUNC(update)}, 0, []] call CBA_fnc_addPerFrameHandler;
-    // Aim the camera straight away so the first rendered frame is already correct
-    call FUNC(update);
-};
+// Unconditional, and it has to stay that way. fnc_update is the only thing that ever closes
+// the monitor again - leaving a deploy without one is what used to trap the operator.
+GVAR(pfhId) = [{call FUNC(update)}, 0, []] call CBA_fnc_addPerFrameHandler;
+// Aim the camera straight away so the first rendered frame is already correct
+call FUNC(update);

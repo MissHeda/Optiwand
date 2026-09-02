@@ -16,6 +16,16 @@ GVAR(scanPfhId)  = -1;
 GVAR(axes)       = [0, 0, 0, 0, 0];
 GVAR(keyAxes)    = createHashMap;
 GVAR(nightVision) = false;
+// Whether the head currently has room to work. A state rather than a deploy mode, measured
+// every frame in fnc_update - see fnc_setFault.
+GVAR(faulted)    = false;
+GVAR(panelShown) = true;
+GVAR(screenRect)     = [0, 0, 0, 0];
+GVAR(stripRect)      = [0, 0, 0, 0];
+GVAR(stripRectFault) = [0, 0, 0, 0];
+GVAR(feedTexture) = "";
+GVAR(titleText)  = "";
+GVAR(hintText)   = "";
 GVAR(defaultFov) = FOV_DEFAULT;
 GVAR(zoomNear)   = 0.10;
 GVAR(zoomFar)    = 0.40;

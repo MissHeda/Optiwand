@@ -200,6 +200,28 @@ if (_isDoor) then {
 GVAR(lastCamPosASL) = _wanted;
 
 ////////////////////////////////////////////////////////////////////////////////
+// Room to work
+////////////////////////////////////////////////////////////////////////////////
+//
+// Measured from what the head actually achieved after the sweep above, not from what was
+// asked for. Aiming into a wall means the sweep stopped the head right in front of the
+// operator's own face, and there is nothing worth showing from there.
+//
+// Door mode is exempt: the head is in the gap under the leaf, which is the whole point, and
+// the reach there is short by design.
+//
+// The two thresholds are deliberately apart. One number would have the report flickering on
+// and off while the operator drifts across it - coming on is stricter than going off.
+
+if (!_isDoor && GVAR(requireClearance)) then {
+    private _clear = _wanted vectorDistance GVAR(basePosASL);
+    private _limit = [FREE_MIN_CLEAR, FREE_MIN_CLEAR * 1.25] select GVAR(faulted);
+    [_clear < _limit] call FUNC(setFault);
+} else {
+    [false] call FUNC(setFault);
+};
+
+////////////////////////////////////////////////////////////////////////////////
 // Aim the mirror head
 ////////////////////////////////////////////////////////////////////////////////
 
