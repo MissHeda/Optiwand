@@ -1,0 +1,26 @@
+# Zeilenenden festnageln.
+#
+# Ohne das wandelt Git auf Windows beim Auschecken in CRLF um. Fuer Arma-Configs und die
+# Python-Skripte hier ist das schlecht: der Praeprozessor und die Blender-Skripte sind auf
+# LF ausgelegt, und ein gemischter Bestand macht jeden Diff unlesbar.
+* text=auto eol=lf
+
+# Binaerdateien nie anfassen
+*.p3d       binary
+*.paa       binary
+*.pbo       binary
+*.bisign    binary
+*.bikey     binary
+*.png       binary
+*.jpg       binary
+*.rar       binary
+*.zip       binary
+*.blend     binary
+*.rtm       binary
+
+# Diese sind Text, auch wenn die Endung ungewoehnlich ist
+*.sqf       text eol=lf
+*.hpp       text eol=lf
+*.cpp       text eol=lf
+*.rvmat     text eol=lf
+*.inc       text eol=lf

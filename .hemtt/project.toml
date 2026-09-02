@@ -1,0 +1,39 @@
+name = "Optiwand"
+prefix = "opw"
+author = "Miss Heda"
+mainprefix = "z"
+
+#modname = "{{prefix}}_mods"
+#key_name = "{{prefix}}_{{version}}"
+#authority = "{{prefix}}_{{version}}"
+
+[files]
+include = [
+    "mod.cpp",
+    "README.md",
+]
+
+[version]
+git_hash = 0
+
+[hemtt.config]
+preset = "Hemtt"
+
+[hemtt.launch]
+workshop = [
+    "450814997",  # CBA_A3
+    "463939057",  # ACE3
+    "1779063631", # Zeus Enhanced
+    "2369477168" # Advanced Dev Tools
+]
+# hemtt launch setzt -skipIntro -noSplash -showScriptErrors -debug und file patching
+# bereits selbst, hier also nur was zusaetzlich rein soll.
+# -name waehlt das Profil, und zwar per Anzeigename, nicht per Ordnername:
+#   Ordner "OFw%2e%20Mia%20Johnson"  ->  Profil "OFw. Mia Johnson"
+# Kein -profiles noetig, solange das Profil unter Dokumente\Arma 3 - Other Profiles liegt.
+parameters = [
+    '-name=OFw. Mia Johnson',
+]
+dlc = [
+
+]

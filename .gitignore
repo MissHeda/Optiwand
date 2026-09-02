@@ -1,0 +1,13 @@
+# ArmA 3
+*.pbo
+*.bisign
+
+## Added by HEMTT
+releases/*
+keys/*
+.hemtt/local
+.hemttout
+hemtt.exe
+
+# Alte Release-Bauten im Archiv - reine Artefakte, jederzeit neu baubar
+_attic/*.zip

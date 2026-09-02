@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project name="opw">
+    <Package name="optiwand">
+        <Key ID="STR_opw_optiwand_Optiwand_DisplayName">
+            <English>Optiwand</English>
+            <German>Optiwand</German>
+        </Key>
+        <Key ID="STR_opw_optiwand_Optiwand_Description">
+            <English>Under-door mirror wand with an integrated monitor.\nSlide the mirror under a closed door, or hold it out\nto look over a wall, and read the room off the\nscreen before you go in.</English>
+            <German>Unter-Tuer-Spiegel mit eingebautem Monitor.\nDen Spiegel unter eine geschlossene Tuer schieben\noder ueber eine Mauer halten und den Raum vom\nBildschirm ablesen, bevor man hineingeht.</German>
+        </Key>
+    </Package>
+</Project>

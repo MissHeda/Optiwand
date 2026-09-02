@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project name="Optiwand">
+    <Package name="esdcam">
+        <Key ID="STR_opw_esdcam_SettingCategory">
+            <English>Optiwand - ESD Camera</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_DeviceScreen">
+            <English>Picture on the device screen</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_DeviceScreen_Description">
+            <English>Draw the camera picture on the Spectrum\nDevice's own screen, next to its compass.\nThe carried monitor stays away.\n\nOff: the picture goes on the monitor\ninstead, like the Optiwand.</English>
+        </Key>
+
+        <Key ID="STR_opw_esdcam_Setting_RequireAcquire">
+            <English>Hold to acquire picture</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_RequireAcquire_Description">
+            <English>Hold the left mouse button to bring the\npicture up, using the device's own transmit\nbar.\n\nOff: the picture is there the moment the\ncamera is deployed.</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_AcquireTime">
+            <English>Acquire time</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Setting_AcquireTime_Description">
+            <English>Seconds of holding before the picture\nappears.\n\nLetting go drains twice as fast, so tapping\ngets you nowhere.</English>
+        </Key>
+
+        <Key ID="STR_opw_esdcam_Camera_DisplayName">
+            <English>SD Inspection Camera</English>
+        </Key>
+        <Key ID="STR_opw_esdcam_Camera_Description">
+            <English>Gooseneck inspection camera for the\nSpectrum Device. Fits the muzzle slot\nin place of an antenna.\n\nAim the device to deploy it, same as the\nOptiwand. No signal tracking while fitted.</English>
+        </Key>
+    </Package>
+</Project>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project name="opw">
+    <Package name="main">
+        <Key ID="STR_opw_main_URL">
+            <English>https://discord.gg/Jud6gyzFYx</English>
+        </Key>
+        <Key ID="STR_opw_main_DisplayName">
+            <English>Optiwand</English>
+        </Key>
+    </Package>
+</Project>
