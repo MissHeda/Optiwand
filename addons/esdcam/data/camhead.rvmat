@@ -26,8 +26,13 @@ ambient[]={1,1,1,1};
 diffuse[]={1,1,1,1};
 forcedDiffuse[]={0,0,0,0};
 emmisive[]={0,0,0,1};
-specular[]={0.14,0.145,0.155,1};
-specularPower=36;
+// Turned down from 0.14/36 after the model read as white piping along every bevel in game.
+// The base and the flange are a stack of concentric chamfered rings, and on a body that is
+// otherwise a flat colour every one of those catches the light and draws itself as a bright
+// line. Less specular and a wider highlight spread that out; the _smdi keeps the hose and
+// the lens where they were, since the numbers here only scale what is in the map.
+specular[]={0.06,0.062,0.067,1};
+specularPower=14;
 PixelShaderID="Super";
 VertexShaderID="Super";
 
@@ -96,7 +101,11 @@ class Stage5 {
 };
 
 class Stage6 {
-    texture = "#(ai,64,64,1)fresnel(0.35,0.7)";
+    // Down from fresnel(0.35,0.7) for the same reason as the specular above: the first
+    // number is what lights the silhouette, and on a dark matte body a strong one outlines
+    // every edge in white. This is the knob to reach for first if the model still reads as
+    // if someone had drawn round it.
+    texture = "#(ai,64,64,1)fresnel(0.15,0.5)";
     uvSource = "tex";
     class uvTransform {
         aside[] = {1,0,0};

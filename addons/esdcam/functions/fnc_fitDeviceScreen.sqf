@@ -29,6 +29,12 @@
  * At the stock field of view t equals t0, the factor is 1 and nothing moves. Nobody on
  * default settings can be made worse off by this.
  *
+ * Called every frame, and it has to be. Setting it once was the first attempt: the device
+ * visibly jumped to the right place and Arma put it straight back, because the engine
+ * re-applies the position from the config on its own. So this runs from a per frame handler
+ * for as long as the camera is deployed, and the two setters it does are the cheapest part
+ * of that frame.
+ *
  * Arguments:
  * None
  *

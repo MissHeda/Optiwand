@@ -15,6 +15,7 @@ GVAR(holding) = false;
 // CBA has read the profile.
 GVAR(fitDeviceScreen) = true;
 GVAR(screenNudge) = 0;
+GVAR(fitPfh) = -1;
 
 uiNamespace setVariable [QGVAR(hidden), []];   // [control, original fade]
 

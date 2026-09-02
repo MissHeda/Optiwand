@@ -108,14 +108,21 @@ def dilate(rgba, filled, rounds):
 
 
 def tint_housing(sources, exact, target):
-    """Lift the housing to a target colour, per channel, by gain rather than by offset.
+    """Lift the housing to a target colour, per channel, on a curve rather than a gain.
 
-    A gain keeps the bake's own contrast - panel lines, wear, the darker recesses stay
-    exactly as far apart as they were, the whole thing just sits at a different level. An
-    offset would flatten all of that towards the target.
+    A straight gain was the first attempt and it was wrong. The bake runs 16 to 70, so
+    doubling it to put the median at 35 also doubled the top - the bevel highlights along
+    every edge went to 188 and read in game as white piping around the whole model.
 
-    The gain is set from the median rather than the mean so a few blown highlights in the
-    bake cannot drag it."""
+    A power curve fixes the median in the same way but flattens as it goes up, so the
+    highlights stay highlights instead of turning into white. Same bake, 16..70 becomes
+    roughly 31..95 with the median where it was asked for.
+
+        out = 255 * (in/255) ** gamma,   gamma = ln(target/255) / ln(median/255)
+
+    Per channel, so a target that leans slightly blue - which the Spectrum Device's does -
+    comes through. The median is used rather than the mean so a handful of bright texels
+    cannot drag the fit."""
     reference = np.concatenate(
         [sources[MATERIALS.index(m)][exact[MATERIALS.index(m)]][:, :3] for m in HOUSING],
         axis=0)
@@ -123,15 +130,16 @@ def tint_housing(sources, exact, target):
         return sources, None, None
 
     median = np.median(reference, axis=0)
-    gain = np.array(target, float) / np.maximum(median, 1.0)
+    safe = np.clip(median, 1.0, 254.0) / 255.0
+    gamma = np.log(np.clip(np.array(target, float), 1.0, 254.0) / 255.0) / np.log(safe)
 
     out = list(sources)
     for material in HOUSING:
         index = MATERIALS.index(material)
         data = sources[index].astype(np.float32)
-        data[:, :, :3] = np.clip(data[:, :, :3] * gain, 0, 255)
+        data[:, :, :3] = np.clip(255.0 * (data[:, :, :3] / 255.0) ** gamma, 0, 255)
         out[index] = data.astype(np.uint8)
-    return out, median, gain
+    return out, median, gamma
 
 
 def composite(source_dir, exact, grown, kind, size, tint=None):
@@ -160,10 +168,10 @@ def composite(source_dir, exact, grown, kind, size, tint=None):
     # Colour only. Tinting a normal map would bend the normals, and _smdi and _as are not
     # colours at all - green and blue there are specular and occlusion.
     if tint is not None and kind == "co":
-        sources, median, gain = tint_housing(sources, exact, tint)
+        sources, median, gamma = tint_housing(sources, exact, tint)
         if median is not None:
-            print("  housing tinted  rgb %s -> %s   (gain %s)"
-                  % (median.astype(int).tolist(), list(tint), gain.round(2).tolist()))
+            print("  housing tinted  rgb %s -> %s   (gamma %s)"
+                  % (median.astype(int).tolist(), list(tint), gamma.round(3).tolist()))
 
     filled = np.zeros((size, size), bool)
     for mat_id, data in enumerate(sources):
