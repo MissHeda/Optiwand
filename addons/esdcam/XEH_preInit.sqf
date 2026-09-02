@@ -5,22 +5,22 @@ ADDON = false;
 #include "XEH_PREP.hpp"
 #include "initSettings.inc.sqf"
 
-// Laufzeitzustand des Bildaufbaus
+// Runtime state of the picture build-up
 GVAR(pfh) = -1;
 GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;
 
-uiNamespace setVariable [QGVAR(hidden), []];   // [Control, urspruenglicher Fade]
+uiNamespace setVariable [QGVAR(hidden), []];   // [control, original fade]
 
-// Das Spectrum Device beim Spiegel-Teil als Stab anmelden - aber nur mit Kamerakopf.
+// Register the Spectrum Device with the mirror component - but only with a camera head on.
 //
-// Der Eintrag in wandMuzzle ist der entscheidende: ohne ihn wuerde jedes Zielen mit dem
-// Geraet unseren Monitor aufziehen, auch mit einer Antenne drin. So bleibt das Geraet ohne
-// Kamera genau das, was es in Vanilla ist, und Crows Electronic Warfare merkt nichts davon.
+// The wandMuzzle entry is the decisive one: without it, aiming the device would bring our
+// view up even with an antenna fitted. This way the device without a camera stays exactly
+// what it is in vanilla, and Crows Electronic Warfare notices nothing.
 //
-// Die isNil-Abfragen sind Absicherung fuer den Fall, dass dieses Addon vor dem Spiegel-Teil
-// laeuft - dessen preInit legt dieselben Behaelter an.
+// The isNil guards cover the case where this addon runs before the mirror component -
+// its preInit creates the same containers.
 if (isNil QEGVAR(mirror,wandClasses)) then {EGVAR(mirror,wandClasses) = []};
 if (isNil QEGVAR(mirror,wandMuzzle)) then {EGVAR(mirror,wandMuzzle) = createHashMap};
 
@@ -34,8 +34,9 @@ if (isNil QEGVAR(mirror,wandMuzzle)) then {EGVAR(mirror,wandMuzzle) = createHash
     "hgun_esd_01_antenna_03_F"
 ];
 
-// Bewusst NICHT in screenWands eingetragen. Dort stehen Staebe, die das Render-Target auf
-// ihrem eigenen Modell tragen - fuer die bleibt der Monitor aus, weil das Bild schon am
-// Geraet ist. Das Spectrum Device kann das nicht, also ist der Monitor hier die Anzeige.
+// screenWands is handled in XEH_postInit rather than here, because it follows a setting:
+// that list holds devices carrying the render target on their own model, and for those the
+// mirror component keeps its monitor panel out of the way. Whether the Spectrum Device
+// belongs in it depends on useDeviceScreen, which is not known until settings are read.
 
 ADDON = true;

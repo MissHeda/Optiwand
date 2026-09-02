@@ -1,16 +1,16 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Sucht eine Tuer entlang eines Strahls. Ohne Argumente ist das der Blick des Spielers,
- * mit Start und Richtung ein beliebiger Strahl - so kann der Aufrufer auch rundherum
- * abtasten, statt am Blick zu haengen.
+ * Looks for a door along a ray. With no arguments that is the player's line of sight; with
+ * a start and a direction it is any ray at all - which lets the caller sweep all the way
+ * round instead of depending on where the player looks.
  * The raycast follows ACE3's ace_interaction_fnc_getDoor (commy2, Phyma) so we pick up
  * exactly the doors ACE's own "open door" interaction works on, including modded houses.
  *
  * Arguments:
  * 0: Search distance <NUMBER> (default: DOOR_REACH_DISTANCE)
- * 1: Start position AGL <ARRAY> (default: [] - die Kamera)
- * 2: Direction, normalised <ARRAY> (default: [] - die Blickrichtung)
+ * 1: Start position AGL <ARRAY> (default: [] - the camera)
+ * 2: Direction, normalised <ARRAY> (default: [] - the view direction)
  *
  * Return Value:
  * 0: House <OBJECT>

@@ -1,13 +1,13 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Beendet den Bildaufbau und setzt die Sendeanzeige des Geraets zurueck.
+ * Ends the picture build-up and resets the device's transmit readout.
  *
  * Arguments:
- * Keine
+ * None
  *
  * Return Value:
- * Keiner
+ * None
  *
  * Example:
  * call opw_esdcam_fnc_stopAcquire
@@ -24,8 +24,8 @@ GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;
 
-// Zuruecksetzen ist Pflicht, nicht Kosmetik: bliebe #EM_Transmit stehen, laege beim
-// naechsten Hochnehmen des Geraets der Sendeschleier ueber dem Spektrum, ohne dass
-// jemand sendet - und das waere dann auch ohne Kameraaufsatz so.
+// Resetting is mandatory, not cosmetic: if #EM_Transmit were left standing, the next time
+// the device is raised the transmit overlay would sit over the spectrum with nobody
+// transmitting - and it would do so even with no camera fitted.
 missionNamespace setVariable ["#EM_Transmit", false];
 missionNamespace setVariable ["#EM_Progress", 0];

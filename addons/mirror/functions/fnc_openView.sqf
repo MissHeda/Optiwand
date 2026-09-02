@@ -1,11 +1,11 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Puts the mirror out: creates the render to texture camera, opens the monitor dialog and
- * hooks up the controls.
+ * Puts the mirror out: creates the render to texture camera, raises the overlay and hooks
+ * up the controls.
  * The camera renders into a texture instead of onto the screen (same technique as
  * ace_viewports_fnc_viewCreate by PabstMirror), so the world keeps rendering normally behind
- * the device. The dialog is what locks movement and weapon input while the wand is out.
+ * the device. The overlay is a title layer, not a dialog, so the player keeps moving.
  *
  * Three modes:
  *   MODE_DOOR   the head sits in the door slit, rides the floor and slides along the gap
@@ -56,17 +56,17 @@ if (_reachDir isNotEqualTo []) then {
 };
 
 if (_mode isEqualTo MODE_FREE) then {
-    // Null, nicht der Blickwinkel beim Ausbringen: freihand ist GVAR(pitch) eine Ablage auf
-    // die Blickrichtung, die fnc_update jeden Frame neu misst. Stuende hier der Startwinkel
-    // drin, kaeme er zu jeder Messung noch einmal obendrauf und der Kopf zeigte doppelt so
-    // steil wie das Geraet.
+    // Zero, not the look angle at deploy time: in freehand mode GVAR(pitch) is an offset on
+    // the look direction, which fnc_update measures fresh every frame. Were the starting
+    // angle stored here it would be added on top of every measurement, and the head would
+    // point twice as steeply as the device.
     GVAR(basePitch) = 0;
     GVAR(freeLookPitch) = asin (((_reachDir select 2) max -1) min 1);
     GVAR(depthDefault) = _reach;
     GVAR(slideLimit) = 0;
 
-    // Kopf ein Stueck ueber die Stabachse setzen, sonst steht beim Hochschwenken das eigene
-    // Modell im Bild.
+    // Lift the head a little above the shaft axis, or the model itself stands in the picture
+    // when swivelling up.
     GVAR(basePosASL) = GVAR(basePosASL) vectorAdd [0, 0, FREE_CAM_LIFT];
 } else {
     GVAR(basePitch) = PITCH_DEFAULT;
@@ -78,8 +78,8 @@ GVAR(yaw) = 0;
 GVAR(pitch) = GVAR(basePitch);
 GVAR(depth) = GVAR(depthDefault);
 GVAR(slide) = 0;
-// Grenzen einmal ordnen und merken, damit fnc_update sie nicht jeden Frame neu sortiert -
-// und damit der Startwert garantiert dazwischen liegt.
+// Order the limits once and remember them, so fnc_update does not re-sort them every frame -
+// and so the starting value is guaranteed to sit between them.
 GVAR(fovNear) = GVAR(zoomNear) min GVAR(zoomFar);
 GVAR(fovFar) = GVAR(zoomNear) max GVAR(zoomFar);
 GVAR(fovStart) = (GVAR(defaultFov) max GVAR(fovNear)) min GVAR(fovFar);
@@ -129,14 +129,14 @@ if (_mode isNotEqualTo MODE_FAULT) then {
 // Monitor
 ////////////////////////////////////////////////////////////////////////////////
 
-// Titelebene statt Dialog.
+// Title layer rather than dialog.
 //
-// Ein Dialog faengt jede Eingabe ab - der Spieler stand damit fest, solange der Spiegel
-// draussen war. Eine RscTitles-Ebene zeichnet dasselbe, laesst aber Laufen, Umsehen und
-// Waffe frei. Die Tasten kommen dafuer nicht mehr vom Display, sondern von CBA-Keybinds.
+// A dialog captures every input - the player stood fixed in place for as long as the mirror
+// was out. An RscTitles layer draws the same thing but leaves walking, looking around and
+// the weapon free. The keys in turn come from CBA keybinds rather than from the display.
 //
-// cutRsc legt die Anzeige noch im selben Frame an; ihr onLoad traegt sie in den uiNamespace
-// ein, weshalb sie direkt danach schon abholbar ist.
+// cutRsc creates the display within the same frame; its onLoad puts it into the uiNamespace,
+// which is why it can be picked up immediately afterwards.
 private _layer = QGVAR(layer) call BIS_fnc_rscLayer;
 _layer cutRsc [QGVAR(layer), "PLAIN", 0, false];
 
@@ -244,14 +244,13 @@ private _ctrlFault = _display displayCtrl IDC_FAULT;
 private _ctrlIrTint = _display displayCtrl IDC_IRTINT;
 _ctrlIrTint ctrlShow false;
 uiNamespace setVariable [QGVAR(ctrlIrTint), _ctrlIrTint];
-// Die Groesse muss mit OPTIWAND_SCREEN im Waffen-Addon uebereinstimmen: beide binden
-// dasselbe Render-Target, und die Zahl im Texturstring sagt Arma, wie gross der Puffer
-// dafuer angelegt wird. Zwei verschiedene Angaben auf denselben Namen sind ein Wuerfeln
-// darum, welche gewinnt.
+// The size must match FEED_TEXTURE in the device addon: both bind the same render target,
+// and the number in the texture string tells Arma how large a buffer to allocate for it.
+// Two different figures under the same name is a coin toss over which one wins.
 private _feedTexture = format ["#(argb,%1,%1,1)r2t(%2,1)", RTT_SIZE, RTT_NAME];
 
-// Der gewaehlte Text wird gemerkt: der Zweig ohne Panel setzt ihn gleich noch einmal, dann
-// groesser und weiss.
+// The chosen text is remembered: the no-panel branch sets it a second time straight after,
+// larger and white.
 private _hintText = "";
 
 switch (_mode) do {
@@ -285,13 +284,13 @@ private _housing = [
     IDC_BRAND, IDC_SCREW_TL, IDC_SCREW_TR, IDC_SCREW_BL, IDC_SCREW_BR
 ];
 
-// Ein Stab, der seinen Bildschirm selbst mitbringt, braucht kein Panel davor - das Bild
-// sitzt am Geraet in der Hand. Wer es trotzdem will, schaltet die Einstellung "Use GUI" ein.
+// A wand that brings its own screen needs no panel in front of it - the picture sits on the
+// device in your hand. Anyone who wants it anyway turns the monitor setting on.
 //
-// Der Dialog geht in jedem Fall auf: er faengt die Tasten ab. Ohne ihn steckt der Spiegel
-// unter der Tuer und laesst sich weder steuern noch schliessen.
-// Wann der Monitor mitkommt. Ueber die ACE-Interaktion immer - dort zielt niemand, also
-// bleibt der Bildschirm am Geraet zu klein, um etwas zu erkennen.
+// The overlay layer comes up either way: it carries the key legend.
+//
+// When the monitor comes along. Through the ACE interaction always - nobody is aiming
+// there, so the screen on the device stays too small to make anything out.
 private _wantPanel = GVAR(viaInteraction) || {
     switch (GVAR(guiMode)) do {
         case 1: {_mode isEqualTo MODE_DOOR};
@@ -307,32 +306,31 @@ if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
     } forEach (_housing + [IDC_SCREENMASK]);
     _ctrlFault ctrlShow false;
 
-    // Das Feed-Control wird ausgeblendet, nicht versteckt. Arma haelt ein Render-Target nur
-    // am Leben, solange etwas es zeichnet, und ein verstecktes Control zeichnet nichts. Auf
-    // Deckkraft null gezogen zaehlt es weiter als Abnehmer und ist trotzdem unsichtbar.
+    // The feed control is faded out, not hidden. Arma only keeps a render target alive while
+    // something draws it, and a hidden control draws nothing. Pulled to zero opacity it still
+    // counts as a consumer and is invisible all the same.
     private _feed = _display displayCtrl IDC_FEED;
     _feed ctrlSetFade 1;
     _feed ctrlCommit 0;
 
-    // Nachtsicht darf hier nichts einblenden. Der IR-Schleier liegt auf der Bildschirm-
-    // flaeche des Panels, und die ist zwar unsichtbar, aber immer noch da - eingeschaltet
-    // klatschte er als grosser gruener Klotz mitten ins Bild. Auf dem Modellbildschirm
-    // erledigt setPiPEffect die Faerbung ohnehin schon, direkt im Render-Target.
+    // Night vision must show nothing here. The IR wash sits on the panel's screen area, and
+    // that area is invisible but still present - switched on it slapped a large green block
+    // into the middle of the view. On the device screen setPiPEffect already does the
+    // tinting anyway, directly in the render target.
     uiNamespace setVariable [QGVAR(ctrlIrTint), controlNull];
 
-    // Tastenbelegung als schmale Leiste am unteren Bildrand.
+    // Key legend as a thin strip along the bottom edge.
     //
-    // Ins Kamerabild selbst laesst sie sich nicht hineinschreiben: das Render-Target ist die
-    // Ausgabe einer Kamera, und Arma bietet keinen Weg, dort etwas hineinzuzeichnen -
-    // drawIcon3D und Konsorten zeichnen auf den Bildschirm des Spielers, nicht in ein
-    // Render-Target. Also sitzt die Leiste dort, im Stil des Geraets, statt das Bild auf dem
-    // Monitor zu ueberdecken.
+    // It cannot be written into the camera picture itself: the render target is a camera's
+    // output, and Arma offers no way to draw into one - drawIcon3D and friends draw onto the
+    // player's screen, not into a render target. So the strip sits down there, in the
+    // device's own style, rather than covering the picture.
     //
-    // Im Stoerungsfall traegt dieselbe Leiste die Fehlermeldung. Auf dem Modellbildschirm
-    // kann sie aus demselben Grund nicht stehen, und eine ACE-Benachrichtigung waere aus dem
-    // Ton gefallen.
-    // Nur die Schrift, kein Balken dahinter. Mit Hintergrund sah es aus wie ein
-    // uebriggebliebenes Stueck Panel, das dort nichts zu suchen hat.
+    // In the fault case the same strip carries the error message. It cannot live on the
+    // device screen for the same reason, and an ACE notification would have struck the wrong
+    // note.
+    // Text only, no bar behind it. With a background it looked like a leftover piece of
+    // panel that had no business being there.
     private _fault = _mode isEqualTo MODE_FAULT;
     private _stripH = (0.030 * safezoneH) * ([1, 2.2] select _fault);
     private _stripW = 0.6 * safezoneW;
@@ -346,12 +344,12 @@ if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
     _hints ctrlSetPosition [_stripX, _stripY, _stripW, _stripH];
     _hints ctrlCommit 0;
 
-    // Groesser, weiss und mit Schatten - aber nur hier. Im Panel sitzt dieselbe Legende auf
-    // dunklem Grund und war so, wie sie war, richtig. Die Groesse kommt als Faktor im Text
-    // statt als Controleigenschaft, damit die Konfiguration unangetastet bleibt.
+    // Larger, white and with a shadow - but only here. Inside the panel the same legend sits
+    // on a dark background and was right as it was. The size comes as a factor in the text
+    // rather than as a control property, so the config stays untouched.
     //
-    // Die gruenen Tastennamen ueberschreiben die Farbe innerhalb ihres eigenen Abschnitts,
-    // die Groesse erben sie von hier.
+    // The green key names override the colour within their own span and inherit the size
+    // from here.
     private _fnc_big = {
         format ["<t size='1.9' color='#ffffff' shadow='1'>%1</t>", _this]
     };
@@ -362,8 +360,8 @@ if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
 
     _hints ctrlSetStructuredText parseText (_hintText call _fnc_big);
 } else {
-    // Volles Panel. Das gilt auch fuer den Spectrum-Stab, der gar keinen eigenen Bildschirm
-    // hat - bei dem waere ohne Panel schlicht nichts zu sehen.
+    // Full panel. That also applies to any wand with no screen of its own - without the
+    // panel there would simply be nothing to look at.
     {
         (_display displayCtrl _x) ctrlShow true;
     } forEach _housing;
@@ -375,16 +373,15 @@ uiNamespace setVariable [QGVAR(ctrlReadout), _display displayCtrl IDC_READOUT];
 // Input
 ////////////////////////////////////////////////////////////////////////////////
 
-// Hier stehen keine Display-Handler mehr.
+// No display handlers here any more.
 //
-// Eine Titelebene bekommt keinen Eingabefokus, also koennte sie ohnehin keine Taste sehen.
-// Die Steuerung liegt jetzt auf CBA-Keybinds, die in XEH_postInit angemeldet werden und
-// sich in den Einstellungen umlegen lassen - was hier noetig ist, weil der Spieler waehrend
-// des Spaehens weiterlaeuft und die Tasten sich mit den normalen Belegungen ueberschneiden
-// koennen.
+// A title layer gets no input focus, so it could not see a key press in any case. The
+// controls now live on CBA keybinds, registered in XEH_postInit and remappable in the
+// settings - which is necessary here, because the player keeps walking while peeking and
+// the keys can collide with the normal bindings.
 //
-// Beendet wird ueber das Zielen selbst: fnc_update schliesst, sobald der Spieler die
-// Zielansicht verlaesst. Rechtsklick bringt einen rein und wieder raus, ganz ohne Sonderfall.
+// Ending is handled by the aimed view itself: fnc_update closes as soon as the player
+// leaves it. Right click brings you in and back out, with no special case at all.
 
 playSound "ACE_Sound_Click";
 [QGVAR(deployed), [ACE_player, _house, _door, _mode]] call CBA_fnc_localEvent;

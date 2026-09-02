@@ -3,7 +3,7 @@
 class CfgPatches {
     class ADDON {
         name = COMPONENT_NAME;
-        // Dieses Addon ist reine Mechanik - die Geraete tragen sich selbst ein (siehe opw_esdcam).
+        // This addon is pure mechanics - devices register themselves (see opw_esdcam).
         units[] = {};
         weapons[] = {};
         requiredVersion = REQUIRED_VERSION;

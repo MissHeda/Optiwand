@@ -6,8 +6,8 @@
     1
 ] call CBA_fnc_addSetting;
 
-// Bild erst nach gehaltener linker Maustaste. Nutzt die Sendeanzeige, die das Geraet ohnehin
-// mitbringt - derselbe Balken, den das Spektrum beim Senden zeigt.
+// Picture only after the left mouse button has been held. Uses the transmit readout the
+// device already brings - the same bar the spectrum side shows while transmitting.
 [
     QGVAR(requireAcquire), "CHECKBOX",
     [LSTRING(Setting_RequireAcquire), LSTRING(Setting_RequireAcquire_Description)],

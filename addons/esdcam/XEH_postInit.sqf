@@ -3,14 +3,14 @@
 if (!hasInterface) exitWith {};
 
 // ---------------------------------------------------------------------------------------
-// Bild auf die Scheibe des Geraets legen, sobald der Spiegel-Teil ausbringt.
+// Put the picture on the device screen as soon as the mirror component deploys.
 //
-// Der Spiegel-Teil ruft beim Ausbringen und beim Einholen bereits Ereignisse - wir hoeren
-// nur zu und muessen dort nichts aendern. Zu diesem Zeitpunkt laeuft seine Kamera schon auf
-// opw_mirror_rtt, wir zeigen dasselbe Ziel also nur zusaetzlich an.
+// The mirror component already raises events on deploy and retract - we only listen, and
+// nothing has to change over there. By that point its camera is already rendering to
+// opw_mirror_rtt, so we are just showing the same target in a second place.
 //
-// Das Display holen wir aus dem uiNamespace: BIS_fnc_initDisplay legt es dort unter dem
-// scriptName der Anzeige ab. Deshalb braucht es keinen eigenen onLoad und keine Schleife.
+// The display comes from the uiNamespace: BIS_fnc_initDisplay stores it there under the
+// display's scriptName. That is why no onLoad of our own and no polling loop is needed.
 // ---------------------------------------------------------------------------------------
 
 #define HIDE_LIST [IDC_LINES, IDC_LABELS_V, IDC_LABELS_H, IDC_SIGNAL_TEXT, \
@@ -24,14 +24,14 @@ if (!hasInterface) exitWith {};
 
     private _display = uiNamespace getVariable [SPECTRUM_DISPLAY, displayNull];
     if (isNull _display) exitWith {
-        diag_log text "OPW-ESDCAM  Geraeteanzeige nicht offen, Bild bleibt auf dem Monitor";
+        diag_log text "OPW-ESDCAM  device display not open, picture stays on the monitor";
     };
 
-    // Spektrumteil stummschalten. Der urspruengliche Fade wird gemerkt, nicht angenommen -
-    // einige dieser Controls sind von Haus aus versteckt und sollen es danach wieder sein.
+    // Mute the spectrum side. The original fade is remembered rather than assumed - some of
+    // these controls are hidden by default and should be hidden again afterwards.
     //
-    // IDC_PROGRESS steht bewusst NICHT in der Liste: das ist der Fortschrittsbalken, den
-    // wir gleich fuer den Bildaufbau brauchen.
+    // IDC_PROGRESS is deliberately NOT in the list: that is the progress bar, which we are
+    // about to use for the picture build-up.
     private _hidden = [];
     {
         private _ctrl = _display displayCtrl _x;
@@ -45,12 +45,12 @@ if (!hasInterface) exitWith {};
 
     GVAR(acquire) = 0;
     GVAR(holding) = false;
-    // An der Tuer entfaellt der Aufbau.
+    // At a door there is no build-up.
     //
-    // Dort schiebt man den Spiegel unter das Blatt und will sofort sehen, was dahinter ist -
-    // erst noch eine Taste halten zu muessen, waehrend man im Tuerrahmen kniet, ist genau
-    // der falsche Moment. Freihand ist es umgekehrt: da steht man und kann sich die Sekunde
-    // nehmen, und der Sendebalken gibt dem Ganzen erst sein Gewicht.
+    // There you slide the mirror under the leaf and want to see what is behind it at once -
+    // having to hold a key while kneeling in a doorway is exactly the wrong moment for it.
+    // Freehand is the other way round: you are standing still and can spare the second, and
+    // the transmit bar is what gives the act any weight.
     GVAR(acquired) = !GVAR(requireAcquire) || {_mode isEqualTo MODE_DOOR};
 
     [GVAR(acquired)] call FUNC(showFeed);
@@ -65,8 +65,8 @@ if (!hasInterface) exitWith {};
 [QEGVAR(mirror,retracted), {
     call FUNC(stopAcquire);
 
-    // Die Anzeige kann inzwischen zu sein - dann sind ihre Controls ohnehin weg und isNull
-    // faengt das ab, statt eine Fehlermeldung zu erzeugen.
+    // The display may already be gone by now - then its controls are gone with it, and
+    // isNull catches that instead of throwing an error.
     {
         _x params ["_ctrl", "_fade"];
         if (!isNull _ctrl) then {
@@ -80,11 +80,11 @@ if (!hasInterface) exitWith {};
 }] call CBA_fnc_addEventHandler;
 
 // ---------------------------------------------------------------------------------------
-// Linke Maustaste halten baut das Bild auf.
+// Holding the left mouse button builds the picture up.
 //
-// Ueber CBA_fnc_addDisplayHandler statt ueber einen Dialog - den gibt es nicht mehr, und
-// diese Handler greifen auch waehrend des Spaehens. Beide geben false zurueck: die Taste
-// soll durchgereicht werden, sonst schluckt sie das Geraet fuer alles andere mit.
+// Through CBA_fnc_addDisplayHandler rather than through a dialog - there is no dialog any
+// more, and these handlers fire while peeking too. Both return false so the button is passed
+// on; swallowing it would take it away from everything else.
 // ---------------------------------------------------------------------------------------
 ["MouseButtonDown", {
     params ["", "_button"];
@@ -103,11 +103,11 @@ if (!hasInterface) exitWith {};
 }] call CBA_fnc_addDisplayHandler;
 
 // ---------------------------------------------------------------------------------------
-// Ob der Monitor der Titelebene wegbleibt.
+// Whether the overlay's monitor panel stays away.
 //
-// screenWands ist die Liste der Geraete, die das Bild auf dem eigenen Modell tragen - fuer
-// die haelt der Spiegel-Teil seinen Monitor zurueck und zeigt nur noch die Tastenzeile.
-// Wer den Monitor doch lieber haette, schaltet die Einstellung ab.
+// screenWands is the list of devices that carry the picture on their own model - for those
+// the mirror component holds its monitor back and shows only the key legend. Anyone who
+// would rather have the monitor turns the setting off.
 // ---------------------------------------------------------------------------------------
 ["CBA_settingsInitialized", {
     private _classes = [

@@ -18,8 +18,8 @@
 
 params ["_target", "_player"];
 
-// Ueber das ACE-Menue ausgebracht. Hier zielt niemand, also kommt das Auge nicht nah
-// genug an den kleinen Bildschirm am Geraet - ohne Monitor waere nichts zu erkennen.
+// Deployed through the ACE menu. Nobody is aiming here, so the eye never gets close enough
+// to the small screen on the device - without the monitor there would be nothing to read.
 GVAR(viaInteraction) = true;
 
 [

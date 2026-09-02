@@ -30,14 +30,14 @@ if (
     !alive _player
     || {_player getVariable ["ACE_isUnconscious", false]}
     || {!isNull objectParent _player}
-    // Weglaufen beendet nur die Tuerarbeit - dort haengt der Spiegel in einem bestimmten
-    // Spalt. Freihand haelt man das Geraet selbst, also darf man damit auch gehen; die
-    // Kamera wird weiter unten jeden Frame neu an den Spieler gesetzt.
+    // Walking away only ends door work - there the mirror hangs in one particular gap.
+    // Freehand you are holding the device yourself, so you may walk with it; the camera is
+    // re-placed on the player every frame further down.
     || {_isDoor && {(getPosASL _player) vectorDistance GVAR(anchorASL) > ABORT_DISTANCE}}
     || {isNull GVAR(camera)}
-    // Rechtsklick hat uns hereingebracht, Rechtsklick bringt uns wieder heraus: verlaesst
-    // der Spieler die Zielansicht, ist der Spiegel eingeholt. Frueher hing das an einem
-    // Maus-Handler des Dialogs - den gibt es nicht mehr.
+    // Right click brought us in, right click takes us back out: once the player leaves the
+    // aimed view, the mirror is retracted. This used to hang off a mouse handler on the
+    // dialog - which no longer exists.
     || {cameraView isNotEqualTo "GUNNER"}
     || {isNull (uiNamespace getVariable [QGVAR(display), displayNull])}
     || {!([_player] call FUNC(wandReady))}
@@ -75,25 +75,25 @@ if (_inYaw != 0) then {
 if (_inPitch != 0) then {
     GVAR(pitch) = ((GVAR(pitch) + _inPitch * RATE_PITCH * _delta) max _pitchMin) min _pitchMax;
 };
-// Seitlich schieben ist Tuerarbeit - im Freihandmodus gibt es keinen Spalt, an dem entlang.
+// Sliding sideways is door work - in freehand mode there is no gap to slide along.
 if (_inSlide != 0 && {_isDoor} && {GVAR(slideLimit) > 0}) then {
     GVAR(slide) = ((GVAR(slide) + _inSlide * RATE_SLIDE * _delta) max (-GVAR(slideLimit))) min GVAR(slideLimit);
 };
 
-// Ausfahren geht in beiden Modi, nur mit unterschiedlichem Spielraum. An der Tuer schiebt
-// man den Kopf durch den Spalt, das kann weit gehen. Freihand haengt er am ausgestreckten
-// Arm - da ist nur ein Nachfassen um Handbreite drin, mehr gibt die Haltung nicht her.
+// Extending works in both modes, only with different room. At a door you push the head
+// through the gap, which can go far. Freehand it hangs off an outstretched arm - there is
+// only a handspan of regrip in that, and the posture allows no more.
 if (_inDepth != 0) then {
-    // Freihand gibt es nur nach vorne und wieder zurueck bis zum Ausgangspunkt. Weiter
-    // heranziehen hiesse, den Kopf in den Stab und in die eigene Hand zu schieben - dabei
-    // steckt die Kamera dann im Modell.
+    // Freehand only goes forward and back to the starting point. Pulling in further would
+    // mean pushing the head into the shaft and into your own hand - at which point the
+    // camera sits inside the model.
     private _minDepth = [GVAR(depthDefault), DEPTH_MIN] select _isDoor;
     private _maxDepth = [GVAR(depthDefault) + GVAR(freeExtend), GVAR(maxDepth)] select _isDoor;
     GVAR(depth) = ((GVAR(depth) + _inDepth * RATE_DEPTH * _delta) max _minDepth) min _maxDepth;
 };
-// Rauszoomen nur bis zum Ausgangspunkt zurueck. Darueber hinaus wird das Bild so weit, dass
-// ein Ziel in wenigen Metern aussieht wie am Horizont - dieselbe Ueberlegung wie beim
-// Ausfahren, wo es auch nur nach vorne und wieder zurueck geht.
+// Zooming out only goes back to the starting point. Beyond that the view gets so wide that
+// a target a few metres away looks like it is on the horizon - the same reasoning as for
+// extending, which also only goes out and back.
 if (_inFov != 0) then {
     GVAR(fov) = ((GVAR(fov) + _inFov * RATE_ZOOM_KEY * _delta) max GVAR(fovNear)) min GVAR(fovFar);
     GVAR(camera) camSetFov GVAR(fov);
@@ -101,16 +101,15 @@ if (_inFov != 0) then {
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// Freihand: dem Spieler folgen
+// Freehand: follow the player
 ////////////////////////////////////////////////////////////////////////////////
 //
-// An der Tuer bleibt der Ansatzpunkt stehen - der Spalt wandert ja nicht. Freihand haelt
-// der Spieler das Geraet in der Hand, also muss der Ansatz jeden Frame neu von Auge und
-// Blickrichtung kommen. Ohne das bliebe die Kamera beim Losgehen einfach zurueck.
+// At a door the anchor point stays put - the gap does not wander. Freehand the player is
+// holding the device, so the anchor has to come fresh from eye and look direction every
+// frame. Without that the camera would simply be left behind the moment you walk off.
 //
-// yaw und pitch aus den Tasten sind dabei Ablagen auf diese Blickrichtung, keine absoluten
-// Winkel: das Geraet zeigt dorthin, wohin der Spieler zeigt, und die Tasten schwenken den
-// Kopf zusaetzlich.
+// yaw and pitch from the keys are offsets on that look direction, not absolute angles: the
+// device points where the player points, and the keys swivel the head on top of that.
 
 if (!_isDoor) then {
     private _look = _player weaponDirection (currentWeapon _player);
@@ -118,8 +117,8 @@ if (!_isDoor) then {
         _look = getCameraViewDirection _player;
     };
 
-    // Grundlage ist das Auge, darauf kommt der Versatz aus den Einstellungen: vorwaerts
-    // entlang der Blickrichtung, seitlich entlang der Rechten, hoch entlang der Welt-Z.
+    // The eye is the basis, with the offset from the settings on top: forward along the look
+    // direction, sideways along the right vector, up along world Z.
     private _right = vectorNormalized ([_look select 0, _look select 1, 0] vectorCrossProduct [0, 0, 1]);
     GVAR(basePosASL) = (eyePos _player)
         vectorAdd [0, 0, FREE_CAM_LIFT - FREE_BASE_DROP + GVAR(freeOffsetUp)]
@@ -207,9 +206,9 @@ GVAR(lastCamPosASL) = _wanted;
 
 private _azimuth = GVAR(baseAzimuth) + GVAR(yaw);
 
-// An der Tuer ist GVAR(pitch) der Winkel selbst. Freihand ist er die Ablage auf die
-// Blickrichtung, die oben jeden Frame neu gemessen wird - sonst wuerde der Kopf beim
-// Umsehen stehen bleiben, waehrend das Geraet in der Hand mitgeht.
+// At a door GVAR(pitch) is the angle itself. Freehand it is the offset on the look
+// direction measured fresh above every frame - otherwise the head would stay put while you
+// look around, even though the device in your hand moves with you.
 private _pitch = [
     GVAR(pitch),
     ((GVAR(freeLookPitch) + GVAR(pitch)) max FREE_PITCH_MIN) min FREE_PITCH_MAX
@@ -240,8 +239,8 @@ if (isNull _ctrlReadout) exitWith {};
 private _snapshot = [
     round ((_azimuth + 360) % 360),
     round _pitch,
-    // Gegen den eigenen Grundwert gerechnet, nicht gegen einen festen: 1.0x heisst
-    // damit "so weit, wie du es eingestellt hast", und nicht "so weit wie meine Zahl".
+    // Measured against your own base value rather than a fixed one: 1.0x therefore means
+    // "as wide as you set it", not "as wide as my number".
     round ((GVAR(fovStart) / GVAR(fov)) * 10),
     GVAR(nightVision)
 ];

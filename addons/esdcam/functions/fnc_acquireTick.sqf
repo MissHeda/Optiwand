@@ -1,18 +1,18 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Baut das Bild auf, solange die linke Maustaste gehalten wird, und treibt dabei die
- * Sendeanzeige des Geraets.
+ * Builds the picture up while the left mouse button is held, driving the device's own
+ * transmit readout as it goes.
  *
- * #EM_Transmit und #EM_Progress sind Engine-Variablen des Spectrum Device: Bohemia zeichnet
- * daraus selbst den Sendeschleier und den Fortschrittsbalken auf der Scheibe. Wir muessen
- * also nichts nachbauen - dieselben zwei Variablen benutzt auch Crows Electronic Warfare.
+ * #EM_Transmit and #EM_Progress are engine variables of the Spectrum Device: Bohemia draws
+ * the transmit overlay and the progress bar on the screen from them, so nothing has to be
+ * rebuilt. Crows Electronic Warfare drives the same two variables.
  *
  * Arguments:
- * Keine (als Frame-Handler aufgerufen)
+ * None (called as a frame handler)
  *
  * Return Value:
- * Keiner
+ * None
  *
  * Example:
  * call opw_esdcam_fnc_acquireTick
@@ -20,8 +20,8 @@
  * Public: No
  */
 
-// Der Spiegel-Teil raeumt beim Einholen selbst auf und schickt uns sein Ereignis. Kommt der
-// Handler trotzdem noch einmal dran - Tod, Missionsende -, beendet er sich hier selbst.
+// The mirror component cleans up on retract and sends us its event. Should the handler get
+// one more turn anyway - death, mission end - it ends itself here.
 if (!EGVAR(mirror,active)) exitWith {
     call FUNC(stopAcquire);
 };
@@ -34,8 +34,8 @@ private _step = _delta / (GVAR(acquireTime) max 0.1);
 if (GVAR(holding)) then {
     GVAR(acquire) = (GVAR(acquire) + _step) min 1;
 } else {
-    // Loslassen faellt schneller zurueck als der Aufbau steigt. Sonst laesst sich der Balken
-    // durch kurzes Antippen im Sekundentakt hochtragen, und das Halten waere sinnlos.
+    // Letting go drains faster than holding fills. Otherwise the bar could be walked up by
+    // tapping once a second, and holding would be pointless.
     GVAR(acquire) = (GVAR(acquire) - _step * 2) max 0;
 };
 

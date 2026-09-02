@@ -26,8 +26,8 @@ if (GVAR(active)) exitWith {};
 private _player = ACE_player;
 
 // Cheap early out - this runs whether or not the wand is out
-// Prueft auch den Muendungsaufsatz, wo einer verlangt wird - das Spectrum Device ohne
-// Kamerakopf soll beim Zielen weiter sein eigenes Spektrum zeigen und nicht unseren Monitor.
+// Also checks the muzzle attachment where one is demanded - the Spectrum Device without a
+// camera head should keep showing its own spectrum when aimed, not our view.
 if (!([_player] call FUNC(isWand))) exitWith {
     GVAR(aimLatched) = false;
 };

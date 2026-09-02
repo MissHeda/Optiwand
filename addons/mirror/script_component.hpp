@@ -20,10 +20,10 @@
 // Weapon / assets
 ////////////////////////////////////////////////////////////////////////////////
 
-// Dieses Addon enthaelt keine Waffe mehr. Der Stab auf Basis des Spectrum Device ist
-// entfallen - es gibt jetzt ein eigenes Modell, und zwei Geraete fuer dieselbe Aufgabe
-// waeren nur Ballast. Welche Waffen als Spiegelstab zaehlen, steht zur Laufzeit in
-// GVAR(wandClasses); eingetragen wird das vom jeweiligen Waffen-Addon selbst.
+// This addon holds no weapon of its own. Which weapons count as a mirror wand is decided
+// at runtime through GVAR(wandClasses), and each device addon registers itself there.
+// Keeping the mechanics free of any weapon class is what lets the same code drive the
+// Spectrum Device today and anything else later.
 
 #define ICON_MIRROR     "\A3\ui_f\data\IGUI\Cfg\simpleTasks\types\scout_ca.paa"
 
@@ -49,19 +49,19 @@
 
 #define RTT_NAME        QGVAR(rtt)
 
-// Kantenlaenge des Render-Targets. 512 war auf dem bildschirmbreiten Monitor sichtbar
-// ausgefranst, 1024 deutlich besser, 2048 die letzte Stufe, die noch etwas bringt.
+// Edge length of the render target. 512 was visibly ragged on a screen-wide monitor, 1024
+// clearly better, 2048 the last step that still buys anything.
 //
-// Warum ueberhaupt so viel: der Puffer ist quadratisch, das Bild darin hat aber das Format
-// des Spielerbildschirms. Es wird also einmal in das Quadrat gestaucht und auf dem Monitor
-// wieder auseinandergezogen - zweimal umgerechnet, und jedes Mal geht Schaerfe verloren.
-// Ein Puffer im richtigen Seitenverhaeltnis waere sparsamer, aber Arma legt das Format des
-// Render-Targets selbst fest; die Zahlen hier steuern nur die Groesse.
+// Why so much at all: the buffer is square, but the image inside it has the aspect ratio of
+// the player's screen. So it gets squeezed into the square once and stretched back out on
+// the monitor - two conversions, and sharpness is lost in each. A buffer in the right
+// aspect ratio would be cheaper, but Arma decides the render target's format itself; the
+// numbers here only control the size.
 //
-// Das laeuft nur, solange der Spiegel draussen ist - im Betrieb kostet es also nichts.
+// This only runs while the mirror is out, so it costs nothing during normal play.
 //
-// Muss mit OPTIWAND_SCREEN im Waffen-Addon uebereinstimmen. Wer Bildrate braucht, setzt
-// beide zurueck auf 1024.
+// Must match FEED_TEXTURE in the device addon. If you need frame rate, set both back to
+// 1024.
 #define RTT_SIZE        2048
 #define IDD_MIRROR      91401
 
@@ -91,18 +91,18 @@
 // How far in front of the camera we look for a door (same idea as ACE's door reach)
 #define DOOR_REACH_DISTANCE (((AGLToASL positionCameraToWorld [0, 0, 0]) vectorDistance (ACE_player modelToWorldWorld (ACE_player selectionPosition "Head"))) + 2)
 
-// Wie weit um den Spieler herum nach einer Tuer gesucht wird, und in welcher Hoehe.
-// Die Suche haengt bewusst nicht am Blick: wer neben einer Tuer steht, soll den Spiegel
-// anbieten koennen, ohne sie erst anzuvisieren. Abgetastet wird ein Faecher aus
-// DOOR_SEARCH_RAYS Strahlen rundherum.
+// How far around the player a door is looked for, and at what height.
+// The search deliberately does not depend on where you are looking: standing next to a
+// door should be enough to be offered the mirror, without having to aim at it first. A fan
+// of DOOR_SEARCH_RAYS rays is cast all the way round.
 #define DOOR_SEARCH_RADIUS  3.2
 #define DOOR_SEARCH_HEIGHT  0.9
 #define DOOR_SEARCH_RAYS    12
 
 // Interact-menu action point sits this far above the bottom edge of the door
 #define ACTION_HEIGHT       0.06
-// Interaction radius of the action point. Muss mindestens so weit reichen wie die Suche
-// oben, sonst findet der Faecher eine Tuer, die das ACE-Menue dann nicht mehr anzeigt.
+// Interaction radius of the action point. Must reach at least as far as the search above,
+// or the fan finds a door that the ACE menu then refuses to show.
 #define ACTION_DISTANCE     3.6
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -144,27 +144,26 @@
 #define FREE_BASE_DROP      0.22
 // How far out the head sits in freehand mode, before anything in the way shortens it.
 //
-// Stand vorher: 1.25 m. Das ist ueber einen halben Meter jenseits der Stabspitze, der Kopf
-// schwebte also frei in der Luft statt am Geraet zu sitzen. Gemessen: ausgestreckter Arm ab
-// Handhoehe rund 0.2 m plus 0.41 m Stablaenge. 0.55 setzt den Kopf knapp vor die Spitze,
-// wo bei einem Spiegelstab auch der Spiegel sitzt.
-// 0.55 sass noch knapp hinter der Spitze, im Spiel nachgemessen fehlten 10 cm.
-// Grundreichweite im Freihandmodus. Der Feinversatz liegt in den Einstellungen
-// (freeOffset*), damit er sich im Spiel ausprobieren laesst statt hier geraten.
+// Base reach in freehand mode. Measured rather than guessed: an outstretched arm from hand
+// height is roughly 0.2 m, plus the length of the attachment. Earlier values put the head
+// half a metre past the tip, where it floated in mid air instead of sitting on the device.
+//
+// The fine offset lives in the settings (freeOffset*), so it can be tried out in game
+// rather than guessed at here.
 #define POLE_LENGTH         0.65
 
 // Refuse to deploy if there is less clear air than this in front of the operator
 #define FREE_MIN_CLEAR      0.35
 
-// Wie weit der Kopf ueber der Stabachse sitzt. Ohne das schaut die Kamera beim Hochschwenken
-// am eigenen Modell entlang - der Stab steht dann mitten im Bild. Ein paar Zentimeter
-// darueber, und das Geraet bleibt unterhalb des Blickfelds.
+// How far the head sits above the shaft axis. Without it the camera looks along its own
+// model when swivelling up, and the shaft stands in the middle of the picture. A few
+// centimetres above and the device stays below the field of view.
 #define FREE_CAM_LIFT       0.08
 
-// Wie weit sich der Kopf im Freihandmodus ueber die Ausgangslage hinaus schieben laesst.
-// Bewusst klein: der Arm ist ausgestreckt, viel mehr als ein Nachfassen um Handbreite gibt
-// die Haltung nicht her. Die Wandpruefung greift trotzdem und stoppt frueher, wenn etwas
-// im Weg ist.
+// How far past its starting position the head can be pushed in freehand mode.
+// Deliberately small: the arm is outstretched, and the posture allows little more than a
+// handspan of regrip. The wall check still applies and stops it earlier when something is
+// in the way.
 #define FREE_EXTEND         0.25
 
 // How far around the operator loose shafts are hunted down after a detach
@@ -176,23 +175,17 @@
 
 #define DEPTH_MIN           0.02
 #define DEPTH_DEFAULT       0.14
-// camSetFov: kleinere Zahl = staerker gezoomt. 0.75 entspricht ungefaehr der normalen
-// Spielansicht.
+// camSetFov: a smaller number means more zoomed in.
 //
-// 0.75 war als Grundwert zu eng - man schiebt den Spiegel unter eine Tuer, um moeglichst
-// viel vom Raum zu sehen, nicht um jemanden anzuvisieren. 1.15 war dann zu weit: oberhalb
-// von etwa 1.2 zieht Arma das Bild sichtbar auseinander, gerade Kanten werden krumm und es
-// sieht aus wie eine Tuerspion-Linse. 0.90 ist spuerbar weiter als normal und noch ohne
-// Verzerrung; die Obergrenze bleibt knapp unter der Schmerzgrenze.
-// Ich habe hier lange in der falschen Groessenordnung gesucht. Die Werte 0.75 bis 1.15
-// stammen aus der Vorstellung, ein Render-Target verhalte sich wie die Hauptansicht - tut es
-// nicht. Im Spiel gemessen: bei 0.82 sah ein Ziel in wenigen Metern Entfernung aus wie auf
-// zwanzig. Das ist rund der Faktor vier, also gehoert der Grundwert eine Groessenordnung
-// tiefer.
+// These numbers were hunted for in the wrong order of magnitude for a long time. Values
+// around 0.75 to 1.15 come from assuming a render target behaves like the main view - it
+// does not. Measured in game: at 0.82 a target a few metres away looked like it was twenty
+// metres off. That is roughly a factor of four, so the base value belongs an order of
+// magnitude lower.
 //
-// 0.22 ist der neue Ausgangspunkt. Die Untergrenze liegt bewusst weit darunter, damit die
-// Einstellung Luft nach beiden Seiten hat und nicht wieder an einem von mir geratenen Rand
-// anschlaegt.
+// 0.22 is the starting point that came out of that. The lower limit sits deliberately far
+// below it, so the setting has room in both directions and does not run into an edge that
+// was merely guessed at.
 #define FOV_MIN             0.05
 #define FOV_MAX             1.20
 #define FOV_DEFAULT         0.22

@@ -6,13 +6,13 @@ class CfgPatches {
         units[] = {};
         weapons[] = {CAM_ITEM};
         requiredVersion = REQUIRED_VERSION;
-        // A3_Weapons_F_Enoch_Pistols_ESD ist die Contact-Erweiterung. Ohne sie gibt es kein
-        // Spectrum Device, an das sich etwas anstecken liesse - also eine harte Abhaengigkeit.
-        // opw_mirror liefert die gesamte Mechanik und muss vor uns geladen sein, damit die
-        // Behaelter stehen, in die wir uns eintragen.
+        // A3_Weapons_F_Enoch_Pistols_ESD is the Contact platform. Without it there is no
+        // Spectrum Device to attach anything to, so this is a hard dependency.
+        // opw_mirror carries all of the mechanics and has to load before us, so the
+        // containers we register into already exist.
         //
-        // Crows Electronic Warfare wird ausdruecklich NICHT gebraucht: die Muendungsslots und
-        // die Antennen sind bereits Vanilla und dort schon scope = 2.
+        // Crows Electronic Warfare is explicitly NOT required: the muzzle slots and the
+        // antennas are vanilla and already scope = 2 there.
         requiredAddons[] = {"opw_mirror", "A3_Weapons_F_Enoch_Pistols_ESD"};
         author = "Miss Heda";
         url = ECSTRING(main,URL);

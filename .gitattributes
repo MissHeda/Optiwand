@@ -1,11 +1,11 @@
-# Zeilenenden festnageln.
+# Nail down line endings.
 #
-# Ohne das wandelt Git auf Windows beim Auschecken in CRLF um. Fuer Arma-Configs und die
-# Python-Skripte hier ist das schlecht: der Praeprozessor und die Blender-Skripte sind auf
-# LF ausgelegt, und ein gemischter Bestand macht jeden Diff unlesbar.
+# Without this Git converts to CRLF on checkout under Windows. That is bad for Arma
+# configs and for the Python scripts here: the preprocessor and the Blender scripts
+# expect LF, and a mixed tree makes every diff unreadable.
 * text=auto eol=lf
 
-# Binaerdateien nie anfassen
+# Never touch binaries
 *.p3d       binary
 *.paa       binary
 *.pbo       binary
@@ -18,7 +18,7 @@
 *.blend     binary
 *.rtm       binary
 
-# Diese sind Text, auch wenn die Endung ungewoehnlich ist
+# These are text, even though the extension is unusual
 *.sqf       text eol=lf
 *.hpp       text eol=lf
 *.cpp       text eol=lf

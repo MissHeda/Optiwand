@@ -21,7 +21,7 @@
 params [["_silent", false, [false]]];
 
 
-// Ueber Zielen oder Taste. Der Monitor richtet sich nach der Einstellung.
+// Through aiming or the keybind. The monitor follows the setting.
 GVAR(viaInteraction) = false;
 if (GVAR(active)) exitWith {
     call FUNC(closeView);
@@ -54,11 +54,11 @@ private _fnc_freehand = {
         _reach = (_baseASL vectorDistance ((_blocked select 0) select 0)) - COLLISION_CLEARANCE;
     };
 
-    // Ohne Freiraum kann der Kopf nicht ausfahren. Dass gar nichts passiert liest sich wie
-    // ein kaputter Mod, also sagt das Geraet es selbst.
+    // With no clearance the head cannot extend. Nothing happening at all reads as a broken
+    // mod, so the device says so itself.
     //
-    // Abschaltbar: wer die Pruefung nicht will, bekommt den Spiegel auch dicht vor einer Wand
-    // ausgebracht. Der Kopf sitzt dann eben da, wo noch Platz war.
+    // Switchable: anyone who does not want the check gets the mirror deployed right up
+    // against a wall too. The head then sits wherever there was still room.
     if (GVAR(requireClearance) && {_reach < FREE_MIN_CLEAR}) exitWith {
         [objNull, "", [], [], 0, MODE_FAULT] call FUNC(openView);
         true
