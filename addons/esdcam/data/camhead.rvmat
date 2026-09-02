@@ -28,9 +28,8 @@ PixelShaderID="Super";
 VertexShaderID="Super";
 
 class Stage1 {
-    // No leading backslash: with mainprefix z, Arma does not resolve "\z\opw\..." but does
-    // resolve "z\opw\...". This is established from the RPT - on the old wand it was exactly
-    // the paths with a leading backslash that failed to load.
+    // No leading backslash: with mainprefix z, Arma resolves "z\opw\..." but not
+    // "\z\opw\...". A leading backslash here means the texture silently fails to load.
     texture = "z\opw\addons\esdcam\data\camhead_nohq.paa";
     uvSource = "tex";
     class uvTransform {
@@ -100,7 +99,7 @@ class Stage6 {
 
 class Stage7 {
     // Black rather than env_land_ca: a smooth tube with environment reflection tips straight
-    // into chrome on the white VR map. That was already the problem once on the old wand.
+    // into chrome, most visibly on bright terrain.
     texture = "#(argb,8,8,3)color(0,0,0,1)";
     uvSource = "tex";
     class uvTransform {

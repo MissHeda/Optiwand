@@ -8,8 +8,6 @@ from the Contact platform, and the picture appears on that device's own screen, 
 compass. The device already brings a screen, a compass and attachment slots - building a
 second device next to it would have been redundant.
 
-![the camera head on the Spectrum Device](art/esdcam/camhead_co.png)
-
 ## Requirements
 
 * **CBA_A3**
@@ -17,10 +15,9 @@ second device next to it would have been redundant.
 * **Contact Platform** - free, ships with every Arma 3 install in the `enoch` folder.
   The paid Contact expansion is *not* needed.
 
-Crows Electronic Warfare is explicitly **not** required. The muzzle slots and the antennas
-are vanilla and already `scope = 2`. If you do run Crows EW, nothing collides: it never
-patches the device display, and its signal tracking bows out on its own while the camera is
-fitted, because the camera carries no `class EM` block and therefore reports no antenna.
+No other mod is required. The muzzle slots and the antennas are vanilla and already
+`scope = 2`. Mods that extend the Spectrum Device generally read the fitted attachment for
+its frequency band; the camera declares none, so they leave it alone.
 
 ## How it works
 
@@ -38,8 +35,8 @@ There are three ways to deploy it:
 
 At a door the picture is there immediately - you are kneeling in a doorway and want to see
 what is behind it. Freehand, hold the **left mouse button** until the picture builds up.
-That uses the device's own transmit bar (`#EM_Transmit` and `#EM_Progress`, the same two
-engine variables Crows EW drives), so it is Bohemia's own display, not a rebuilt one.
+That drives the device's own transmit bar through `#EM_Transmit` and `#EM_Progress`, so it
+is the game's own readout rather than a rebuilt one.
 
 You keep moving the whole time. The overlay is an `RscTitles` layer, not a dialog - a dialog
 would take input focus and pin you in place.
@@ -88,8 +85,12 @@ addons/main      framework, version, macros
 addons/mirror    all of the mechanics - deploying, camera, controls, overlay
 addons/esdcam    registers the Spectrum Device with the above and puts the
                  picture on its screen
-tools/           the Blender pipeline for the model
+include/         CBA and Arma headers the preprocessor needs at build time
 ```
+
+`include/` is not part of the mod. It is there so the build can resolve `\x\cba\...` and
+`\a3\...` includes without a P-drive, which is what lets CI build on a machine with no Arma
+installed. Removing it breaks the build immediately.
 
 `mirror` knows no weapon class of its own. Devices register themselves in
 `opw_mirror_wandClasses`, and if they only count with a particular attachment fitted, in
@@ -107,16 +108,21 @@ hemtt launch    # build and start Arma with the mod loaded
 hemtt release   # signed release build
 ```
 
+Anything specific to your machine - an Arma profile, extra mods - goes on the command line
+rather than into `.hemtt/project.toml`, so the checked-in config stays the same for everyone:
+
+```bash
+hemtt launch -- -name="Your Profile"
+```
+
 Every push and pull request runs `hemtt check` on GitHub. If you update HEMTT locally, bump
 `HEMTT_VERSION` in `.github/workflows/check.yml` to match, so CI and your machine keep
 agreeing with each other.
 
 ## The model
 
-`tools/blender_camhead.py` takes the model from Blender to `camhead.p3d` in one run: it
-merges the parts with their modifiers applied, resolves n-gons, orients and scales the
-result, bakes the Blender materials into a texture, builds the geometry and memory LODs and
-exports.
+The attachment model itself is built outside this repo; only the finished `camhead.p3d` and
+its textures ship here. What follows is what you need to know to make another one.
 
 Orientation is measured, not assumed. The three vanilla antennas of the Spectrum Device all
 sit with their origin at the device and extend along **-X**:
@@ -127,16 +133,19 @@ sit with their origin at the device and extend along **-X**:
 | `muzzle_antenna_02_F` | X -0.410 .. +0.298, 71 cm |
 | `muzzle_antenna_03_F` | X -0.557 .. 0.000, 56 cm |
 
-The exact mount point comes from the device's own muzzle proxy, at
-(-0.0982, -0.0238, -0.0771) in Blender with no rotation.
+So: mount at the origin, camera head towards -X, around 40 to 55 cm long. The exact mount
+point is the device's own muzzle proxy, at (-0.0982, -0.0238, -0.0771) in Blender with no
+rotation. Note that `muzzle_antenna_02_F` reaches back to +0.298, so a connector may wrap
+back over the front of the device.
 
-Baking is not optional decoration: Arma cannot read Blender node trees. Noise and wave
-textures, bump, glass - none of that survives an export. The baked texture is the only way
-that look reaches the game. Note that the baked `_co` looks darker than the Blender render,
-and should: it holds base colour only, with the metallic sheen coming from the rvmat. Put
-the sheen in both and the model turns flat and milky.
+Three LODs are needed: a resolution LOD, a convex geometry LOD carrying the mass, and a
+memory LOD with `usti hlavne` and `konec hlavne` - the vector between those two is the
+direction the head looks.
 
-After a bake, convert the PNGs with `tools/convert_camhead.sh`.
+Materials have to be baked. Arma cannot read Blender node trees, so noise and wave textures,
+bump and glass do not survive an export; a baked texture is the only way that look reaches
+the game. Bake base colour rather than the lit image - the metallic sheen belongs in the
+rvmat, and putting it in both leaves the model flat and milky.
 
 ## Licence
 

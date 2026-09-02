@@ -144,12 +144,12 @@
 #define FREE_BASE_DROP      0.22
 // How far out the head sits in freehand mode, before anything in the way shortens it.
 //
-// Base reach in freehand mode. Measured rather than guessed: an outstretched arm from hand
-// height is roughly 0.2 m, plus the length of the attachment. Earlier values put the head
-// half a metre past the tip, where it floated in mid air instead of sitting on the device.
+// Base reach in freehand mode. An outstretched arm from hand height is roughly 0.2 m, plus
+// the length of the attachment; much beyond that and the head floats in mid air rather
+// than sitting on the device.
 //
-// The fine offset lives in the settings (freeOffset*), so it can be tried out in game
-// rather than guessed at here.
+// The fine offset lives in the settings (freeOffset*), so it can be dialled in while
+// playing.
 #define POLE_LENGTH         0.65
 
 // Refuse to deploy if there is less clear air than this in front of the operator
@@ -177,15 +177,12 @@
 #define DEPTH_DEFAULT       0.14
 // camSetFov: a smaller number means more zoomed in.
 //
-// These numbers were hunted for in the wrong order of magnitude for a long time. Values
-// around 0.75 to 1.15 come from assuming a render target behaves like the main view - it
-// does not. Measured in game: at 0.82 a target a few metres away looked like it was twenty
-// metres off. That is roughly a factor of four, so the base value belongs an order of
-// magnitude lower.
+// A render target does not behave like the main view, and the usable range sits an order of
+// magnitude lower than the main view's. Measured in game: at 0.82 a target a few metres
+// away reads as roughly twenty metres off.
 //
-// 0.22 is the starting point that came out of that. The lower limit sits deliberately far
-// below it, so the setting has room in both directions and does not run into an edge that
-// was merely guessed at.
+// Hence 0.22 as the starting point, with the limits set wide around it so the setting has
+// room in both directions.
 #define FOV_MIN             0.05
 #define FOV_MAX             1.20
 #define FOV_DEFAULT         0.22

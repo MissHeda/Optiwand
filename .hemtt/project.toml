@@ -3,10 +3,6 @@ prefix = "opw"
 author = "Miss Heda"
 mainprefix = "z"
 
-#modname = "{{prefix}}_mods"
-#key_name = "{{prefix}}_{{version}}"
-#authority = "{{prefix}}_{{version}}"
-
 [files]
 include = [
     "mod.cpp",
@@ -19,21 +15,17 @@ git_hash = 0
 [hemtt.config]
 preset = "Hemtt"
 
+# Mods loaded alongside for testing. hemtt launch already sets -skipIntro -noSplash
+# -showScriptErrors -debug and file patching by itself.
+#
+# Anything specific to your machine - an Arma profile, a custom mod folder - goes on the
+# command line rather than in here, so the repo stays the same for everyone:
+#
+#   hemtt launch -- -name="Your Profile"
 [hemtt.launch]
 workshop = [
     "450814997",  # CBA_A3
     "463939057",  # ACE3
     "1779063631", # Zeus Enhanced
-    "2369477168" # Advanced Dev Tools
-]
-# hemtt launch already passes -skipIntro -noSplash -showScriptErrors -debug and file
-# patching by itself, so only extras belong here.
-# -name picks the profile by its display name, not by its folder name:
-#   folder "OFw%2e%20Mia%20Johnson"  ->  profile "OFw. Mia Johnson"
-# No -profiles needed as long as the profile lives under Documents\Arma 3 - Other Profiles.
-parameters = [
-    '-name=OFw. Mia Johnson',
-]
-dlc = [
-
+    "2369477168", # Advanced Developer Tools
 ]

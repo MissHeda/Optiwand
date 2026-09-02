@@ -4,9 +4,9 @@
  * Builds the picture up while the left mouse button is held, driving the device's own
  * transmit readout as it goes.
  *
- * #EM_Transmit and #EM_Progress are engine variables of the Spectrum Device: Bohemia draws
+ * #EM_Transmit and #EM_Progress are engine variables of the Spectrum Device: the game draws
  * the transmit overlay and the progress bar on the screen from them, so nothing has to be
- * rebuilt. Crows Electronic Warfare drives the same two variables.
+ * rebuilt here.
  *
  * Arguments:
  * None (called as a frame handler)

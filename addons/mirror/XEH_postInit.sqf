@@ -69,12 +69,12 @@ addMissionEventHandler ["Ended", {call FUNC(closeView)}];
 // ---------------------------------------------------------------------------------------
 // Steuerung
 //
-// The keys used to hang off the dialog's KeyDown handlers. The dialog is gone - a title
-// layer gets no input focus - so they run through CBA keybinds now.
+// The controls run through CBA keybinds rather than display handlers: the overlay is a
+// title layer, which gets no input focus and would never see a key press.
 //
-// That is the better answer anyway: the player keeps moving while peeking, so these keys
-// share the keyboard with the normal controls. Through CBA every one of them can be
-// remapped.
+// It also has to work this way round, because the player keeps moving while peeking. These
+// keys share the keyboard with the normal controls, and through CBA every one of them can
+// be remapped.
 //
 // Arma binds the arrow keys by default as a duplicate of WASD (forward/back/turn). Anyone
 // walking with WASD will never notice; anyone who walks with the arrow keys remaps one

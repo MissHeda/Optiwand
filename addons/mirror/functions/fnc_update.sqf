@@ -36,8 +36,7 @@ if (
     || {_isDoor && {(getPosASL _player) vectorDistance GVAR(anchorASL) > ABORT_DISTANCE}}
     || {isNull GVAR(camera)}
     // Right click brought us in, right click takes us back out: once the player leaves the
-    // aimed view, the mirror is retracted. This used to hang off a mouse handler on the
-    // dialog - which no longer exists.
+    // aimed view, the mirror is retracted.
     || {cameraView isNotEqualTo "GUNNER"}
     || {isNull (uiNamespace getVariable [QGVAR(display), displayNull])}
     || {!([_player] call FUNC(wandReady))}
