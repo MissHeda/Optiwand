@@ -45,21 +45,53 @@ from bake_textures import find_imagetopaa
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Key light from the upper left and in front, which is where Bohemia's is. The ambient is
-# high and the exposure low: these are read at 64 px in a list, and deep shadow there just
-# turns into a black smudge.
+# Key light from the upper left and in front, which is where Bohemia's is.
+#
+# The exposure is deliberately low. It used to be 2.2, which clipped: the wand came out at a
+# median of 98 against Bohemia's 55, with a maximum of 255 against their 184 - a light grey
+# item next to three dark ones. Anything that clips cannot be corrected afterwards, so the
+# render is kept well inside range and the level is set by the calibration below.
 LIGHT = (-0.45, 0.62, -0.65)
-AMBIENT = 0.42
-EXPOSURE = 2.2
+AMBIENT = 0.38
+EXPOSURE = 1.15
 
-# name: (width, height, yaw, pitch, mount point, tip point, output file)
+# name: (width, height, yaw, pitch, mount point, tip point, target median, output file)
+#
+# The target median is measured off the matching vanilla picture over its own opaque pixels,
+# so the camera sits at the same brightness as the antennas it is listed beside:
+#
+#     gear_muzzle_antenna_01_ca      median 52.3   max 185
+#     gear_muzzle_antenna_03_ca      median 55.0   max 184
+#     hgun_esd_01_antenna_01_f_ca    median 48.7   max 213
+#     hgun_esd_01_antenna_03_f_ca    median 49.3   max  80
 PRESETS = {
-    "item": (512, 512, 0.62, 0.30, (500.0, 236.0), (6.0, 314.0), "gear_camhead_ca.paa"),
+    "item": (512, 512, 0.62, 0.30, (500.0, 236.0), (6.0, 314.0), 55.0, "gear_camhead_ca.paa"),
     # Flat side on, mount where antenna 03 puts its own, tip just inside the left edge.
     # yaw and pitch of zero look straight down the model's Y, which lays the wand along the
     # horizontal with the mount - the origin - at the right, exactly as Bohemia's are.
-    "slot": (256, 128, 0.0, 0.0, (247.0, 64.0), (7.0, 64.0), "hgun_esd_01_camhead_F_ca.paa"),
+    "slot": (256, 128, 0.0, 0.0, (247.0, 64.0), (7.0, 64.0), 49.3,
+             "hgun_esd_01_camhead_F_ca.paa"),
 }
+
+
+def calibrate(rgb, covered, target):
+    """Put the median of the rendered object on the target, on a curve.
+
+    A gain would have to be applied before clipping to be any use, and it would take the
+    highlights with it either way. A power curve moves the middle and leaves both ends
+    where they are, which is what keeps the lens and the LEDs reading as bright while the
+    housing comes down to the level Bohemia's pictures sit at.
+
+    Returns the corrected image and the median it started from."""
+    value = rgb[covered].astype(np.float32).mean(axis=1)
+    if value.size == 0:
+        return rgb, None
+    median = float(np.median(value))
+    if median < 1.0 or target < 1.0:
+        return rgb, median
+    gamma = math.log(target / 255.0) / math.log(median / 255.0)
+    out = np.clip(255.0 * (rgb.astype(np.float32) / 255.0) ** gamma, 0, 255)
+    return out.astype(np.uint8), median
 
 
 def main():
@@ -73,7 +105,7 @@ def main():
     ap.add_argument("--png", help="also keep the rendered PNG here")
     args = ap.parse_args()
 
-    width, height, yaw, pitch, mount_at, tip_at, filename = PRESETS[args.preset]
+    width, height, yaw, pitch, mount_at, tip_at, target, filename = PRESETS[args.preset]
     out = args.out or os.path.join(HERE, "addons", "esdcam", "data", "ui", filename)
 
     lods, _ = p3d.read(args.model)
@@ -91,6 +123,10 @@ def main():
         place=(mount, tip,
                (mount_at[0] * scale, mount_at[1] * scale),
                (tip_at[0] * scale, tip_at[1] * scale)))
+
+    rgb, was = calibrate(rgb, drawn, target)
+    if was is not None:
+        print("  brightness  median %.1f -> %.1f" % (was, target))
 
     rgba = np.dstack([rgb, np.where(drawn, 255, 0).astype(np.uint8)])
     # Premultiply before the downsample, or the transparent black around the silhouette
