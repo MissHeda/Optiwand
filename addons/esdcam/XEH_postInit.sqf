@@ -27,14 +27,6 @@ if (!hasInterface) exitWith {};
         diag_log text "OPW-ESDCAM  device display not open, picture stays on the monitor";
     };
 
-    // Put the device where the player can read it, whatever field of view they run - and
-    // keep putting it there. Arma re-applies the position from the config every frame, so a
-    // single call is visibly overwritten a frame later.
-    call FUNC(fitDeviceScreen);
-    if (GVAR(fitPfh) isEqualTo -1) then {
-        GVAR(fitPfh) = [{call FUNC(fitDeviceScreen)}, 0] call CBA_fnc_addPerFrameHandler;
-    };
-
     // Mute the spectrum side. The original fade is remembered rather than assumed - some of
     // these controls are hidden by default and should be hidden again afterwards.
     //
@@ -91,13 +83,6 @@ if (!hasInterface) exitWith {};
 
 [QEGVAR(mirror,retracted), {
     call FUNC(stopAcquire);
-
-    // Hand the device back to Arma's own placement. Nothing to undo - the engine writes the
-    // config position every frame anyway, so it is back where it was on the next one.
-    if (GVAR(fitPfh) != -1) then {
-        [GVAR(fitPfh)] call CBA_fnc_removePerFrameHandler;
-        GVAR(fitPfh) = -1;
-    };
 
     // The display may already be gone by now - then its controls are gone with it, and
     // isNull catches that instead of throwing an error.

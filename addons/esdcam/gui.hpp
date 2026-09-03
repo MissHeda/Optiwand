@@ -22,12 +22,15 @@ class RscObject;
 // larger middle value means higher up.
 //
 // Worked out rather than calculated: rapify does not evaluate expressions inside arrays, so
-// "-0.04 + 0.075" fails the build with "invalid macro result". SCREEN_LIFT and
-// SCREEN_DISTANCE in script_component.hpp carry the same two numbers for the runtime side.
+// "-0.04 + 0.075" fails the build with "invalid macro result".
 //
-// This only holds at the stock field of view. These are real 3D objects hung in front of the
-// camera, so how far down and how large they land depends on the projection - everything
-// else is corrected at runtime by fnc_fitDeviceScreen.
+// These are real 3D objects hung in front of the camera, so how far down and how large they
+// land depends on the projection - which means this lift only holds at one field of view.
+// Correcting it at runtime was tried and taken out again: ctrlSetPosition does move the
+// objects, but the engine writes the config position back every frame, and re-applying it
+// every frame from a per frame handler still came out wrong in game. If someone wants to
+// pick that up again, the entry points are idc 10 (Screen) and 11 (Model) on the
+// RscWeaponSpectrumAnalyzerGeneric display.
 #define OPW_POS {0, 0.035, 0.2}
 #define OPW_POS_BACK {0, 0.075, 0.2}
 

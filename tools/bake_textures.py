@@ -50,10 +50,11 @@ SOURCE_SUFFIX = {"co": "CO", "nohq": "NOHQ", "smdi": "SMDI", "as": "AS"}
 # LEDs are signal colours and are left where the artist put them.
 HOUSING = ("Plastik", "Schlauch")
 
-# Median of Bohemia's own esd_01_co.paa, the Spectrum Device's colour texture, measured over
-# the whole sheet. The wand's own bake sits at 19/19/19 - next to the device it reads almost
-# black, which is what --tint is for.
-SPECTRUM_GREY = (35, 36, 38)
+# What the housing is lifted to. The Spectrum Device's own esd_01_co.paa has a median of
+# 35/36/38 and its two biggest colour clusters at 32 and 64, so matching the median exactly
+# put the wand at the dark end of the device's own range and it still read as near black
+# next to it. This sits between the two clusters instead: same grey, one step lighter.
+SPECTRUM_GREY = (46, 47, 49)
 
 
 def load_uv_islands(fbx_path, size, margin=0):

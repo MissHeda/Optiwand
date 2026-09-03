@@ -123,6 +123,12 @@ if (!_isDoor) then {
         vectorAdd [0, 0, FREE_CAM_LIFT - FREE_BASE_DROP + GVAR(freeOffsetUp)]
         vectorAdd (_look vectorMultiply GVAR(freeOffsetForward))
         vectorAdd (_right vectorMultiply GVAR(freeOffsetRight));
+    // The reach direction has to come along too, and for a long time it did not: it was set
+    // once at deploy and left there, so the base swung round with the player while the head
+    // went on extending along whatever direction had been current at the moment of deploy.
+    // Deploy facing south, turn north, and the head is behind you - which is to say inside
+    // you, with the camera looking at your own arms.
+    GVAR(baseDir) = _look;
     GVAR(baseAzimuth) = (_look select 0) atan2 (_look select 1);
     GVAR(baseRight) = _right;
     GVAR(freeLookPitch) = asin (((_look select 2) max -1) min 1);

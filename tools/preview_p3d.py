@@ -46,6 +46,13 @@ def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
     centre = np.array([(min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, (min(zs) + max(zs)) / 2])
     extent = max(max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs)) or 1.0
 
+    # size is either one number for a square or (width, height). The vanilla slot overlays
+    # are 256 x 128, so the frame is not always square.
+    if isinstance(size, (tuple, list)):
+        width, height = int(size[0]), int(size[1])
+    else:
+        width = height = int(size)
+
     cy, sy = math.cos(yaw), math.sin(yaw)
     cp, sp = math.cos(pitch), math.sin(pitch)
     rot = np.array([[cy, 0, -sy], [sp * sy, cp, sp * cy], [cp * sy, -sp, cp * cy]])
@@ -87,8 +94,8 @@ def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
     elif fit is None:
         # Scale off the model's own longest axis. Steady across views, which is what a
         # comparison sheet wants - the object does not resize as it turns.
-        scale = size * 0.86 / extent
-        ox = oy = size / 2.0
+        scale = min(width, height) * 0.86 / extent
+        ox, oy = width / 2.0, height / 2.0
         sx = ox + pts[:, 0] * scale
         sy_ = oy - pts[:, 1] * scale
     else:
@@ -97,17 +104,17 @@ def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
         # thin thing laid across the diagonal is much larger on screen than its own extent
         # suggests.
         span = np.maximum(pts[:, :2].max(axis=0) - pts[:, :2].min(axis=0), 1e-9)
-        scale = float(size * fit / span.max())
+        scale = float(min(width, height) * fit / span.max())
         mid = (pts[:, :2].max(axis=0) + pts[:, :2].min(axis=0)) / 2.0
-        ox = size / 2.0 - mid[0] * scale
-        oy = size / 2.0 + mid[1] * scale
+        ox = width / 2.0 - mid[0] * scale
+        oy = height / 2.0 + mid[1] * scale
         sx = ox + pts[:, 0] * scale
         sy_ = oy - pts[:, 1] * scale
 
-    colour = np.zeros((size, size, 3), np.float32)
+    colour = np.zeros((height, width, 3), np.float32)
     colour[:] = background
-    depth = np.full((size, size), 1e9, np.float32)
-    drawn = np.zeros((size, size), bool)
+    depth = np.full((height, width), 1e9, np.float32)
+    drawn = np.zeros((height, width), bool)
 
     th, tw = texture.shape[:2]
     light = np.array(light if light is not None else [0.35, 0.55, -0.75], float)
@@ -125,9 +132,9 @@ def render(lod, texture, size, yaw, pitch, background, roll=0.0, light=None,
         if abs(area) < 1e-9:
             continue
         x0 = max(int(min(q[0] for q in p)), 0)
-        x1 = min(int(max(q[0] for q in p)) + 1, size)
+        x1 = min(int(max(q[0] for q in p)) + 1, width)
         y0 = max(int(min(q[1] for q in p)), 0)
-        y1 = min(int(max(q[1] for q in p)) + 1, size)
+        y1 = min(int(max(q[1] for q in p)) + 1, height)
         if x0 >= x1 or y0 >= y1:
             continue
         gx, gy = np.meshgrid(np.arange(x0, x1) + 0.5, np.arange(y0, y1) + 0.5)
