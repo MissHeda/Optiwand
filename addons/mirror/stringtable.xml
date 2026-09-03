@@ -22,20 +22,11 @@
         </Key>
 
         <!-- Feed -->
-        <Key ID="STR_opw_mirror_Feed_Title">
-            <English>EXTERNAL MONITOR</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Feed_Title_Free">
-            <English>EXTERNAL MONITOR</English>
-        </Key>
         <Key ID="STR_opw_mirror_Feed_Hints">
             <English>&lt;t color='#8fb89a'&gt;ARROWS&lt;/t&gt; aim head      &lt;t color='#8fb89a'&gt;CTRL+UP/DN&lt;/t&gt; extend shaft      &lt;t color='#8fb89a'&gt;CTRL+L/R&lt;/t&gt; slide      &lt;t color='#8fb89a'&gt;PGUP/PGDN&lt;/t&gt; zoom      &lt;t color='#8fb89a'&gt;N&lt;/t&gt; night vision      &lt;t color='#8fb89a'&gt;R&lt;/t&gt; recentre      &lt;t color='#8fb89a'&gt;RMB&lt;/t&gt; close</English>
         </Key>
         <Key ID="STR_opw_mirror_Feed_Hints_Free">
             <English>&lt;t color='#8fb89a'&gt;ARROWS&lt;/t&gt; aim head      &lt;t color='#8fb89a'&gt;CTRL+UP/DN&lt;/t&gt; extend      &lt;t color='#8fb89a'&gt;PGUP/PGDN&lt;/t&gt; zoom      &lt;t color='#8fb89a'&gt;N&lt;/t&gt; night vision      &lt;t color='#8fb89a'&gt;R&lt;/t&gt; recentre      &lt;t color='#8fb89a'&gt;RMB&lt;/t&gt; close</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Feed_Title_Fault">
-            <English>EXTERNAL MONITOR  /  FAULT</English>
         </Key>
         <Key ID="STR_opw_mirror_Feed_Hints_Fault">
             <English>&lt;t color='#8fb89a'&gt;RMB / ESC&lt;/t&gt; close</English>
@@ -93,24 +84,6 @@
         <Key ID="STR_opw_mirror_Setting_DefaultFov_Description">
             <English>Where the view starts, and where R returns to.\n\nAlways pulled into the two limits above, so it\ncan never start somewhere Q and E cannot\nreach again.</English>
         </Key>
-        <Key ID="STR_opw_mirror_Setting_GuiMode">
-            <English>External monitor</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_GuiMode_Description">
-            <English>When the carried monitor is shown.\nThe screen on the wand itself always works.\n\nThe ACE interaction always brings it up:\nnobody is aiming there, so the eye never gets\nclose enough to read the small screen.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_GuiMode_Never">
-            <English>Never</English>
-        </Key>
-        <Key ID="STR_opw_mirror_GuiMode_Door">
-            <English>At doors only</English>
-        </Key>
-        <Key ID="STR_opw_mirror_GuiMode_Free">
-            <English>Freehand only</English>
-        </Key>
-        <Key ID="STR_opw_mirror_GuiMode_Always">
-            <English>Always</English>
-        </Key>
         <Key ID="STR_opw_mirror_Setting_FreeExtend">
             <English>Freehand reach</English>
         </Key>
@@ -134,45 +107,6 @@
         </Key>
         <Key ID="STR_opw_mirror_Setting_ZoomFar_Description">
             <English>Widest view Q and E can reach.\nHigher takes in the whole room but bends\nstraight lines - the fisheye look.\n\nSame value as the closest limit disables\nzooming entirely.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_FeedScale">
-            <English>Monitor size</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_FeedScale_Description">
-            <English>How large the external monitor is drawn,\nas a fraction of screen height.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_TopLeft">
-            <English>Top left</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_TopCentre">
-            <English>Top centre</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_TopRight">
-            <English>Top right</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_MiddleLeft">
-            <English>Middle left</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_Centre">
-            <English>Centre</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_MiddleRight">
-            <English>Middle right</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_BottomLeft">
-            <English>Bottom left</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_BottomCentre">
-            <English>Bottom centre</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Anchor_BottomRight">
-            <English>Bottom right</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_FeedPosition">
-            <English>Monitor position</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_FeedPosition_Description">
-            <English>Where on screen the external monitor sits.</English>
         </Key>
         <Key ID="STR_opw_mirror_Keybind_HeadUp">
             <English>Mirror head up</English>

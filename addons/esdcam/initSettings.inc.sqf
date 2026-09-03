@@ -1,11 +1,3 @@
-[
-    QGVAR(useDeviceScreen), "CHECKBOX",
-    [LSTRING(Setting_DeviceScreen), LSTRING(Setting_DeviceScreen_Description)],
-    LLSTRING(SettingCategory),
-    [true],
-    1
-] call CBA_fnc_addSetting;
-
 // Picture only after the left mouse button has been held. Uses the transmit readout the
 // device already brings - the same bar the spectrum side shows while transmitting.
 [

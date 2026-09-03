@@ -7,7 +7,7 @@ if (!hasInterface) exitWith {};
 //
 // The mirror component already raises events on deploy and retract - we only listen, and
 // nothing has to change over there. By that point its camera is already rendering to
-// opw_mirror_rtt, so we are just showing the same target in a second place.
+// opw_mirror_rtt, and this is what puts that target on the device's screen.
 //
 // The display comes from the uiNamespace: BIS_fnc_initDisplay stores it there under the
 // display's scriptName. That is why no onLoad of our own and no polling loop is needed.
@@ -19,12 +19,11 @@ if (!hasInterface) exitWith {};
 [QEGVAR(mirror,deployed), {
     params ["", "", "", ["_mode", -1, [0]]];
 
-    if (!GVAR(useDeviceScreen)) exitWith {};
     if (!(ESD_WEAPON_PREFIX in (currentWeapon ACE_player))) exitWith {};
 
     private _display = uiNamespace getVariable [SPECTRUM_DISPLAY, displayNull];
     if (isNull _display) exitWith {
-        diag_log text "OPW-ESDCAM  device display not open, picture stays on the monitor";
+        diag_log text "OPW-ESDCAM  device display not open, nowhere to put the picture";
     };
 
     // Mute the spectrum side. The original fade is remembered rather than assumed - some of
@@ -58,6 +57,9 @@ if (!hasInterface) exitWith {};
     if (!GVAR(acquired)) then {
         missionNamespace setVariable ["#EM_Transmit", false];
         missionNamespace setVariable ["#EM_Progress", 0];
+        // Up straight away, before a single frame of the handler, so right click puts
+        // "HOLD" on the screen instead of an empty display that looks like nothing happened.
+        [true, 0] call FUNC(showAcquire);
         GVAR(pfh) = [FUNC(acquireTick), 0] call CBA_fnc_addPerFrameHandler;
     };
 }] call CBA_fnc_addEventHandler;
@@ -67,8 +69,6 @@ if (!hasInterface) exitWith {};
 // screen and put it back - the operator stays in control the whole time.
 [QEGVAR(mirror,fault), {
     params [["_faulted", false, [false]]];
-
-    if (!GVAR(useDeviceScreen)) exitWith {};
 
     if (_faulted) exitWith {
         [false] call FUNC(showFeed);
@@ -120,27 +120,3 @@ if (!hasInterface) exitWith {};
     };
     false
 }] call CBA_fnc_addDisplayHandler;
-
-// ---------------------------------------------------------------------------------------
-// Whether the overlay's monitor panel stays away.
-//
-// screenWands is the list of devices that carry the picture on their own model - for those
-// the mirror component holds its monitor back and shows only the key legend. Anyone who
-// would rather have the monitor turns the setting off.
-// ---------------------------------------------------------------------------------------
-["CBA_settingsInitialized", {
-    private _classes = [
-        "hgun_esd_01_F",
-        "hgun_esd_01_antenna_01_F",
-        "hgun_esd_01_antenna_02_F",
-        "hgun_esd_01_antenna_03_F"
-    ];
-    if (GVAR(useDeviceScreen)) then {
-        {EGVAR(mirror,screenWands) pushBackUnique _x} forEach _classes;
-    } else {
-        {
-            private _i = EGVAR(mirror,screenWands) find _x;
-            if (_i > -1) then {EGVAR(mirror,screenWands) deleteAt _i};
-        } forEach _classes;
-    };
-}] call CBA_fnc_addEventHandler;

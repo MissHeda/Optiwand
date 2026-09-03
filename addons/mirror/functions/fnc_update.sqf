@@ -37,7 +37,11 @@ if (
     || {isNull GVAR(camera)}
     // Right click brought us in, right click takes us back out: once the player leaves the
     // aimed view, the mirror is retracted.
-    || {cameraView isNotEqualTo "GUNNER"}
+    //
+    // Held off for VIEW_GRACE after an ACE interaction deploy, which raises the device itself
+    // - see the note in fnc_openView. Zero outside that case, so aiming behaves exactly as
+    // it did.
+    || {cameraView isNotEqualTo "GUNNER" && {_now > GVAR(viewGrace)}}
     || {isNull (uiNamespace getVariable [QGVAR(display), displayNull])}
     || {!([_player] call FUNC(wandReady))}
 ) exitWith {

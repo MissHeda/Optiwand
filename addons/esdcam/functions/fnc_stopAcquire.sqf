@@ -20,6 +20,8 @@ if (GVAR(pfh) != -1) then {
     GVAR(pfh) = -1;
 };
 
+[false] call FUNC(showAcquire);
+
 GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;

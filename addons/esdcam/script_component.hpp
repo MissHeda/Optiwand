@@ -39,6 +39,15 @@
 #define IDC_FEED 71010
 #define IDC_FEED_GRAIN 71012
 
+// The acquisition readout on the device screen. The two rows are contiguous blocks of idcs,
+// so the segments can be walked with a counter instead of a lookup table - the config spells
+// out IDC_ACQ_SEG + 1 .. + 11 and IDC_ACQ_TRACK + 1 .. + 11 as literals, because rapify does
+// not evaluate arithmetic there.
+#define IDC_ACQ_LABEL 71020
+#define IDC_ACQ_SEG 71030
+#define IDC_ACQ_TRACK 71050
+#define ACQ_SEGMENTS 12
+
 // Vanilla controls that have to go while the camera runs. Read out of ui_f_enoch: the
 // picture covers the plot area, but the labels sit beside it - LabelsV to its left,
 // LabelsH and the selected-signal text below. Left alone they would keep showing dBm and

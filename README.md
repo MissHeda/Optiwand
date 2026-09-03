@@ -34,12 +34,20 @@ There are three ways to deploy it:
 | **Keybind** | unbound by default, set it under Configure Addons |
 
 At a door the picture is there immediately - you are kneeling in a doorway and want to see
-what is behind it. Freehand, hold the **left mouse button** until the picture builds up.
-That drives the device's own transmit bar through `#EM_Transmit` and `#EM_Progress`, so it
-is the game's own readout rather than a rebuilt one.
+what is behind it. Freehand, hold the **left mouse button** until the picture builds up. The
+device says so while you do: `HOLD LMB TO ACQUIRE`, then a twelve segment bar, both drawn on
+the device's own screen. `#EM_Transmit` and `#EM_Progress` are driven alongside them, so the
+device's factory transmit overlay comes along too.
+
+There is no second screen. The picture lives on the Spectrum Device and nowhere else - that
+is the whole reason the mod is built on that device rather than shipping one of its own. All
+that appears over the world is two lines of text along the bottom edge: the readout and the
+key legend.
 
 You keep moving the whole time. The overlay is an `RscTitles` layer, not a dialog - a dialog
-would take input focus and pin you in place.
+would take input focus and pin you in place, and it would hand the mouse cursor back to the
+desktop, which on a borderless window with a second monitor let the pointer walk out of the
+game entirely.
 
 ## Controls
 
@@ -57,9 +65,8 @@ All of these are CBA keybinds and can be remapped under Configure Addons > Optiw
 
 Zoom is on Page Up and Page Down, not the numpad. Numpad + and - are Arma's own zoom, and
 because the overlay is a title layer and takes no input focus, the game went on acting on
-them underneath the picture. They are swallowed while the monitor is up and work normally
-the rest of the time - clear the *Swallow Arma's zoom while peeking* binding to get them
-back.
+them underneath the picture. They are swallowed while peeking and work normally the rest of
+the time - clear the *Swallow Arma's zoom while peeking* binding to get them back.
 
 Note that Arma binds the arrow keys to movement by default as a duplicate of WASD. If you
 actually walk with the arrow keys, remap one side or the other.
@@ -70,16 +77,15 @@ Under Configure Addons, in two groups.
 
 **Optiwand - Mirror** governs the mechanics: whether the item must be in hand, whether
 freehand peeking is allowed, deploy time, reach, head height, zoom limits and starting
-zoom, whether a lack of clearance refuses the deploy, when the carried monitor appears, and
-three sliders for the camera offset (forward, sideways, height).
+zoom, whether a lack of clearance is reported, and three sliders for the camera offset
+(forward, sideways, height).
 
 The offset sliders exist because that value can only be judged in game: the camera must sit
-neither inside the device model nor floating beside it. Three axes rather than one, because
-a single number does not describe the problem.
+neither inside the device model nor floating beside it, and it must not be looking down its
+own shaft. Three axes rather than one, because a single number does not describe the problem.
 
-**Optiwand - ESD Camera** governs the picture: whether it goes on the device screen or on
-the carried monitor, whether it has to be acquired by holding the mouse button, and how long
-that takes.
+**Optiwand - ESD Camera** governs the picture: whether it has to be acquired by holding the
+mouse button, and how long that takes.
 
 ## Layout
 

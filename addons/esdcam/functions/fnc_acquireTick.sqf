@@ -42,6 +42,10 @@ if (GVAR(holding)) then {
 missionNamespace setVariable ["#EM_Transmit", GVAR(holding)];
 missionNamespace setVariable ["#EM_Progress", GVAR(acquire)];
 
+// The device's own bar is left driven as well - it is the authentic one and costs nothing -
+// but this is the one the operator can actually see.
+[true, GVAR(acquire)] call FUNC(showAcquire);
+
 if (GVAR(acquire) >= 1) then {
     GVAR(acquired) = true;
     missionNamespace setVariable ["#EM_Transmit", false];
@@ -49,5 +53,6 @@ if (GVAR(acquire) >= 1) then {
     // Acquiring against a wall is allowed - the bar is the operator transmitting, not the
     // head seeing something. The picture itself waits until there is room; the fault event
     // brings it up the moment there is.
+    [false] call FUNC(showAcquire);
     [!EGVAR(mirror,faulted)] call FUNC(showFeed);
 };

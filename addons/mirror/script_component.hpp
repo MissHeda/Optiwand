@@ -27,24 +27,8 @@
 
 #define ICON_MIRROR     "\A3\ui_f\data\IGUI\Cfg\simpleTasks\types\scout_ca.paa"
 
-// Screen mask drawn on top of the feed: opaque surround, rounded transparent centre.
-// This is what gives the picture rounded corners and a vignette instead of a hard rectangle.
-#define TEXTURE_SCREENMASK "\z\ace\addons\viewports\data\optic_window_ca.paa"
-
-// Optional: one image of a device with a fully transparent screen cutout. Leave "" and the
-// housing is built from procedural colours instead. If you set it, DEVICE_CUT_* say where the
-// cutout sits inside that image as fractions of the image, and the feed is fitted into it -
-// the image is then scaled so the cutout lands exactly on the feed.
-//   e.g. a 1024x640 image whose cutout runs from px 96..928 across and 72..520 down gives
-//   L 0.094  T 0.113  R 0.906  B 0.813
-#define TEXTURE_DEVICE  ""
-#define DEVICE_CUT_L    0.07
-#define DEVICE_CUT_T    0.12
-#define DEVICE_CUT_R    0.93
-#define DEVICE_CUT_B    0.80
-
 ////////////////////////////////////////////////////////////////////////////////
-// Render target / dialog
+// Render target / overlay
 ////////////////////////////////////////////////////////////////////////////////
 
 #define RTT_NAME        QGVAR(rtt)
@@ -63,26 +47,12 @@
 // Must match FEED_TEXTURE in the device addon. If you need frame rate, set both back to
 // 1024.
 #define RTT_SIZE        2048
-#define IDD_MIRROR      91401
 
-#define IDC_CURSORKILL  9140090
-#define IDC_DEVICE      9140099
-#define IDC_BODY        9140100
-#define IDC_BEZEL       9140101
+// Three controls, and that is the whole overlay - see gui.hpp. There is no idd: this is a
+// title layer, not a dialog, and giving it one is part of what let the mouse escape.
 #define IDC_FEED        9140102
-#define IDC_SCREENMASK  9140103
-#define IDC_TOPBAR      9140105
-#define IDC_TITLE       9140106
 #define IDC_READOUT     9140108
-#define IDC_BOTBAR      9140109
 #define IDC_HINTS       9140110
-#define IDC_BRAND       9140111
-#define IDC_FAULT       9140115
-#define IDC_IRTINT      9140116
-#define IDC_SCREW_TL    9140120
-#define IDC_SCREW_TR    9140121
-#define IDC_SCREW_BL    9140122
-#define IDC_SCREW_BR    9140123
 
 ////////////////////////////////////////////////////////////////////////////////
 // Door detection
@@ -211,6 +181,11 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Session
 ////////////////////////////////////////////////////////////////////////////////
+
+// How long the aimed-view check is held off after the ACE interaction raises the device
+// itself. Long enough for the engine to have switched, short enough that a deploy which
+// genuinely never gets there still ends promptly.
+#define VIEW_GRACE          0.6
 
 // Auto-retract once the operator steps away from where they deployed
 #define ABORT_DISTANCE      1.5

@@ -33,7 +33,6 @@ if (!isNull GVAR(camera)) then {
 GVAR(camera) = objNull;
 uiNamespace setVariable [QGVAR(display), displayNull];
 uiNamespace setVariable [QGVAR(ctrlReadout), controlNull];
-uiNamespace setVariable [QGVAR(ctrlIrTint), controlNull];
 
 if (GVAR(pfhId) >= 0) then {
     [GVAR(pfhId)] call CBA_fnc_removePerFrameHandler;

@@ -40,13 +40,6 @@
     1
 ] call CBA_fnc_addSetting;
 
-// When the carried monitor comes along - split by mode, because the two feel different: at
-// a door you stand still and look, while freehand you hold the device out in front of you
-// and want the view clear.
-//
-// Off by default: the screen on the device is the whole point of the thing. Through the ACE
-// interaction the monitor comes up regardless - nobody is aiming there, so the eye never
-// gets close enough to read the small screen.
 // With no clearance the head cannot extend, and the device says so. Anyone who does not
 // want the message - because their unit does not expect to see through walls anyway -
 // turns the check off and deploys the mirror anywhere.
@@ -56,18 +49,6 @@
     CATEGORY_MIRROR,
     [true],
     1
-] call CBA_fnc_addSetting;
-
-[
-    QGVAR(guiMode), "LIST",
-    [LSTRING(Setting_GuiMode), LSTRING(Setting_GuiMode_Description)],
-    CATEGORY_MIRROR,
-    [
-        [0, 1, 2, 3],
-        [LSTRING(GuiMode_Never), LSTRING(GuiMode_Door), LSTRING(GuiMode_Free), LSTRING(GuiMode_Always)],
-        0
-    ],
-    0
 ] call CBA_fnc_addSetting;
 
 // Three values that belong together: the two limits and the starting value between them.
@@ -108,30 +89,6 @@
     CATEGORY_MIRROR,
     [0, 1.0, FREE_EXTEND, 2],
     1
-] call CBA_fnc_addSetting;
-
-[
-    QGVAR(feedScale), "SLIDER",
-    [LSTRING(Setting_FeedScale), LSTRING(Setting_FeedScale_Description)],
-    CATEGORY_MIRROR,
-    [0.12, 0.7, 0.24, 2],
-    0
-] call CBA_fnc_addSetting;
-
-[
-    QGVAR(feedPosition), "LIST",
-    [LSTRING(Setting_FeedPosition), LSTRING(Setting_FeedPosition_Description)],
-    CATEGORY_MIRROR,
-    [
-        [0, 1, 2, 3, 4, 5, 6, 7, 8],
-        [
-            LSTRING(Anchor_TopLeft),    LSTRING(Anchor_TopCentre),    LSTRING(Anchor_TopRight),
-            LSTRING(Anchor_MiddleLeft), LSTRING(Anchor_Centre),       LSTRING(Anchor_MiddleRight),
-            LSTRING(Anchor_BottomLeft), LSTRING(Anchor_BottomCentre), LSTRING(Anchor_BottomRight)
-        ],
-        7
-    ],
-    0
 ] call CBA_fnc_addSetting;
 
 // ---------------------------------------------------------------------------------------

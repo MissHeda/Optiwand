@@ -37,42 +37,23 @@ GVAR(faulted) = _faulted;
 private _display = uiNamespace getVariable [QGVAR(display), displayNull];
 if (isNull _display) exitWith {};
 
-private _ctrlFault = _display displayCtrl IDC_FAULT;
-private _ctrlFeed = _display displayCtrl IDC_FEED;
-private _ctrlTitle = _display displayCtrl IDC_TITLE;
 private _ctrlHints = _display displayCtrl IDC_HINTS;
+private _ctrlReadout = _display displayCtrl IDC_READOUT;
 
-if (GVAR(panelShown)) then {
-    // The panel has a screen to put the message on, so the fault sits where the picture
-    // would have been and the legend stays the legend.
-    _ctrlFeed ctrlSetText ([GVAR(feedTexture), "#(argb,8,8,3)color(0.02,0.02,0.02,1)"] select _faulted);
-    _ctrlTitle ctrlSetText ([GVAR(titleText), LLSTRING(Feed_Title_Fault)] select _faulted);
+// Two lines when faulted, one when not: the report takes the readout's row as well, and the
+// readout has nothing worth saying while there is no picture anyway.
+_ctrlReadout ctrlShow (!_faulted);
 
-    if (_faulted) then {
-        _ctrlFault ctrlSetPosition GVAR(screenRect);
-        _ctrlFault ctrlSetStructuredText parseText LLSTRING(Fault_NoClearance);
-        _ctrlFault ctrlCommit 0;
-    };
-    _ctrlFault ctrlShow _faulted;
-} else {
-    // No panel: the wand carries the picture on its own screen, and all we have out here is
-    // the legend strip. It grows and takes the message on board, the same way it used to in
-    // the old fault mode.
-    _ctrlFault ctrlShow false;
-
-    private _text = GVAR(hintText);
-    if (_faulted) then {
-        _text = format ["%1<br/>%2", LLSTRING(Fault_NoClearance), LLSTRING(Feed_Hints_Fault)];
-    };
-
-    _ctrlHints ctrlSetPosition ([GVAR(stripRect), GVAR(stripRectFault)] select _faulted);
-    _ctrlHints ctrlSetStructuredText parseText (format [
-        "<t size='1.9' color='#ffffff' shadow='1'>%1</t>", _text
-    ]);
-    _ctrlHints ctrlCommit 0;
+private _text = GVAR(hintText);
+if (_faulted) then {
+    _text = format ["%1<br/>%2", LLSTRING(Fault_NoClearance), LLSTRING(Feed_Hints_Fault)];
 };
 
-// The device addons hold their own picture back while this is up - on the Spectrum Device
-// the screen is the whole display, and a live camera picture under a "no clearance" banner
+_ctrlHints ctrlSetPosition ([GVAR(stripRect), GVAR(stripRectFault)] select _faulted);
+_ctrlHints ctrlSetStructuredText parseText _text;
+_ctrlHints ctrlCommit 0;
+
+// The device addon takes its own picture off the screen while this is up - on the Spectrum
+// Device the screen IS the display, and a live camera picture under a "no clearance" banner
 // would contradict itself.
 [QGVAR(fault), [_faulted]] call CBA_fnc_localEvent;
