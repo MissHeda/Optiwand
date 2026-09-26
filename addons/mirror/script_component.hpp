@@ -214,6 +214,8 @@
 #define CBA_KEY_HANDLERS_DOWN   "cba_events_keyHandlersDown"
 #define CBA_KEY_HANDLERS_UP     "cba_events_keyHandlersUp"
 #define CBA_KEY_DOWN_ACTIVE     "cba_events_keyDownActiveList"
+// Where CBA files mouse buttons in those arrays: 0xF0 + button, from its MOUSE_OFFSET.
+#define CBA_MOUSE_OFFSET        0xF0
 
 // How long the lock may go on draining after a peek, waiting for keys pressed during it to come
 // up. Normally it ends the moment they do; this only matters for a release that went to

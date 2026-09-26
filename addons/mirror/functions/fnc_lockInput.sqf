@@ -218,7 +218,10 @@ private _fnc_passes = {
     {
         // CBA's own bookkeeping, which does nothing but clear its hold state - never touched
         if (!("_cbadefaultuphandler" in _x) && {!([_x] call _fnc_passes)}) then {
-            if (_x in _armed) then {
+            // Left live only while its key is really still down. CBA keeps a release armed
+            // for good when the release itself went to another display, and one of those must
+            // not run live the first time a modifier comes up during the peek.
+            if (_x in _armed && {_key in GVAR(heldKeys)}) then {
                 GVAR(mutePending) pushBackUnique [_handlersUp, _x, _key, true];
             } else {
                 [_handlersUp, _x, _key, true] call FUNC(muteKeybind);

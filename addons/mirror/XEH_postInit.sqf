@@ -100,6 +100,20 @@ addMissionEventHandler ["Ended", {call FUNC(closeView)}];
     false
 }] call CBA_fnc_addDisplayHandler;
 
+// Mouse buttons too, filed the way CBA files them, so the lock can tell a release that is
+// genuinely still held - an ACE menu opened on a mouse button - from one left armed by a press
+// whose release went to some other display.
+["MouseButtonDown", {
+    GVAR(heldKeys) pushBackUnique (CBA_MOUSE_OFFSET + (_this select 1));
+    false
+}] call CBA_fnc_addDisplayHandler;
+
+["MouseButtonUp", {
+    private _index = GVAR(heldKeys) find (CBA_MOUSE_OFFSET + (_this select 1));
+    if (_index > -1) then {GVAR(heldKeys) deleteAt _index};
+    false
+}] call CBA_fnc_addDisplayHandler;
+
 // ---------------------------------------------------------------------------------------
 // Steuerung
 //
