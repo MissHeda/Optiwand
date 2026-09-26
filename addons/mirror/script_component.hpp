@@ -187,6 +187,39 @@
 // genuinely never gets there still ends promptly.
 #define VIEW_GRACE          0.6
 
+// Engine actions that keep working while the keyboard is locked for a peek - see
+// fnc_lockInput. Everything that moves the body or the voice; nothing that uses the hands.
+// Names the engine does not know simply resolve to no keys.
+#define PASS_ACTIONS [ \
+    "MoveForward", "MoveBack", "TurnLeft", "TurnRight", "MoveLeft", "MoveRight", \
+    "MoveFastForward", "MoveSlowForward", "MoveUp", "MoveDown", \
+    "EvasiveForward", "EvasiveBack", "EvasiveLeft", "EvasiveRight", \
+    "Turbo", "TurboToggle", "WalkRunToggle", "WalkRunTemp", "GetOver", \
+    "Stand", "Crouch", "Prone", "AdjustUp", "AdjustDown", "AdjustLeft", "AdjustRight", \
+    "LeanLeft", "LeanRight", "LeanLeftToggle", "LeanRightToggle", \
+    "LookAround", "LookAroundToggle", \
+    "PushToTalk", "PushToTalkAll", "PushToTalkSide", "PushToTalkCommand", \
+    "PushToTalkGroup", "PushToTalkVehicle", "PushToTalkDirect", "VoiceOverNet", "Chat", \
+    "IngamePause" \
+]
+
+// CBA's key dispatch, read out of cba_events (CBA 3.19). keyDownStates/keyUpStates are arrays
+// of 270 lists of handler ids, one per key, and are only read here, never written.
+// keyHandlersDown/Up are the namespaces holding each id's parameters as
+// [key, modifiers, code, allowHold, holdDelay] - the code is what fnc_muteKeybind swaps.
+// keyDownActiveList holds the releases armed by presses still held. Named here so a CBA rename
+// has exactly one place to be fixed - fnc_lockInput checks and skips if they are gone.
+#define CBA_KEY_DOWN            "cba_events_keyDownStates"
+#define CBA_KEY_UP              "cba_events_keyUpStates"
+#define CBA_KEY_HANDLERS_DOWN   "cba_events_keyHandlersDown"
+#define CBA_KEY_HANDLERS_UP     "cba_events_keyHandlersUp"
+#define CBA_KEY_DOWN_ACTIVE     "cba_events_keyDownActiveList"
+
+// How long the lock may go on draining after a peek, waiting for keys pressed during it to come
+// up. Normally it ends the moment they do; this only matters for a release that went to
+// another display and is never coming.
+#define DRAIN_TIMEOUT           3
+
 // Auto-retract once the operator steps away from where they deployed
 #define ABORT_DISTANCE      1.5
 // A door counts as "open" from this animation phase up

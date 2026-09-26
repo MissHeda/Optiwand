@@ -90,6 +90,12 @@
         <Key ID="STR_opw_mirror_Setting_FreeExtend_Description">
             <English>How much further than the starting position\nthe head can be pushed, in metres.\n\nWalls still stop it earlier.</English>
         </Key>
+        <Key ID="STR_opw_mirror_Setting_LockInput">
+            <English>Lock other keys while peeking</English>
+        </Key>
+        <Key ID="STR_opw_mirror_Setting_LockInput_Description">
+            <English>While the camera is out, only the\nOptiwand keys and these still work:\nmovement, stance, lean, freelook,\nvoice, radio transmit and Escape.\n\nEverything else - other mods'\nkeybinds included - is held back,\nso N cannot flip your own goggles\nand Ctrl+arrows cannot reach TFAR.\n\nOff: every key works as usual.</English>
+        </Key>
         <Key ID="STR_opw_mirror_Setting_RequireClearance">
             <English>Require clearance</English>
         </Key>

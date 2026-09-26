@@ -40,6 +40,16 @@
     1
 ] call CBA_fnc_addSetting;
 
+// Off lets every other mod's keys fire while peeking again - the TFAR stereo keys on
+// Ctrl+arrows among them. For the player who wants that trade, not a default.
+[
+    QGVAR(lockInput), "CHECKBOX",
+    [LSTRING(Setting_LockInput), LSTRING(Setting_LockInput_Description)],
+    CATEGORY_MIRROR,
+    [true],
+    0
+] call CBA_fnc_addSetting;
+
 // With no clearance the head cannot extend, and the device says so. Anyone who does not
 // want the message - because their unit does not expect to see through walls anyway -
 // turns the check off and deploys the mirror anywhere.

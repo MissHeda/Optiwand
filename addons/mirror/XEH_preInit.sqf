@@ -31,6 +31,37 @@ GVAR(freeExtend) = FREE_EXTEND;
 // fnc_openView has to raise the device itself - see the note there.
 GVAR(viaInteraction) = false;
 GVAR(aimLatched) = false;
+
+// Keyboard lock while peeking - see fnc_lockInput.
+GVAR(lockInput) = true;
+GVAR(inputLocked) = false;
+GVAR(inputAllowedKeys) = [];
+GVAR(inputSwallowed) = [];
+GVAR(inputPreHeld) = [];
+GVAR(inputDrainGen) = 0;
+// The lock's frame handler, running while locked and while draining - see fnc_lockInput.
+GVAR(inputPfh) = -1;
+// Keys pressed during the current peek and still down.
+GVAR(inputPressed) = [];
+// What a muted CBA handler runs instead of its own code. Distinctive on purpose: code is
+// compared by its text, and fnc_releaseInput only restores where this exact no-op still sits.
+GVAR(muteCode) = {"opw_mirror_lockInput"; nil};
+// [namespace, id, original code, key, is release] for every handler muted, and
+// [namespace, id, key, true] for releases armed before the lock, muted once CBA disarms them.
+GVAR(muted) = [];
+GVAR(mutePending) = [];
+// Every key currently down, kept by two small handlers in XEH_postInit. The lock needs it to
+// leave alone whatever was already held when it started.
+GVAR(heldKeys) = [];
+// CBA keybinds that stay live while locked, as prefixes of CBA's handler ids, which it builds
+// as "addon$action_down_N", lower case. Ours, and every radio's transmit key - peeking under a
+// door is exactly when someone needs to call out what is behind it. Another mod that needs a
+// key through appends its own prefix here.
+GVAR(inputPassCba) = [
+    "opw$",
+    "tfar$swtransmit", "tfar$lrtransmit", "tfar$ddtransmit",
+    "acre2$defaultpttkey", "acre2$altpttkey"
+];
 // Deadline until which fnc_update's aimed-view check is held off, for the interaction path.
 GVAR(viewGrace) = 0;
 

@@ -237,6 +237,15 @@ _hints ctrlCommit 0;
 playSound "ACE_Sound_Click";
 [QGVAR(deployed), [ACE_player, _house, _door, _mode]] call CBA_fnc_localEvent;
 
+// Take the keyboard - on the next frame, not this one. The deploy keybind gets here from
+// inside CBA's key dispatch, and muting handlers halfway through CBA walking the very list
+// they sit in would split that one key press: handlers ahead of ours run, those after it are
+// silenced, and their releases are armed muted. A frame later the press is fully dispatched.
+// Last of the setup on purpose: anything above that bails out has not locked anything.
+[{
+    if (GVAR(active)) then {[true] call FUNC(lockInput)};
+}] call CBA_fnc_execNextFrame;
+
 // Unconditional, and it has to stay that way. fnc_update is the only thing that ever closes
 // the monitor again - leaving a deploy without one is what used to trap the operator.
 GVAR(pfhId) = [{call FUNC(update)}, 0, []] call CBA_fnc_addPerFrameHandler;

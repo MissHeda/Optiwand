@@ -43,6 +43,11 @@ if (
     // it did.
     || {cameraView isNotEqualTo "GUNNER" && {_now > GVAR(viewGrace)}}
     || {isNull (uiNamespace getVariable [QGVAR(display), displayNull])}
+    // The pause menu ends the peek. XEH_postInit already does this through OnGameInterrupt;
+    // this catches the menu should that event ever be missed. It matters beyond tidiness:
+    // Configure Addons is behind this menu, and rebinding a key while fnc_lockInput has CBA's
+    // tables swapped would leave the old binding live after the peek.
+    || {!isNull findDisplay 49}
     || {!([_player] call FUNC(wandReady))}
 ) exitWith {
     call FUNC(closeView);

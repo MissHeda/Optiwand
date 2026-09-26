@@ -21,6 +21,10 @@ if (isNil QGVAR(active) || {!GVAR(active)}) exitWith {};
 
 GVAR(active) = false;
 
+// Before anything else. The lock swaps another mod's state - CBA's key dispatch - and that is
+// the one thing that must not be left behind should a later step in here throw.
+[false] call FUNC(lockInput);
+
 // The overlay goes first. It is only a title layer now and traps nobody, but it would be
 // the one thing left standing should a later step in here throw - so it goes before
 // anything else.

@@ -71,6 +71,30 @@ the time - clear the *Swallow Arma's zoom while peeking* binding to get them bac
 Note that Arma binds the arrow keys to movement by default as a duplicate of WASD. If you
 actually walk with the arrow keys, remap one side or the other.
 
+### The keyboard is ours while peeking
+
+Everything except the keys above, movement, stance, lean, freelook, voice, radio transmit
+and Escape is held back while the camera is out - the game's own actions and other mods'
+keybinds alike. Without that, N switched the player's own goggles (and GGE: NVG Animation
+played its gesture over it, which dropped the aimed view and ended the session), and TFAR's
+SW stereo keys on Ctrl+Up/Left/Right fired together with extend and slide.
+
+It takes two mechanisms, because returning `true` from a key handler only stops the engine,
+never another script. The game side is a KeyDown/KeyUp handler that swallows every key not
+bound to one of the pass-through actions. The mod side is CBA: it runs every keybind on a
+combo and ORs the results, so for the length of a peek every other mod's handler has its
+code swapped for a no-op - press and release both, since TFAR keeps its channel and radio
+cycling on the release. CBA's lists themselves are never touched: filtering them was the
+first attempt, and CBA never clears a removed handler's parameters, so a handler removed
+during a peek came back afterwards. Muting leaves CBA to add, remove and rebind as it always
+does, and code only goes back where our no-op is still in place.
+
+Keys are handed back one by one. A key pressed during the peek and still held when it ends
+stays locked until it comes up - otherwise its release, armed while muted, would run the
+real thing on the way out - but never longer than three seconds, and opening the pause menu
+ends the peek and the lock on the spot. *Lock other keys while peeking* under
+Optiwand - Mirror turns all of it off.
+
 ## Settings
 
 Under Configure Addons, in two groups.

@@ -66,6 +66,40 @@ addMissionEventHandler ["Ended", {call FUNC(closeView)}];
 
 ["unit", {call FUNC(closeView)}] call CBA_fnc_addPlayerEventHandler;
 
+// Opening the pause menu ends the peek. Bohemia's RscDisplayInterrupt and
+// RscDisplayMPInterrupt raise OnGameInterrupt from their onLoad, which also runs while a
+// single player game is paused and no frame handler is ticking. The peek has to be over by
+// the time Configure Addons can be reached - see fnc_lockInput.
+//
+// It also ends the keyboard lock's drain on the spot rather than waiting it out: every key
+// released while the menu has focus goes to the menu, so nothing held is ever coming up on the
+// mission display again. Wrapped in missionNamespace because in single player Bohemia raises
+// the event from inside BIS_fnc_initDisplay's uiNamespace block - without it every GVAR in
+// here would read the wrong namespace and the whole thing would quietly do nothing.
+[missionNamespace, "OnGameInterrupt", {
+    with missionNamespace do {
+        call FUNC(closeView);
+        GVAR(heldKeys) = [];
+        GVAR(inputPressed) = [];
+        GVAR(inputSwallowed) = [];
+        ["final"] call FUNC(releaseInput);
+    };
+}] call BIS_fnc_addScriptedEventHandler;
+
+// Which keys are down right now, kept all the time for fnc_lockInput: a key already held when
+// the lock starts has had its press reach the engine, and swallowing only its release would
+// leave it stuck. Two array operations per key press - nothing else runs here.
+["KeyDown", {
+    GVAR(heldKeys) pushBackUnique (_this select 1);
+    false
+}] call CBA_fnc_addDisplayHandler;
+
+["KeyUp", {
+    private _index = GVAR(heldKeys) find (_this select 1);
+    if (_index > -1) then {GVAR(heldKeys) deleteAt _index};
+    false
+}] call CBA_fnc_addDisplayHandler;
+
 // ---------------------------------------------------------------------------------------
 // Steuerung
 //
