@@ -120,7 +120,7 @@ addons/esdcam    registers the Spectrum Device with the above and puts the
                  picture on its screen
 include/         CBA and Arma headers the preprocessor needs at build time
 tools/           the model pipeline, see "The model" below
-art/             model sources - the FBX ships, the 4096 bakes stay on disk
+art/             model sources - the FBX ships, Bohemia's reference stays on disk
 ```
 
 `include/` is not part of the mod. It is there so the build can resolve `\x\cba\...` and
@@ -156,23 +156,41 @@ agreeing with each other.
 
 ## The model
 
-The wand is modelled outside this repo and arrives as an FBX plus baked textures. Turning
-that into `camhead.p3d` and its PAAs is done by the scripts in `tools/`, so the shipped
-assets can be rebuilt from the sources at any time:
+The wand is modelled outside this repo and arrives as an FBX. It wears no texture of its
+own: every face is mapped onto Bohemia's Spectrum Device atlas, `esd_01_co.paa`, and
+rendered with their `esd_01.rvmat` - the texture all four vanilla models share, so the
+camera has exactly the colour, grain, screws and wear of the device it is bolted to. The
+mod references those files and ships none of them.
 
 ```bash
-python tools/fbx_to_p3d.py        # art/esdcam/arma3_cam.fbx  ->  addons/esdcam/model/camhead.p3d
-python tools/bake_textures.py     # art/esdcam/bake/*.png     ->  addons/esdcam/data/camhead_*.paa
-python tools/render_icon.py       # the model                 ->  data/ui/gear_camhead_ca.paa
-python tools/preview_p3d.py       # renders the result, to check it before starting Arma
+python tools/build_camhead.py     # art/esdcam/arma3_cam.fbx  ->  addons/esdcam/model/camhead.p3d
+python tools/render_icon.py       # the model                 ->  data/ui/*_camhead_*_ca.paa
 ```
 
-They need only `numpy` and `pillow`. Neither Blender nor the Arma 3 Tools have to be
-installed: `tools/fbx.py`, `tools/p3d.py` and `tools/paa.py` read binary FBX and read and
-write MLOD P3D and PAA on their own. Where ImageToPAA *is* found it is used for the
-textures anyway, because it LZO-compresses the mipmaps and the built-in encoder does not -
-same pictures, about a fifth of the bytes. `IMAGETOPAA` overrides the search,
-`--encoder builtin` skips it.
+Where each part lands on the atlas:
+
+| | |
+|---|---|
+| mount head | where antenna 03 has its own - each face is projected onto the nearest face of `muzzle_antenna_03_F` and takes its UVs, collar screws and flange markings included |
+| hose | antenna 02's galvanised rods, with a rib normal map of our own (`camhead_hose.rvmat`) |
+| camera body | the plain panel of antenna 01, with the KAISERKOM badge off the grip along the top |
+| lens, LED ring | the round socket on the device's front, the blue of its controls |
+| cable, plug | antenna 02's coax and plug |
+
+The cable is ours: like antenna 02's it runs into the lower socket under the display -
+clipped along the hose, down past the flange and under the device the way antenna 02's
+does. The build also writes LOD 2, a closed shadow volume and the geometry box with
+`autocenter = 0`, as Bohemia's antennas have.
+
+The model ships as MLOD (`addons/esdcam/addon.toml`). Binarize embeds a model's materials
+into the ODOL from files it has to read at build time, and without a P drive it cannot read
+Bohemia's - the release model would carry an empty material. Arma loads MLOD directly.
+
+`build_camhead.py` needs an MLOD copy of `muzzle_antenna_03_F` in
+`art/esdcam/reference/` to project onto, and the Arma 3 Tools for ImageToPAA.
+`render_icon.py` needs Blender and the unpacked `weapons_f_enoch` textures (`--bi-data`).
+Both are Bohemia's files and stay out of the repo - anything under `addons/` is packed into
+the PBO and shipped.
 
 ### Which way round the model is
 
@@ -183,7 +201,7 @@ right, and you look straight through it.
 
 The convention was measured off Bohemia's own MLOD samples in `Arma 3 Samples` - the house,
 the heli, the car and the boat. Evaluated with the ordinary right handed formulas, all of
-them come out **negative** on both of these, and `fbx_to_p3d.py` refuses to write a model
+them come out **negative** on both of these, and `build_camhead.py` refuses to write a model
 that does not:
 
 | | |
@@ -197,28 +215,12 @@ still perfectly consistent with itself while being inside out. That is exactly t
 these two numbers exist to catch, and it is not one you can see in a preview render either,
 since a rasteriser without backface culling draws both cases identically.
 
-The model came with four materials over one shared UV layout, one 4096 bake each.
-`bake_textures.py` folds them into a single set by rasterising each material's UV islands,
-and fills everything outside them by growing the island content outwards - without that,
-mipmapping pulls the bake background into the silhouette.
+### The inventory pictures
 
-Ownership comes before that growing, and the order matters. Grow first and a material's
-margin writes over the next one's real surface: `blitz` is eight tiny scattered islands over
-a brown LED bake, and it put 209 brown texels into the middle of the grey body that way -
-visible in game as a scatter of small brown dots.
-
-`--tint R,G,B` sets what the housing should look like. The wand's own bake sits at 19/19/19,
-which reads almost black next to the device; the default target is 35/36/38, the median of
-Bohemia's own `esd_01_co.paa`, so the attachment matches the thing it is bolted to. It is a
-per channel gain rather than an offset, so the bake's own contrast survives, and it only
-touches `Plastik` and `Schlauch` - the lens and the LEDs are signal colours. `--tint none`
-leaves the bake alone.
-
-### The inventory picture
-
-`render_icon.py` writes `data/ui/gear_camhead_ca.paa`. Its layout is not composed by eye -
-Arma hangs an attachment's picture over the weapon's, so the mount has to land where the
-weapon's muzzle is, and all three vanilla antenna pictures agree on where that is:
+`render_icon.py` renders both pictures in Blender, on the same textures the game uses. Their
+layout is not composed by eye - Arma hangs an attachment's picture over the weapon's, so the
+mount has to land where the weapon's muzzle is, and the vanilla antenna pictures agree on
+where that is:
 
 | | mount | axis |
 |---|---|---|
@@ -226,10 +228,19 @@ weapon's muzzle is, and all three vanilla antenna pictures agree on where that i
 | `gear_muzzle_antenna_02_ca` | 502.2, 103.1 | 5.9 deg |
 | `gear_muzzle_antenna_03_ca` | 500.0, 228.8 | 9.0 deg |
 
-x = 500 in all three, running away to the left at a shallow angle and filling the frame -
-they are not on the diagonal. The renderer places two model points on two frame points
-rather than centring, so the wand's mount lands on that anchor and its tip in the lower
-left; the result comes out at 501.8, 237.1 against antenna 3's 500.0, 228.8.
+x = 500 in all three, running away to the left at a shallow angle. The wand's mount goes on
+that anchor and its tip in the lower left; the cable leaves the frame on the right, as
+antenna 02's does.
+
+The slot overlay is laid out like antenna 02's rather than antenna 03's, because it has to
+show the cable loop behind the mount: wand from 6 to 165 px, loop out to about 250. The
+overlay is centred on the slot's `iconPosition`, and antennas 01 and 03 put the device's
+muzzle at 0.433 of the weapon picture's width with the overlay 0.717 of it wide - so a
+mount at 165 of 256 needs an `iconPosition` x of 0.33.
+
+Brightness is anchored through Bohemia's own model: antenna 03 is rendered through the same
+setup, and the curve that takes its median to that of `gear_muzzle_antenna_03_ca` is applied
+to the wand. So the wand comes out exactly as much lighter than antenna 03 as it is.
 
 ### Where the size comes from
 
@@ -246,11 +257,9 @@ one scale at which every feature of it lands on the vanilla one.
 | 60 mm | 123.3 mm | 123.3 mm |
 | 75 mm | 66.2 mm | 66.2 mm |
 
-That scale puts the whole wand at **57.9 cm**, against the antenna's 55.6 cm, and it is the
-default in `fbx_to_p3d.py`. `--fit-mount <antenna.p3d>` re-derives it rather than trusting
-the constant; feed it an MLOD copy of a vanilla antenna. Such a copy is a Bohemia asset, so
-it belongs under `art/esdcam/reference/` and never inside `addons/` - anything under there
-is packed into the PBO and shipped.
+That scale puts the whole wand at **57.9 cm**, against the antenna's 55.6 cm, and it is
+`DEFAULT_LENGTH` in `fbx_to_p3d.py`. `python tools/fbx_to_p3d.py --fit-mount <antenna.p3d>`
+re-derives it rather than trusting the constant.
 
 ### Making another one
 
@@ -272,16 +281,11 @@ Three LODs are needed: a resolution LOD, a convex geometry LOD carrying the mass
 memory LOD with `usti hlavne` and `konec hlavne` - the vector between those two is the
 direction the head looks.
 
-Materials have to be baked. Arma cannot read Blender node trees, so noise and wave textures,
-bump and glass do not survive an export; a baked texture is the only way that look reaches
-the game. Bake base colour rather than the lit image - the metallic sheen belongs in the
-rvmat, and putting it in both leaves the model flat and milky.
-
-Bohemia's channel conventions for the other maps, which the bake has to follow because
-nothing downstream corrects them: `_smdi` keeps the specular level and power in green and
-blue, `_as` is read from green alone.
+There is nothing to bake. Map the faces onto the device's atlas - `build_camhead.py` shows
+how, region by region - and anything the atlas has no normal map for gets a material of its
+own that is Bohemia's in every other respect, the way the hose does.
 
 ## Licence
 
-The mod is my own work. It reads vanilla Bohemia configs and references vanilla model paths,
-which is ordinary modding practice, and ships no Bohemia assets.
+The mod is my own work. It reads vanilla Bohemia configs and references vanilla model and
+texture paths, which is ordinary modding practice, and ships no Bohemia assets.

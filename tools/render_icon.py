@@ -10,7 +10,9 @@ Arma wants two different things and they are not interchangeable:
          weapon's WeaponSlotsInfo slot - per slot, which is why the device carries
          one muzzle slot per attachment.
 
-Both layouts are measured off Bohemia's files rather than composed by eye:
+The model is on Bohemia's textures, so it is rendered with them: Blender, Cycles, an
+orthographic camera, the device's own _co, _as, _smdi and _nohq. Layouts are measured off
+Bohemia's files rather than composed by eye:
 
     gear_muzzle_antenna_01_ca      512 x 512   mount 496.9, 250.0   axis 11.4 deg
     gear_muzzle_antenna_02_ca      512 x 512   mount 502.2, 103.1   axis  5.9 deg
@@ -18,17 +20,26 @@ Both layouts are measured off Bohemia's files rather than composed by eye:
     hgun_esd_01_antenna_01_f_ca    256 x 128   mount 175.6,  63.5   flat
     hgun_esd_01_antenna_03_f_ca    256 x 128   mount 247.0,  63.7   flat
 
-The 512s all hang their mount at x = 500 and run away to the left; the 256x128s are
-plain side views on the horizontal, mount to the right, centred on y = 64.
+The 512s all hang their mount at x = 500 and run away to the left, and like antenna 02's
+the cable leaves the picture on the right. The slot overlay is laid out like antenna 02's
+instead of antenna 03's, because it has to show the cable too: the wand to the left of the
+mount and the loop into the device to the right of it. That moves the mount off the right
+edge, and MuzzleSlot4's iconPosition with it - see CfgWeapons.hpp.
 
-Rendered at 4x and boxed down, which is where the clean edge comes from - the
-rasteriser itself has no antialiasing, and the alpha channel is the coverage mask
-resampled the same way.
+Brightness is anchored to Bohemia's pictures through their own model: antenna 03 is
+rendered through exactly the same setup, its median is compared with the median of
+gear_muzzle_antenna_03_ca, and the curve that takes one to the other is applied to the
+wand. The wand ends up as much lighter or darker than antenna 03 as it really is.
 
-    python tools/render_icon.py
+    python tools/render_icon.py [--preset item|slot]
+
+Needs Blender (BLENDER, or the Steam install), the Arma 3 Tools, Bohemia's Spectrum Device
+textures unpacked (--bi-data, or OPW_BI_DATA) and art/esdcam/reference/ for the anchor.
 """
 
 import argparse
+import glob
+import json
 import math
 import os
 import subprocess
@@ -39,127 +50,183 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import p3d
-import preview_p3d
-from bake_textures import find_imagetopaa
+import build_camhead
+import imagetopaa
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LENGTH = build_camhead.DEFAULT_LENGTH
+REFERENCE_LENGTH = 0.5563  # muzzle_antenna_03_F
 
-# Key light from the upper left and in front, which is where Bohemia's is.
+# name: (width, height, yaw, pitch, mount pixel, tip pixel, reference median, output file)
 #
-# The exposure is deliberately low. It used to be 2.2, which clipped: the wand came out at a
-# median of 98 against Bohemia's 55, with a maximum of 255 against their 184 - a light grey
-# item next to three dark ones. Anything that clips cannot be corrected afterwards, so the
-# render is kept well inside range and the level is set by the calibration below.
-LIGHT = (-0.45, 0.62, -0.65)
-AMBIENT = 0.38
-EXPOSURE = 1.15
-
-# name: (width, height, yaw, pitch, mount point, tip point, target median, output file)
+# The reference median is Bohemia's own picture of antenna 03, over its opaque pixels:
 #
-# The target median is measured off the matching vanilla picture over its own opaque pixels,
-# so the camera sits at the same brightness as the antennas it is listed beside:
-#
-#     gear_muzzle_antenna_01_ca      median 52.3   max 185
 #     gear_muzzle_antenna_03_ca      median 55.0   max 184
-#     hgun_esd_01_antenna_01_f_ca    median 48.7   max 213
 #     hgun_esd_01_antenna_03_f_ca    median 49.3   max  80
 PRESETS = {
     "item": (512, 512, 0.62, 0.30, (500.0, 236.0), (6.0, 314.0), 55.0, "gear_camhead_ca.paa"),
-    # Flat side on, mount where antenna 03 puts its own, tip just inside the left edge.
-    # yaw and pitch of zero look straight down the model's Y, which lays the wand along the
-    # horizontal with the mount - the origin - at the right, exactly as Bohemia's are.
-    "slot": (256, 128, 0.0, 0.0, (247.0, 64.0), (7.0, 64.0), 49.3,
+    # Flat side on. 275 px per metre - a little under antenna 02's 330 - so wand and cable
+    # loop both fit: tip at 6, mount at 165, the loop's far end at about 250.
+    "slot": (256, 128, 0.0, 0.0, (165.0, 64.0), (6.0, 64.0), 49.3,
              "hgun_esd_01_camhead_F_ca.paa"),
+}
+# Where antenna 03 goes in its own pictures, for the brightness anchor.
+REFERENCE_LAYOUT = {
+    "item": ((500.0, 228.8), 9.0),
+    "slot": ((247.0, 63.7), 0.0),
 }
 
 
-def calibrate(rgb, covered, target):
-    """Put the median of the rendered object on the target, on a curve.
+def find_blender():
+    override = os.environ.get("BLENDER")
+    if override:
+        return override
+    for pattern in ("%s:/SteamLibrary/steamapps/common/Blender/blender.exe",
+                    "%s:/Steam/steamapps/common/Blender/blender.exe",
+                    "%s:/Program Files/Blender Foundation/Blender*/blender.exe"):
+        for drive in "CDEFG":
+            found = sorted(glob.glob(pattern % drive))
+            if found:
+                return found[-1]
+    raise SystemExit("Blender not found - set BLENDER")
 
-    A gain would have to be applied before clipping to be any use, and it would take the
-    highlights with it either way. A power curve moves the middle and leaves both ends
-    where they are, which is what keeps the lens and the LEDs reading as bright while the
-    housing comes down to the level Bohemia's pictures sit at.
 
-    Returns the corrected image and the median it started from."""
-    value = rgb[covered].astype(np.float32).mean(axis=1)
-    if value.size == 0:
-        return rgb, None
-    median = float(np.median(value))
-    if median < 1.0 or target < 1.0:
-        return rgb, median
-    gamma = math.log(target / 255.0) / math.log(median / 255.0)
-    out = np.clip(255.0 * (rgb.astype(np.float32) / 255.0) ** gamma, 0, 255)
-    return out.astype(np.uint8), median
+def find_bi_data(arg):
+    for candidate in (arg, os.environ.get("OPW_BI_DATA"),
+                      r"E:\KAM arma 3 (P drive)\a3\weapons_f_enoch\pistols\esd_01\data",
+                      r"P:\a3\weapons_f_enoch\pistols\esd_01\data"):
+        if candidate and os.path.isfile(os.path.join(candidate, "esd_01_co.paa")):
+            return candidate
+    raise SystemExit("Bohemia's esd_01 textures not found - unpack weapons_f_enoch.pbo and "
+                     "pass its pistols\\esd_01\\data folder as --bi-data")
+
+
+def camera(yaw, pitch, mount_px, tip_px, width, height, length):
+    """An orthographic camera that puts the mount (the origin) and the tip (-length on X)
+    on the given pixels. Directions in Blender's axes, which are Arma's with Y and Z
+    swapped."""
+    cy, sy, cp, sp = math.cos(yaw), math.sin(yaw), math.cos(pitch), math.sin(pitch)
+    # In Arma's axes: X right and Y up on screen for yaw = pitch = 0, looking along +Z.
+    right = np.array([cy, 0.0, -sy])
+    up = np.array([sp * sy, cp, sp * cy])
+    forward = np.array([cp * sy, -sp, cp * cy])
+    swap = lambda v: np.array([v[0], v[2], v[1]])
+    right, up, forward = swap(right), swap(up), swap(forward)
+
+    tip = np.array([-length, 0.0, 0.0])
+    seen = np.array([tip @ right, tip @ up])
+    wanted = np.array([tip_px[0] - mount_px[0], -(tip_px[1] - mount_px[1])])
+    roll = math.atan2(wanted[1], wanted[0]) - math.atan2(seen[1], seen[0])
+    right, up = (math.cos(roll) * right - math.sin(roll) * up,
+                 math.sin(roll) * right + math.cos(roll) * up)
+    per_metre = np.linalg.norm(wanted) / np.linalg.norm(seen)
+
+    dx = (mount_px[0] - width / 2.0) / per_metre
+    dy = (height / 2.0 - mount_px[1]) / per_metre
+    location = -right * dx - up * dy - forward * 3.0
+    return {"right": right.tolist(), "up": up.tolist(), "forward": forward.tolist(),
+            "location": location.tolist(), "ortho_scale": max(width, height) / per_metre}
+
+
+def calibrate(rgb, gamma):
+    """A power curve rather than a gain: it moves the middle and leaves both ends where
+    they are, so nothing clips."""
+    return np.clip(255.0 * (rgb.astype(np.float32) / 255.0) ** gamma, 0, 255).astype(np.uint8)
+
+
+def median(rgba):
+    covered = rgba[:, :, 3] > 128
+    return float(np.median(rgba[:, :, :3][covered].astype(np.float32).mean(axis=1)))
+
+
+def downsample(rgba, width, height):
+    """Premultiplied, so the transparent black round the silhouette does not bleed into the
+    edge pixels as a dark fringe."""
+    pre = rgba.astype(np.float32)
+    pre[:, :, :3] *= pre[:, :, 3:4] / 255.0
+    small = np.array(Image.fromarray(pre.astype(np.uint8), "RGBA").resize((width, height), Image.BOX),
+                     np.float32)
+    alpha = small[:, :, 3:4]
+    small[:, :, :3] = np.where(alpha > 0, small[:, :, :3] * 255.0 / np.maximum(alpha, 1), 0)
+    return np.clip(small, 0, 255).astype(np.uint8)
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--preset", choices=sorted(PRESETS) + ["all"], default="all")
     ap.add_argument("--model", default=os.path.join(HERE, "addons", "esdcam", "model", "camhead.p3d"))
-    ap.add_argument("--texture",
-                    default=os.path.join(HERE, "addons", "esdcam", "data", "camhead_co.paa"))
-    ap.add_argument("--preset", choices=sorted(PRESETS), default="item")
-    ap.add_argument("--out", help="defaults to the preset's own file under data/ui")
-    ap.add_argument("--supersample", type=int, default=4)
-    ap.add_argument("--png", help="also keep the rendered PNG here")
+    ap.add_argument("--reference", default=os.path.join(
+        HERE, "art", "esdcam", "reference", "muzzle_antenna_03_F_mlod.p3d"))
+    ap.add_argument("--bi-data")
+    ap.add_argument("--supersample", type=int, default=2)
+    ap.add_argument("--samples", type=int, default=128)
+    ap.add_argument("--png", help="folder to keep the final PNGs in")
     args = ap.parse_args()
 
-    width, height, yaw, pitch, mount_at, tip_at, target, filename = PRESETS[args.preset]
-    out = args.out or os.path.join(HERE, "addons", "esdcam", "data", "ui", filename)
+    tool = imagetopaa.find_imagetopaa()
+    if not tool:
+        raise SystemExit("ImageToPAA not found - set IMAGETOPAA")
+    blender = find_blender()
+    bi_data = find_bi_data(args.bi_data)
+    presets = sorted(PRESETS) if args.preset == "all" else [args.preset]
 
-    lods, _ = p3d.read(args.model)
-    lod = min(lods, key=lambda l: l.resolution)
-    texture = preview_p3d.load_texture(args.texture)
-
-    # The mount is the model's origin by construction, and the tip is the far end of it.
-    mount = (0.0, 0.0, 0.0)
-    tip = min(lod.points, key=lambda p: p[0])[:3]
-
-    scale = args.supersample
-    rgb, drawn = preview_p3d.render(
-        lod, texture, (width * scale, height * scale), yaw, pitch, (0.0, 0.0, 0.0),
-        light=LIGHT, exposure=EXPOSURE, ambient=AMBIENT, coverage=True,
-        place=(mount, tip,
-               (mount_at[0] * scale, mount_at[1] * scale),
-               (tip_at[0] * scale, tip_at[1] * scale)))
-
-    rgb, was = calibrate(rgb, drawn, target)
-    if was is not None:
-        print("  brightness  median %.1f -> %.1f" % (was, target))
-
-    rgba = np.dstack([rgb, np.where(drawn, 255, 0).astype(np.uint8)])
-    # Premultiply before the downsample, or the transparent black around the silhouette
-    # bleeds into the edge pixels and leaves a dark fringe on a light background.
-    premultiplied = rgba.astype(np.float32)
-    premultiplied[:, :, :3] *= premultiplied[:, :, 3:4] / 255.0
-    small = np.array(Image.fromarray(premultiplied.astype(np.uint8), "RGBA")
-                     .resize((width, height), Image.BOX), np.float32)
-    alpha = small[:, :, 3:4]
-    small[:, :, :3] = np.where(alpha > 0, small[:, :, :3] * 255.0 / np.maximum(alpha, 1), 0)
-    icon = Image.fromarray(np.clip(small, 0, 255).astype(np.uint8), "RGBA")
-
-    covered = (np.array(icon)[:, :, 3] > 8)
-    rows = np.nonzero(covered.any(axis=1))[0]
-    cols = np.nonzero(covered.any(axis=0))[0]
-
-    os.makedirs(os.path.dirname(out), exist_ok=True)
-    tool = find_imagetopaa()
     with tempfile.TemporaryDirectory() as work:
-        png = args.png or os.path.join(work, os.path.basename(out).replace(".paa", ".png"))
-        icon.save(png)
-        if not tool:
-            raise SystemExit("ImageToPAA not found - an icon with alpha has to be DXT5, and "
-                             "the built in encoder does not pick that from a file name. "
-                             "Set IMAGETOPAA.")
-        # The _ca suffix is what tells ImageToPAA to keep the alpha channel; the name of the
-        # temporary file therefore has to be the final one.
-        subprocess.run([tool, png, out], check=True,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        maps = {}
+        for name in ("co", "as", "smdi", "nohq"):
+            maps[name] = imagetopaa.to_png(tool, os.path.join(bi_data, "esd_01_%s.paa" % name),
+                                           os.path.join(work, "esd_01_%s.png" % name))
+        rib = os.path.join(work, "camhead_hose_nohq.png")
+        Image.fromarray(build_camhead.rib_normal(), "RGBA").save(rib)
+        rib_repeat = int(open(os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose.rvmat"))
+                         .read().split("aside[] = {")[1].split(",")[0])
+        hose = dict(maps, nohq=rib, nohq_scale=[rib_repeat, 1])
 
-    print("%s   %d x %d, content x %d..%d  y %d..%d, %d bytes"
-          % (os.path.relpath(out, HERE), width, height,
-             cols.min(), cols.max(), rows.min(), rows.max(), os.path.getsize(out)))
+        jobs = []
+        for preset in presets:
+            width, height, yaw, pitch, mount_px, tip_px, _target, _file = PRESETS[preset]
+            s = args.supersample
+            jobs.append({"p3d": args.model, "lod": 1.0, "width": width * s, "height": height * s,
+                         "out": os.path.join(work, preset + ".png"),
+                         "camera": camera(yaw, pitch, (mount_px[0] * s, mount_px[1] * s),
+                                          (tip_px[0] * s, tip_px[1] * s), width * s, height * s, LENGTH)})
+            if os.path.isfile(args.reference):
+                (rx, ry), axis = REFERENCE_LAYOUT[preset]
+                span = abs(tip_px[0] - mount_px[0]) * REFERENCE_LENGTH / LENGTH
+                ref_tip = (rx - span * math.cos(math.radians(axis)), ry + span * math.sin(math.radians(axis)))
+                jobs.append({"p3d": args.reference, "lod": 1.0, "width": width * s, "height": height * s,
+                             "out": os.path.join(work, preset + "_reference.png"),
+                             "camera": camera(yaw, pitch, (rx * s, ry * s), (ref_tip[0] * s, ref_tip[1] * s),
+                                              width * s, height * s, REFERENCE_LENGTH)})
+
+        spec = {"samples": args.samples, "jobs": jobs, "materials": {
+            build_camhead.MATERIAL: maps, build_camhead.HOSE_MATERIAL: hose}}
+        spec_path = os.path.join(work, "jobs.json")
+        json.dump(spec, open(spec_path, "w"))
+        subprocess.run([blender, "-b", "--factory-startup", "-P",
+                        os.path.join(HERE, "tools", "blender_render.py"), "--", spec_path],
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        for preset in presets:
+            width, height, *_rest, target, filename = PRESETS[preset]
+            rgba = np.array(Image.open(os.path.join(work, preset + ".png")).convert("RGBA"))
+            reference = os.path.join(work, preset + "_reference.png")
+            if os.path.isfile(reference):
+                ref_median = median(np.array(Image.open(reference).convert("RGBA")))
+                gamma = math.log(target / 255.0) / math.log(ref_median / 255.0)
+                note = "antenna 03 renders at %.1f against Bohemia's %.1f" % (ref_median, target)
+            else:
+                gamma = math.log(target / 255.0) / math.log(median(rgba) / 255.0)
+                note = "no reference - set to Bohemia's antenna 03 median directly"
+            before = median(rgba)
+            rgba[:, :, :3] = calibrate(rgba[:, :, :3], gamma)
+            icon = downsample(rgba, width, height)
+            out = os.path.join(HERE, "addons", "esdcam", "data", "ui", filename)
+            imagetopaa.to_paa(tool, icon, out)
+            if args.png:
+                os.makedirs(args.png, exist_ok=True)
+                Image.fromarray(icon, "RGBA").save(os.path.join(args.png, filename.replace(".paa", ".png")))
+            print("%s  %dx%d  median %.1f -> %.1f  (%s)" % (
+                os.path.relpath(out, HERE), width, height, before, median(icon), note))
 
 
 if __name__ == "__main__":

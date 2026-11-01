@@ -51,7 +51,9 @@ class CfgWeapons {
     // so an entry added to MuzzleSlot showed the camera wearing antenna 01's picture.
     // -----------------------------------------------------------------------------------
     class Pistol;
-    class Pistol_Base_F: Pistol;
+    // With braces: HEMTT 1.22 refuses a bare "class A: B;", and an empty body re-states
+    // vanilla's own parent without touching anything in it.
+    class Pistol_Base_F: Pistol {};
 
     class hgun_esd_01_base_F: Pistol_Base_F {
         // No ": WeaponSlotsInfo". The class has no parent on the vanilla device; giving it
@@ -63,9 +65,12 @@ class CfgWeapons {
             class MuzzleSlot;
 
             class MuzzleSlot4: MuzzleSlot {
-                // Antenna 03's position, because the camera is the attachment closest to it
-                // in size and shape: 57.9 cm against its 55.6, mount head modelled off it.
-                iconPosition[] = {0.1, 0.55};
+                // The overlay is centred on this point. It is laid out like antenna 02's, with
+                // the cable loop to the right of the mount, so the mount sits at 165 of 256
+                // px rather than antenna 03's 247 - and 0.33 is what puts it on the device's
+                // muzzle, which antennas 01 and 03 agree is at 0.433 of the picture's width.
+                // See "The inventory pictures" in the README.
+                iconPosition[] = {0.33, 0.55};
                 iconPicture = CAM_SLOT_PICTURE;
                 compatibleItems[] = {CAM_ITEM};
             };

@@ -1,0 +1,9 @@
+# The camera model ships as MLOD, unbinarized.
+#
+# It wears Bohemia's own Spectrum Device texture and material (a3\weapons_f_enoch\...),
+# and binarize embeds a model's materials into the ODOL it writes - from files it has to be
+# able to read at build time. Without a P drive it cannot, and the release model would
+# carry an empty material in place of esd_01.rvmat. Arma loads MLOD directly and resolves
+# the paths in game, where every install has them.
+[binarize]
+exclude = ["model/camhead.p3d"]

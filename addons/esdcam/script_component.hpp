@@ -90,20 +90,23 @@
 //
 // 57.9 cm long, and that number is not free either: the mount head was modelled off
 // muzzle_antenna_03_F, and this is the length at which it comes out the same size as the
-// vanilla one, to within a tenth of a percent across collar, shoulder and flange. Built
-// from art/esdcam/arma3_cam.fbx by tools/fbx_to_p3d.py; see "The model" in the README.
+// vanilla one, to within a tenth of a percent across collar, shoulder and flange.
+//
+// No texture of its own: every face sits on the device's own esd_01_co.paa, and a cable
+// like antenna 02's runs into the socket under the display. Built from
+// art/esdcam/arma3_cam.fbx by tools/build_camhead.py; see "The model" in the README.
 #define CAM_MODEL QPATHTOF(model\camhead.p3d)
 
-// Inventory picture, rendered from our own model by tools/render_icon.py. 512x512 with
-// alpha, the object across the diagonal, lit from the upper left - all measured off
-// Bohemia's gear_muzzle_antenna_01_ca and _03_ca, so it sits in the arsenal list looking
-// like it belongs between them rather than next to them.
+// Inventory picture, rendered from our own model by tools/render_icon.py on the device's
+// own textures. 512x512 with alpha, mount at x = 500 and the wand running away to the
+// lower left, as on Bohemia's gear_muzzle_antenna_01_ca to _03_ca, so it sits in the
+// arsenal list looking like it belongs between them rather than next to them.
 #define CAM_PICTURE QPATHTOF(data\ui\gear_camhead_ca.paa)
 
 // The second picture, and it is a different job: this is the overlay Arma draws onto the
-// weapon's own inventory picture to show the camera fitted. 256x128, flat side on, mount to
-// the right - measured off hgun_esd_01_antenna_03_F_ca, which lands its mount at 247.0/63.7
-// where ours lands at 247/64. It hangs on the slot, not on the item, so it lives in
-// MuzzleSlot4 in CfgWeapons.hpp.
+// weapon's own inventory picture to show the camera fitted. 256x128, flat side on, laid out
+// like hgun_esd_01_antenna_02_F_ca: the wand left of the mount, the cable loop right of it.
+// It hangs on the slot, not on the item, so it lives in MuzzleSlot4 in CfgWeapons.hpp,
+// whose iconPosition goes with this layout.
 #define CAM_SLOT_PICTURE QPATHTOF(data\ui\hgun_esd_01_camhead_F_ca.paa)
 

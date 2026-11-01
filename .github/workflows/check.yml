@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HEMTT_VERSION: "1.11.2"
+  HEMTT_VERSION: "1.22.0"
 
 jobs:
   hemtt:

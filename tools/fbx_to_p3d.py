@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Turn the camera model from arma3_cam.fbx into addons/esdcam/model/camhead.p3d.
+"""The FBX side of the camera model: reading it, placing it, checking it.
 
-Neither Blender nor the Arma 3 Tools are installed here, so this does the export
-itself: read the binary FBX, put the mesh into Arma's coordinates, and write MLOD.
-Arma loads MLOD directly - binarize only matters for a signed release build.
+tools/build_camhead.py builds camhead.p3d with what is here - read the binary FBX, put the
+mesh into Arma's coordinates, check it is the right way out. Run on its own, this only
+measures: --fit-mount derives the wand's length from a vanilla antenna.
+
+    python tools/fbx_to_p3d.py --fit-mount art/esdcam/reference/muzzle_antenna_03_F_mlod.p3d
 
 --------------------------------------------------------------------------------
 Placement
@@ -73,15 +75,11 @@ nothing about which way round the thing is.
 import argparse
 import math
 import os
-import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fbx
 import p3d
-
-TEXTURE = r"z\opw\addons\esdcam\data\camhead_co.paa"
-MATERIAL = r"z\opw\addons\esdcam\data\camhead.rvmat"
 
 # Overall length in metres, so that the mount head comes out the size of the vanilla
 # antenna's - see "Scale" above. muzzle_antenna_03_F itself is 55.6 cm.
@@ -122,53 +120,6 @@ def fan(face):
     if len(face) <= 4:
         return [face]
     return [[face[0], face[i], face[i + 1]] for i in range(1, len(face) - 1)]
-
-
-def build(path, length, name_note):
-    points, normals, uv, faces = read_mesh(path)
-
-    ys = [p[1] for p in points]
-    y_min, y_max = min(ys), max(ys)
-    scale = length / (y_max - y_min)
-
-    # Centre on the mount end, not on the bounding box: that ring is what plugs into
-    # the device, so it is the one that has to sit on the axis.
-    ring = [p for p in points if abs(p[1] - y_min) < 1e-4]
-    cx = sum(p[0] for p in ring) / len(ring)
-    cz = sum(p[2] for p in ring) / len(ring)
-
-    def to_arma(p):
-        return (-(p[1] - y_min) * scale, (p[2] - cz) * scale, (p[0] - cx) * scale)
-
-    def dir_to_arma(n):
-        # -M*n, not M*n: see "Axes, winding and normals" at the top.
-        v = (n[1], -n[2], -n[0])
-        d = math.sqrt(v[0] ** 2 + v[1] ** 2 + v[2] ** 2) or 1.0
-        return (v[0] / d, v[1] / d, v[2] / d)
-
-    lod = p3d.Lod(p3d.LOD_RESOLUTION)
-    lod.points = [to_arma(p) + (0,) for p in points]
-    lod.normals = [dir_to_arma((normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]))
-                   for i in range(len(normals) // 3)]
-
-    uv_pairs = []
-    for face in faces:
-        for piece in fan(face):
-            verts = [(point, normal, uv[u * 2], 1.0 - uv[u * 2 + 1])
-                     for point, normal, u in piece]
-            lod.faces.append(p3d.Face(verts, TEXTURE, MATERIAL))
-            uv_pairs.extend((v[2], v[3]) for v in verts)
-
-    # UV set 0 again as a tagg, the way Object Builder saves it.
-    payload = struct.pack("<I", 0) + b"".join(struct.pack("<ff", u, v) for u, v in uv_pairs)
-    lod.taggs.append(p3d.Tagg("#UVSet#", payload))
-
-    xs = [p[0] for p in lod.points]
-    ys2 = [p[1] for p in lod.points]
-    zs = [p[2] for p in lod.points]
-    box = (min(xs), max(xs), min(ys2), max(ys2), min(zs), max(zs))
-
-    return lod, box, scale, (cx, y_min, cz)
 
 
 def geometry_lod(box, mass):
@@ -307,47 +258,17 @@ def check(lod):
 def main():
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     ap = argparse.ArgumentParser()
-    ap.add_argument("--fbx", default=os.path.join(here, "art", "esdcam", "arma3_cam.fbx"))
-    ap.add_argument("--out", default=os.path.join(here, "addons", "esdcam", "model", "camhead.p3d"))
-    ap.add_argument("--length", type=float, default=DEFAULT_LENGTH,
-                    help="overall length in metres (default %.3f)" % DEFAULT_LENGTH)
-    ap.add_argument("--mass", type=float, default=0.5, help="kg, geometry LOD")
-    ap.add_argument("--fit-mount", metavar="REFERENCE.p3d",
-                    help="derive the length by matching the mount head to a vanilla "
-                         "antenna instead of using --length")
+    ap.add_argument("--model", default=os.path.join(here, "addons", "esdcam", "model", "camhead.p3d"))
+    ap.add_argument("--fit-mount", metavar="REFERENCE.p3d", required=True,
+                    help="an MLOD of a vanilla antenna to match the mount head to")
     args = ap.parse_args()
 
-    length = args.length
-    if args.fit_mount:
-        # Fit against the current output, then carry its length through the factor.
-        lods, _ = p3d.read(args.out)
-        current = max(-p[0] for p in min(lods, key=lambda l: l.resolution).points)
-        factor, deviation = fit_mount(args.fit_mount, args.out)
-        length = round(current * factor, 4)
-        print("fitted to %s: factor %.4f, median deviation %.2f %% -> length %.4f m"
-              % (os.path.basename(args.fit_mount), factor, 100 * deviation, length))
-
-    lod, box, scale, origin = build(args.fbx, length, None)
-    volume, flux = check(lod)
-
-    lods = [lod, geometry_lod(box, args.mass), memory_lod(length)]
-    size = p3d.write(args.out, lods)
-
-    print("%s" % os.path.relpath(args.out, here))
-    print("  length          %.1f cm" % (100 * length))
-    print("  resolution LOD  %d points, %d normals, %d faces" %
-          (len(lod.points), len(lod.normals), len(lod.faces)))
-    print("  scale           %.6f  (mount ring centred on %.4f, %.4f in FBX X/Z)" %
-          (scale, origin[0], origin[2]))
-    print("  bounding box    x %.3f .. %.3f   y %.3f .. %.3f   z %.3f .. %.3f" % box)
-    print("  winding         signed volume %+.6f  %s" %
-          (volume, "ok" if volume < 0 else "INSIDE OUT"))
-    print("  normals         flux          %+.6f  %s" %
-          (flux, "ok" if flux < 0 else "INSIDE OUT"))
-    print("  %d bytes" % size)
-    if volume >= 0 or flux >= 0:
-        raise SystemExit("model is inside out - Arma would cull its front faces and you "
-                         "would look straight through it")
+    lods, _ = p3d.read(args.model)
+    current = max(-p[0] for p in min(lods, key=lambda l: l.resolution).points)
+    factor, deviation = fit_mount(args.fit_mount, args.model)
+    print("fitted to %s: factor %.4f, median deviation %.2f %% -> length %.4f m (now %.4f)"
+          % (os.path.basename(args.fit_mount), factor, 100 * deviation,
+             round(current * factor, 4), current))
 
 
 if __name__ == "__main__":
