@@ -37,32 +37,25 @@ version 1.22.0) to run `hemtt check` / `hemtt build`.
 - `tools/render_icon.py` (inventory pictures) cannot run in the cloud. After any visual
   change, tell Mia to run `python tools/render_icon.py` locally.
 
-## Open tasks (Mia, 2026-11-01, after testing in game)
+## Waiting for Mia's in-game test (2026-11-01)
 
-Her verdict: "Ist sehr gut geworden". Two things left:
+Her verdict after the last round: "Ist sehr gut geworden", with two complaints, both now
+changed blind - do not touch them again unless she reports back:
 
-1. **The shadow looks weird.** Not yet diagnosed. Most likely cause: the shadow volume
-   (`shadow_lod()` in `build_camhead.py`, resolution 10000) is a crude 8-sided lathe,
-   0.6 mm inside the visual surface, plus a 4-sided cable tube. The visual hose has 32
-   sides, so self-shadowing on the model is faceted and the cast shadow does not match the
-   silhouette (the flange octagon is also rotated 22.5 deg against the real one). Bohemia's
-   antennas do it differently - measured from their MLODs:
-   - `muzzle_antenna_03_F`: LOD 1 and 1100 carry `#Property# lodnoshadow = 1`; shadow
-     volume 10000 = 1170 points / 1560 faces (follows the visual closely), 10010 = 72/96,
-     plus 11000 = 771/390 and 11010 = 52/24.
-   - `muzzle_antenna_02_F`: 10000 = 3480/4640, 10010 = 72/96, 11000 = 2594/1160,
-     11010 = 62/24; no `lodnoshadow`.
-   Plan: build the shadow volume from the visual geometry itself (closed, triangulated,
-   all edges in `#SharpEdges#`, same winding convention as the visual LODs) instead of the
-   coarse lathe, add a low-detail 10010, and set `lodnoshadow = 1` on LODs 1 and 2 as
-   antenna 03 does. Check the shadow LOD is a closed 2-manifold with consistent winding
-   before committing (each edge used exactly twice, opposite directions).
-2. **The hose is too light** (renders almost white-blue). It sits on antenna 02's
-   galvanised rods (`HOSE_RECT` in `build_camhead.py`) with `camhead_hose.rvmat`.
-   Cheapest blind fix: scale `diffuse[]` and `ambient[]` in `write_hose_material()` (now
-   1.1 and 1), e.g. 0.45 for gunmetal, 0.3 for dark steel - this needs no new UVs and no
-   new PAA. Regenerate the rvmat with the build (or edit both the script and the generated
-   file identically). Then Mia re-renders the icons locally.
+1. **The shadow looked weird.** The old shadow volume was a crude 8-sided lathe. Now:
+   `lodnoshadow = 1` on LODs 1 and 2 (as Bohemia's `muzzle_antenna_03_F`), shadow volumes
+   10000 and 10010 and a shadow buffer LOD 11000, built by `shadow_mesh()`: the visible wand
+   cut into ~1 mm slabs, each replaced by its convex hull (`convex_hull()`, own quickhull -
+   no scipy) and pulled 0.6 mm in radially; cable, plug and boot as closed tubes/lathes,
+   clips as hulls. Each piece has points of its own (no shared edges between pieces). The
+   build fails if an edge is not used exactly twice. The visible mesh could not be used
+   directly: it is open at the hose/flange and head/mount joints and has T-junctions at
+   the badge. If the shadow is now missing entirely, the engine is not using 11000 - first
+   suspect `lodnoshadow`.
+2. **The hose was too light.** `HOSE_SHADE = 0.45` scales ambient and diffuse of
+   `camhead_hose.rvmat`. If still too light, lower it (0.3 = dark steel) and rebuild.
+
+Mia has to re-render the inventory icons locally (`python tools/render_icon.py`).
 
 Still waiting for Mia's in-game feedback (do not reopen unless she reports a problem):
 mouse escaping a borderless window while aiming (fixed in b773f9d by removing the map

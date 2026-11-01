@@ -3,14 +3,16 @@
 // The camera wand's hose. Bohemia's esd_01.rvmat value for value, so the hose sits on
 // their galvanised metal exactly as antenna 02's rods do - except for the normal map.
 // Theirs is flat there, and a gooseneck needs its ribs: Stage1 is one rib, repeated
-// 663 times per atlas width along the hose, which is a 3.2 mm pitch.
+// 663 times per atlas width along the hose, which is a 3.2 mm pitch. And it is darker:
+// ambient and diffuse are theirs times 0.45 (HOSE_SHADE), so the gooseneck reads as
+// blackened steel rather than bright galvanised rod.
 
 class StageTI {
     texture = "a3\data_f\default_vehicle_ti_ca.paa";
 };
 
-ambient[] = {1,1,1,1};
-diffuse[] = {1.1,1.1,1.1,1};
+ambient[] = {0.45,0.45,0.45,1};
+diffuse[] = {0.495,0.495,0.495,1};
 forcedDiffuse[] = {0,0,0,1};
 emmisive[] = {0,0,0,0};
 specular[] = {0.3,0.3,0.3,1};

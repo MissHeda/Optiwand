@@ -30,8 +30,8 @@ dropping clear of the flange and taking antenna 02's route under the device into
 socket. Behind the mount the route is antenna 02's own, because that one is known to clear
 the device.
 
-Writes LOD 1 and 2, a shadow volume, the geometry box and the memory points, plus the
-hose's material and its normal map.
+Writes LOD 1 and 2, two shadow volumes and a shadow buffer LOD, the geometry box and the
+memory points, plus the hose's material and its normal map.
 
     python tools/build_camhead.py
 
@@ -125,6 +125,12 @@ CLIP_THICKNESS = 0.0008
 
 # Rib pitch of the hose, which its normal map repeats along the length.
 RIB_PITCH = 0.0032
+# Antenna 02's galvanised rods are near white; the hose takes their ambient and diffuse
+# times this, for a dark grey steel.
+HOSE_SHADE = 0.45
+
+# The shadow buffer LOD, which Arma draws its shadow maps from.
+SHADOW_BUFFER = 11000.0
 
 # Behind the hose the cable takes antenna 02's route: down past the flange, under the
 # device and up into the socket. Model space, from the hose to the plug.
@@ -752,27 +758,216 @@ def resolution_lod(resolution, wand_mesh, hose_radius, detail):
     return lod.finish(), path, runs
 
 
-def shadow_lod(hose_radius, path):
-    """Closed, every edge sharp, a little inside the visible surface - what a shadow
-    volume wants. One body of revolution for the wand, a tube for the cable, a plug."""
-    lod = Lod(p3d.LOD_SHADOW)
+def convex_hull(points, eps=1e-9):
+    """Triangles (i, j, k) of the convex hull, wound counter clockwise seen from outside.
+    Quickhull: start from a tetrahedron, then always take the point furthest outside, let
+    it eat the connected patch of faces it sees and close the hole with a fan from the
+    horizon. Furthest first and a connected patch keep the many coplanar points of a cut
+    from tearing the hull. eps is in metres, a point closer than that to a face counts as
+    on it; keep it far below the spacing of the points (slab_hulls() puts them on a 10 um
+    grid), as a tolerance anywhere near that spacing lets a patch grow round a face it
+    skipped, and the hull folds. Returns [] for a flat set."""
+    p = np.asarray(points, float)
+    if len(p) < 4:
+        return []
+    a = int(np.argmin(p[:, 0]))
+    b = int(np.argmax(np.linalg.norm(p - p[a], axis=1)))
+    ab = p[b] - p[a]
+    c = int(np.argmax(np.linalg.norm(np.cross(ab, p - p[a]), axis=1)))
+    n = np.cross(ab, p[c] - p[a])
+    if np.linalg.norm(n) < 1e-12:
+        return []
+    n = n / np.linalg.norm(n)
+    d = int(np.argmax(np.abs((p - p[a]) @ n)))
+    if abs((p[d] - p[a]) @ n) < eps:
+        return []
+    if (p[d] - p[a]) @ n > 0:
+        b, c = c, b
+
+    faces, owner = {}, {}  # face -> (normal, offset); directed edge -> face
+
+    def add(f):
+        n = np.cross(p[f[1]] - p[f[0]], p[f[2]] - p[f[0]])
+        n = n / (np.linalg.norm(n) or 1.0)
+        faces[f] = (n, n @ p[f[0]])
+        for k in range(3):
+            owner[(f[k], f[(k + 1) % 3])] = f
+
+    for f in ((a, b, c), (a, d, b), (b, d, c), (c, d, a)):
+        add(f)
+    done = {a, b, c, d}
+    while True:
+        keys = list(faces)
+        normals = np.array([faces[f][0] for f in keys])
+        offsets = np.array([faces[f][1] for f in keys])
+        dist = p @ normals.T - offsets  # points x faces
+        dist[list(done)] = -1.0
+        best = np.unravel_index(int(np.argmax(dist)), dist.shape)
+        if dist[best] <= eps:
+            return sorted(faces)
+        i, start = int(best[0]), keys[best[1]]
+        done.add(i)
+        seen, todo = {start}, [start]
+        while todo:  # the connected patch i sees
+            f = todo.pop()
+            for k in range(3):
+                g = owner.get((f[(k + 1) % 3], f[k]))
+                if g not in seen and faces[g][0] @ p[i] - faces[g][1] > eps:
+                    seen.add(g)
+                    todo.append(g)
+        horizon = [(f[k], f[(k + 1) % 3]) for f in seen for k in range(3)
+                   if owner[(f[(k + 1) % 3], f[k])] not in seen]
+        for f in seen:
+            del faces[f]
+            for k in range(3):
+                if owner.get((f[k], f[(k + 1) % 3])) == f:
+                    del owner[(f[k], f[(k + 1) % 3])]
+        for u, v in horizon:
+            add((u, v, i))
+
+
+def components(faces):
+    """The face lists of the separate pieces of a mesh, joined where corners meet."""
+    key = lambda q: tuple(round(float(c) * 1e6) for c in q)
+    parent = {}
+
+    def find(k):
+        while parent.setdefault(k, k) != k:
+            parent[k] = parent[parent[k]]
+            k = parent[k]
+        return k
+
+    for corners, _material in faces:
+        first = find(key(corners[0][0]))
+        for corner in corners[1:]:
+            parent[find(key(corner[0]))] = first
+    groups = {}
+    for face in faces:
+        groups.setdefault(find(key(face[0][0][0])), []).append(face)
+    return [groups[k] for k in sorted(groups)]
+
+
+def slab_hulls(mesh, out, gap, inset, bins=None):
+    """Each piece of the mesh cut into slabs across the wand's axis, every slab replaced by
+    its convex hull: closed by construction, and as close to the visible surface as a set
+    of convex pieces gets. Appends one Mesh per hull to out. The slabs are bounded where the mesh has its rings of corners,
+    no two closer than gap; each hull is pulled in by inset towards the slab's middle, in
+    the plane of the cut only, so neighbouring slabs still meet. bins: keep only the
+    outermost point per angle bin and slab side, for a coarse LOD."""
+    for piece in components(mesh.faces):
+        edges = []
+        for corners, _material in piece:
+            pts = [np.asarray(q[0], float) for q in corners]
+            edges += [(pts[k], pts[(k + 1) % len(pts)]) for k in range(len(pts))]
+        xs = sorted({round(float(e[0][0]), 6) for e in edges})
+        levels = [xs[0]]
+        for x in xs[1:]:
+            if x - levels[-1] >= gap:
+                levels.append(x)
+        if levels[-1] != xs[-1]:
+            if len(levels) > 1 and xs[-1] - levels[-1] < gap / 2:
+                levels[-1] = xs[-1]
+            else:
+                levels.append(xs[-1])
+        for x0, x1 in zip(levels, levels[1:]):
+            pts = []
+            for p, q in edges:
+                for r in (p, q):
+                    if x0 - 1e-7 <= r[0] <= x1 + 1e-7:
+                        pts.append(r)
+                lo, hi = (p, q) if p[0] < q[0] else (q, p)
+                for x in (x0, x1):
+                    if lo[0] < x - 1e-7 and hi[0] > x + 1e-7:
+                        pts.append(lo + (hi - lo) * (x - lo[0]) / (hi[0] - lo[0]))
+            pts = np.unique(np.round(np.array(pts), 6), axis=0)
+            centre = pts[:, 1:].mean(axis=0)
+            radial = pts[:, 1:] - centre
+            r = np.linalg.norm(radial, axis=1)
+            if bins:
+                angle = np.floor((np.arctan2(radial[:, 1], radial[:, 0]) + math.pi)
+                                 / (2 * math.pi) * bins).astype(int)
+                side = pts[:, 0] > (x0 + x1) / 2
+                best = {}
+                for k in range(len(pts)):
+                    slot = (side[k], angle[k])
+                    if slot not in best or r[k] > r[best[slot]]:
+                        best[slot] = k
+                keep = sorted(best.values())
+                pts, radial, r = pts[keep], radial[keep], r[keep]
+                # Out to the slab's ends, or neighbouring slabs would leave gaps.
+                pts = pts.copy()
+                pts[:, 0] = np.where(side[keep], x1, x0)
+            scale = np.maximum(r - inset, r * 0.85) / np.where(r > 1e-9, r, 1.0)
+            pts = np.column_stack([pts[:, 0], centre + radial * scale[:, None]])
+            # On a 10 um grid: coarser than Lod.point() merges corners by, so no face
+            # collapses there, and no near twins for the hull to choke on.
+            pts = np.unique(np.round(pts, 5), axis=0)
+            hull = Mesh()
+            for f in convex_hull(pts):
+                tri = [pts[k] for k in f]
+                n = norm(np.cross(tri[1] - tri[0], tri[2] - tri[0]))
+                hull.add([(q, n, (0.0, 0.0)) for q in tri], "")
+            if hull.faces:
+                out.append(hull)
+
+
+def shadow_mesh(wand_mesh, hose_radius, detail):
+    """Closed pieces, a little inside the visible surface: what a shadow volume wants.
+    The wand as slab hulls of its own visible mesh - which is not closed itself (the hose
+    is open where it enters the flange, the head open where it meets the mount) - and the
+    cable, plug, boot and clips as closed solids of the same shape as their visible ones."""
+    pieces = []
+    flat = lambda *_: (0.0, 0.0)
+    slab_hulls(wand_mesh, pieces, 0.001, 0.0006, None if detail else 8)
     m = Mesh()
-    s = 0.0006
-    body = [
-        (-0.5785, 0.0104 - s), (-0.527, 0.0104 - s), (-0.527, hose_radius - s),
-        (-0.088, hose_radius - s), (-0.088, 0.033 - s), (-0.0744, 0.033 - s),
-        (-0.0744, 0.043 - s), (-0.0594, 0.043 - s), (-0.0594, 0.0603 - s),
-        (-0.0568, 0.0603 - s), (-0.0568, 0.043 - s), (-0.0525, 0.043 - s),
-        (-0.0525, 0.040 - s), (-0.0005, 0.040 - s),
-    ]
-    flat = lambda t, a: (0.0, 0.0)
-    lathe(m, body, (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), 8, flat, material="", closed=True)
-    tube(m, resample(path, 20.0, 0.08), CABLE_RADIUS - 0.0004, 4, lambda i, k: (0.0, 0.0),
-         material="", caps=True)
-    lathe(m, [(0.1705, 0.0033), (0.2000, 0.0033)], (0.0, PLUG_AXIS[0], PLUG_AXIS[1]),
-          (1.0, 0.0, 0.0), 6, flat, material="", closed=True)
-    lod.mesh(m, triangles=True)
+    path, lift = cable_path(hose_radius, 6.0 if detail else 20.0, 0.06 if detail else 0.08)
+    tube(m, path, CABLE_RADIUS - 0.0004, 6 if detail else 4, flat, material="", caps=True)
+    sides = 12 if detail else 6
+    plug = [(t, max(r - 0.0004, 0.0005)) for t, r in PLUG_PROFILE]
+    lathe(m, plug, (0.0, PLUG_AXIS[0], PLUG_AXIS[1]), (1.0, 0.0, 0.0), sides, flat,
+          material="", closed=True)
+    if detail:
+        boot = [(0.0, 0.0025), (0.0035, 0.0025), (0.0098, CABLE_RADIUS - 0.0003)]
+        lathe(m, boot, (CABLE_START_X, -lift, 0.0), (1.0, 0.0, 0.0), sides, flat,
+              material="", closed=True)
+        for x in CLIPS_X:
+            clip = Mesh()
+            build_clip(clip, x, hose_radius, lift, 10)
+            slab_hulls(clip, pieces, 1.0, 0.0)
+    return pieces + [m]
+
+
+def shadow_lod(resolution, pieces):
+    """Every edge sharp, as a shadow volume must have them. Each piece gets points of its
+    own: where two slabs meet, their rings may lie on the same spot, and sharing those
+    points would leave edges with four faces on them instead of two."""
+    lod = Lod(resolution)
+    for piece in pieces:
+        lod._points = {}
+        lod.mesh(piece, triangles=True)
     return lod.sharp_edges()
+
+
+def shadow_buffer_lod(resolution, pieces):
+    """What the shadow map is drawn from, as on antenna 03, whose visual LODs then cast no
+    shadow of their own (lodnoshadow). The same closed pieces as the shadow volume, so
+    near and far shadows have the same outline."""
+    lod = Lod(resolution)
+    for piece in pieces:
+        lod._points = {}
+        lod.mesh(piece, triangles=True)
+    return lod.lod
+
+
+def manifold(lod):
+    """Edges that are not used exactly twice, once each way: 0 for a proper volume."""
+    count = {}
+    for f in lod.faces:
+        ids = [v[0] for v in f.verts]
+        for k in range(len(ids)):
+            e = (ids[k], ids[(k + 1) % len(ids)])
+            count[e] = count.get(e, 0) + 1
+    return sum(1 for (a, b), n in count.items() if n != 1 or count.get((b, a)) != 1)
 
 
 def geometry_lod(mass):
@@ -793,18 +988,22 @@ def write_hose_material(rib_repeat):
                 "        dir[] = {0,0,0};\n        pos[] = {0,0,0};\n    };\n};\n\n"
                 % (n, texture, extra, scale))
 
+    shade = lambda v: "%g" % round(v * HOSE_SHADE, 3)
     text = (
         "// Generated by tools/build_camhead.py - change the script, not this file.\n"
         "//\n"
         "// The camera wand's hose. Bohemia's esd_01.rvmat value for value, so the hose sits on\n"
         "// their galvanised metal exactly as antenna 02's rods do - except for the normal map.\n"
         "// Theirs is flat there, and a gooseneck needs its ribs: Stage1 is one rib, repeated\n"
-        "// %d times per atlas width along the hose, which is a %.1f mm pitch.\n\n"
-        % (rib_repeat, RIB_PITCH * 1000)
+        "// %d times per atlas width along the hose, which is a %.1f mm pitch. And it is darker:\n"
+        "// ambient and diffuse are theirs times %g (HOSE_SHADE), so the gooseneck reads as\n"
+        "// blackened steel rather than bright galvanised rod.\n\n"
+        % (rib_repeat, RIB_PITCH * 1000, HOSE_SHADE)
         + "class StageTI {\n    texture = \"a3\\data_f\\default_vehicle_ti_ca.paa\";\n};\n\n"
-        "ambient[] = {1,1,1,1};\ndiffuse[] = {1.1,1.1,1.1,1};\nforcedDiffuse[] = {0,0,0,1};\n"
+        "ambient[] = {%s,%s,%s,1};\ndiffuse[] = {%s,%s,%s,1};\nforcedDiffuse[] = {0,0,0,1};\n"
         "emmisive[] = {0,0,0,0};\nspecular[] = {0.3,0.3,0.3,1};\nspecularPower = 100;\n"
         "PixelShaderID = \"Super\";\nVertexShaderID = \"Super\";\n\n"
+        % ((shade(1.0),) * 3 + (shade(1.1),) * 3)
         + stage(1, HOSE_NOHQ, rib_repeat)
         + stage(2, "#(argb,8,8,3)color(0.5,0.5,0.5,0.5,DT)")
         + stage(3, "#(argb,8,8,3)color(0.0,0.0,0.0,0.0,MC)")
@@ -863,9 +1062,16 @@ def main():
     wand_mesh, hose_radius = map_wand(read_wand(args.fbx, DEFAULT_LENGTH), mount)
     lod1, path, runs = resolution_lod(1.0, wand_mesh, hose_radius, True)
     lod2, _path, _runs = resolution_lod(2.0, wand_mesh, hose_radius, False)
-    shadow = shadow_lod(hose_radius, path)
+    # Antenna 03's arrangement: the visual LODs cast no shadow, shadow volumes and a
+    # shadow buffer LOD do it for them.
+    for lod in (lod1, lod2):
+        lod.add_property("lodnoshadow", "1")
+    near, far = shadow_mesh(wand_mesh, hose_radius, True), shadow_mesh(wand_mesh, hose_radius, False)
+    shadow, shadow_far = shadow_lod(p3d.LOD_SHADOW, near), shadow_lod(p3d.LOD_SHADOW + 10, far)
+    buffer = shadow_buffer_lod(SHADOW_BUFFER, near)
+    open_edges = manifold(shadow) + manifold(shadow_far)
     volume, flux = fbx_to_p3d.check(lod1)
-    size = p3d.write(args.out, [lod1, lod2, shadow, geometry_lod(args.mass),
+    size = p3d.write(args.out, [lod1, lod2, shadow, shadow_far, buffer, geometry_lod(args.mass),
                                 fbx_to_p3d.memory_lod(DEFAULT_LENGTH)])
 
     hose_length = abs(-0.527 - -0.0922)
@@ -875,8 +1081,11 @@ def main():
         imagetopaa.to_paa(tool, rib_normal(),
                           os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose_nohq.paa"))
 
-    for name, lod in (("LOD 1", lod1), ("LOD 2", lod2), ("shadow", shadow)):
-        print("  %-7s %5d points %5d faces" % (name, len(lod.points), len(lod.faces)))
+    for name, lod in (("LOD 1", lod1), ("LOD 2", lod2), ("shadow", shadow),
+                      ("shadow far", shadow_far), ("buffer", buffer)):
+        print("  %-10s %5d points %5d faces" % (name, len(lod.points), len(lod.faces)))
+    print("  shadow volumes: %d pieces near, %d far, %d edges not closed"
+          % (len(near), len(far), open_edges))
     print("  hose radius %.2f mm, ribs repeat %d times per atlas width, cable in %d runs"
           % (hose_radius * 1000, rib_repeat, runs))
     print("  winding %+.6f  normals %+.6f  %s" % (
@@ -888,6 +1097,8 @@ def main():
               "  until that changes.")
     if volume >= 0 or flux >= 0:
         raise SystemExit("model is inside out")
+    if open_edges:
+        raise SystemExit("shadow volume is not closed")
 
 
 if __name__ == "__main__":

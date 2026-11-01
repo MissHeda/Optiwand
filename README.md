@@ -179,8 +179,13 @@ Where each part lands on the atlas:
 
 The cable is ours: like antenna 02's it runs into the lower socket under the display -
 clipped along the hose, down past the flange and under the device the way antenna 02's
-does. The build also writes LOD 2, a closed shadow volume and the geometry box with
-`autocenter = 0`, as Bohemia's antennas have.
+does. The build also writes LOD 2 and the geometry box with `autocenter = 0`, as Bohemia's
+antennas have, and shadows the way antenna 03 has them: the visual LODs carry
+`lodnoshadow = 1`, and two shadow volumes (10000 near, 10010 far) plus a shadow buffer LOD
+(11000) cast the shadow instead. The volumes are the visible wand cut into thin slabs, each
+slab replaced by its convex hull and pulled 0.6 mm in - closed by construction and close to
+the silhouette, which the visible mesh itself is not (it is open where the hose meets the
+flange). The build stops if any edge of a volume is not used exactly twice.
 
 The model ships as MLOD (`addons/esdcam/addon.toml`). Binarize embeds a model's materials
 into the ODOL from files it has to read at build time, and without a P drive it cannot read
