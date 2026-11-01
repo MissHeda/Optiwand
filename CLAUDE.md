@@ -31,12 +31,9 @@ No Arma, no Arma 3 Tools (ImageToPAA, binarize), no Blender, no Bohemia files. I
 `pip install numpy pillow` and HEMTT's Linux binary (see `.github/workflows/check.yml`,
 version 1.22.0) to run `hemtt check` / `hemtt build`.
 
-- `tools/build_camhead.py` projects the mount head onto antenna 03's UVs and needs the
-  local reference. A fallback that reuses the UVs stored in the committed `camhead.p3d`
-  when the reference is missing is being worked on locally and may not be pushed yet - if
-  `python tools/build_camhead.py` fails for lack of the reference, implement it: match
-  each FBX face to its stored face in LOD 1 of `addons/esdcam/model/camhead.p3d` by corner
-  positions (float32) and reuse those UVs; the output must stay byte-identical.
+- `tools/build_camhead.py` runs here: without the antenna 03 reference it reuses the
+  mount head UVs stored in the committed `camhead.p3d` (byte-identical output), and
+  without ImageToPAA it keeps the committed `camhead_hose_nohq.paa`.
 - `tools/render_icon.py` (inventory pictures) cannot run in the cloud. After any visual
   change, tell Mia to run `python tools/render_icon.py` locally.
 

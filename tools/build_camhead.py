@@ -31,13 +31,31 @@ socket. Behind the mount the route is antenna 02's own, because that one is know
 the device.
 
 Writes LOD 1 and 2, a shadow volume, the geometry box and the memory points, plus the
-hose's material and its normal map. Needs:
-
-    art/esdcam/arma3_cam.fbx                             the wand, in the repo
-    art/esdcam/reference/muzzle_antenna_03_F_mlod.p3d    Bohemia's, local only (ignored)
-    the Arma 3 Tools, for ImageToPAA
+hose's material and its normal map.
 
     python tools/build_camhead.py
+
+What it needs depends on where it runs. Everywhere: Python 3 with numpy, and
+art/esdcam/arma3_cam.fbx, which is in the repo. Two more things are Bohemia's and only
+exist on a machine with Arma - locally, not in a cloud session or CI, which have nothing
+but the git checkout - and the build gets by without either:
+
+    art/esdcam/reference/muzzle_antenna_03_F_mlod.p3d
+        Bohemia's antenna, local only (ignored by git, and it must stay so). With it, the
+        mount head is projected onto it afresh. Without it, the head keeps the UVs the
+        committed camhead.p3d already has, each face found again by its corners - see
+        StoredHead. That writes the same model to the byte, for as long as the FBX and
+        the head's mapping stay as they are; once either changes, the build stops and
+        asks for the reference.
+
+    ImageToPAA, from the Arma 3 Tools (or IMAGETOPAA=path), plus Pillow to feed it
+        writes the hose's normal map, camhead_hose_nohq.paa. Without it that file is left
+        as it is in git, which is right for as long as rib_normal() is unchanged. The
+        p3d and the rvmat are written either way.
+
+So in the cloud numpy is all it takes, for every change but one to the FBX, the head's
+mapping or rib_normal() - those need the machine with Arma. Locally, with the reference
+and the Tools, the build makes every file from scratch.
 """
 
 import argparse
@@ -56,6 +74,7 @@ import p3d
 from fbx_to_p3d import DEFAULT_LENGTH
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL = os.path.join(HERE, "addons", "esdcam", "model", "camhead.p3d")
 
 BI_DATA = r"a3\weapons_f_enoch\pistols\esd_01\data"
 TEXTURE = BI_DATA + r"\esd_01_co.paa"
@@ -144,6 +163,14 @@ def norm(v):
     v = np.asarray(v, float)
     length = np.linalg.norm(v)
     return v / length if length > 1e-12 else v
+
+
+def shown(path):
+    """A path as seen from the repo, for the log."""
+    try:
+        return os.path.relpath(path, HERE)
+    except ValueError:  # on another drive
+        return path
 
 
 # ------------------------------------------------------------------------------ mesh
@@ -295,6 +322,24 @@ class Reference:
                     rows.append((p[1], p[2], 1.0))
                     uvs.append((v[2], v[3]))
         self.cap, *_ = np.linalg.lstsq(np.array(rows), np.array(uvs), rcond=None)
+        self.worst, self.unmatched = 0.0, 0
+
+    def map_head(self, corners):
+        """A face of the mount head: projected where antenna 03 has a face under it, the
+        antenna's end cap on our flat disc, plain panel where neither fits."""
+        uv, dist = self.project(corners)
+        if uv is not None:
+            self.worst = max(self.worst, dist)
+        elif face_normal(corners)[0] < -0.7:
+            uv = self.map_cap(corners)
+        else:
+            self.unmatched += 1
+            uv = map_cylinder(corners, PLAIN_RECT, (0.0, -0.10))
+        return uv
+
+    def summary(self):
+        return ("mount head on antenna 03: furthest %.2f mm, %d faces without a match"
+                % (self.worst * 1000, self.unmatched))
 
     def map_cap(self, corners):
         return [tuple(float(x) for x in np.array([c[0][1], c[0][2], 1.0]) @ self.cap)
@@ -341,6 +386,51 @@ class Reference:
         return out, float(dist[k])
 
 
+class StoredHead:
+    """The mount head as the committed camhead.p3d already has it, for wherever antenna 03
+    is not to hand - a cloud session or CI has the repo and nothing of Bohemia's. Each
+    face of the head is found again among that model's faces and keeps its UVs, so the
+    build writes the very model the reference gave, rather than a second mapping that
+    only looks like it.
+
+    Faces are found by their corners. p3d keeps positions as float32 and Lod.point()
+    merges corners closer than a micrometre, so a stored point lies within nanometres of
+    the corner it was made from, while no two points of the model are closer than 0.1 mm:
+    whatever lies inside TOLERANCE is that point. Rounding both to a grid instead would
+    miss now and then - a float32 just across a grid line from its float64 rounds the
+    other way. A face that is not there, corner for corner, means the FBX or the head's
+    mapping has moved on since the model was built, and only the reference can map it
+    then. So that stops the build instead of inventing UVs."""
+
+    TOLERANCE = 1e-5  # 0.01 mm
+
+    def __init__(self, path):
+        lods, _ = p3d.read(path)
+        lod = next(l for l in lods if abs(l.resolution - 1.0) < 1e-6)
+        self.path = path
+        self.points = np.array([p[:3] for p in lod.points])
+        # By point indices in the order stored, which is ours reversed (see Lod.mesh).
+        self.faces = {tuple(v[0] for v in f.verts): [(v[2], v[3]) for v in f.verts]
+                      for f in lod.faces}
+        self.matched = 0
+
+    def map_head(self, corners):
+        pts = np.array([c[0] for c in reversed(corners)])
+        dist = np.linalg.norm(self.points[None, :, :] - pts[:, None, :], axis=2)
+        ids = tuple(int(i) for i in dist.argmin(1))
+        if dist.min(1).max() > self.TOLERANCE or ids not in self.faces:
+            x, y, z = pts.mean(0)
+            raise SystemExit(
+                "mount head face at (%.4f, %.4f, %.4f) is not in %s - the FBX or the head's "
+                "mapping changed since it was built, so it needs the reference again"
+                % (x, y, z, shown(self.path)))
+        self.matched += 1
+        return self.faces[ids][::-1]
+
+    def summary(self):
+        return "mount head as committed: %d faces found again, UVs unchanged" % self.matched
+
+
 # ------------------------------------------------------------------------------ mappings
 def angle(p):
     """Angle round the wand's axis: 0 on top (+Y), growing towards +Z."""
@@ -384,8 +474,9 @@ def map_planar(corners, centre, scale):
     return [px(centre[0] + c[0][2] * scale, centre[1] - c[0][1] * scale) for c in corners]
 
 
-def map_wand(wand, reference):
-    """UVs and materials for the artist's mesh. Returns the Mesh and the hose radius, which
+def map_wand(wand, mount):
+    """UVs and materials for the artist's mesh. mount maps the mount head: a Reference, or a
+    StoredHead where the reference is missing. Returns the Mesh and the hose radius, which
     the cable and its ties are fitted to."""
     hose = [c for c, m in wand if m == "Schlauch"]
     hose_radius = max(math.hypot(p[0][1], p[0][2]) for c in hose for p in c)
@@ -405,7 +496,6 @@ def map_wand(wand, reference):
     body_ids = {id(c) for c in body}
 
     mesh = Mesh()
-    worst, unmatched = 0.0, 0
     for corners, name in wand:
         centre = np.mean([p[0] for p in corners], axis=0)
         material = MATERIAL
@@ -427,17 +517,9 @@ def map_wand(wand, reference):
             # the short boot where the hose leaves the collar
             uv = map_cylinder(corners, CLIP_RECT, (-0.0870, -0.0925))
         else:
-            uv, dist = reference.project(corners)
-            if uv is not None:
-                worst = max(worst, dist)
-            elif face_normal(corners)[0] < -0.7:
-                uv = reference.map_cap(corners)
-            else:
-                unmatched += 1
-                uv = map_cylinder(corners, PLAIN_RECT, (0.0, -0.10))
+            uv = mount.map_head(corners)
         mesh.faces.append(([(p, n, u) for (p, n, _), u in zip(corners, uv)], material))
-    print("  mount head on antenna 03: furthest %.2f mm, %d faces without a match"
-          % (worst * 1000, unmatched))
+    print("  " + mount.summary())
     print("  badge over x %.4f .. %.4f, %d faces" % (badge_x[0], badge_x[1], len(body)))
     return mesh, hose_radius
 
@@ -759,18 +841,26 @@ def main():
     ap.add_argument("--fbx", default=os.path.join(HERE, "art", "esdcam", "arma3_cam.fbx"))
     ap.add_argument("--reference", default=os.path.join(
         HERE, "art", "esdcam", "reference", "muzzle_antenna_03_F_mlod.p3d"))
-    ap.add_argument("--out", default=os.path.join(HERE, "addons", "esdcam", "model", "camhead.p3d"))
+    ap.add_argument("--out", default=MODEL)
     ap.add_argument("--mass", type=float, default=0.5, help="kg, geometry LOD")
     args = ap.parse_args()
 
-    tool = imagetopaa.find_imagetopaa()
-    if not tool:
-        raise SystemExit("ImageToPAA not found - install the Arma 3 Tools or set IMAGETOPAA")
-    if not os.path.isfile(args.reference):
-        raise SystemExit("%s missing - an MLOD of Bohemia's muzzle_antenna_03_F" % args.reference)
-
     print("camhead.p3d")
-    wand_mesh, hose_radius = map_wand(read_wand(args.fbx, DEFAULT_LENGTH), Reference(args.reference))
+    # The reference whenever it is there. The committed model is read before anything is
+    # written, so it is still the one from git even when --out is that same file.
+    if os.path.isfile(args.reference):
+        print("  mount head UVs: projected onto %s" % shown(args.reference))
+        mount = Reference(args.reference)
+    elif os.path.isfile(MODEL):
+        print("  mount head UVs: no %s, so taken from %s as committed"
+              % (shown(args.reference), shown(MODEL)))
+        mount = StoredHead(MODEL)
+    else:
+        raise SystemExit("%s missing - an MLOD of Bohemia's muzzle_antenna_03_F - and no %s "
+                         "to take the mount head from either" % (args.reference, MODEL))
+    tool = imagetopaa.find_imagetopaa()
+
+    wand_mesh, hose_radius = map_wand(read_wand(args.fbx, DEFAULT_LENGTH), mount)
     lod1, path, runs = resolution_lod(1.0, wand_mesh, hose_radius, True)
     lod2, _path, _runs = resolution_lod(2.0, wand_mesh, hose_radius, False)
     shadow = shadow_lod(hose_radius, path)
@@ -781,8 +871,9 @@ def main():
     hose_length = abs(-0.527 - -0.0922)
     rib_repeat = round(hose_length / RIB_PITCH / ((HOSE_RECT[2] - HOSE_RECT[0]) / ATLAS))
     write_hose_material(rib_repeat)
-    imagetopaa.to_paa(tool, rib_normal(),
-                      os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose_nohq.paa"))
+    if tool:
+        imagetopaa.to_paa(tool, rib_normal(),
+                          os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose_nohq.paa"))
 
     for name, lod in (("LOD 1", lod1), ("LOD 2", lod2), ("shadow", shadow)):
         print("  %-7s %5d points %5d faces" % (name, len(lod.points), len(lod.faces)))
@@ -791,6 +882,10 @@ def main():
     print("  winding %+.6f  normals %+.6f  %s" % (
         volume, flux, "ok" if volume < 0 and flux < 0 else "INSIDE OUT"))
     print("  %d bytes" % size)
+    if not tool:
+        print("  camhead_hose_nohq.paa not written: no ImageToPAA (Arma 3 Tools, or set\n"
+              "  IMAGETOPAA). The one in git is rib_normal() and nothing else, so it holds\n"
+              "  until that changes.")
     if volume >= 0 or flux >= 0:
         raise SystemExit("model is inside out")
 

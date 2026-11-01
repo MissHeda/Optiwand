@@ -6,15 +6,17 @@ import os
 import subprocess
 import tempfile
 
-from PIL import Image
-
 
 def find_imagetopaa():
     """ImageToPAA ships with the Arma 3 Tools, which keep no registry entry, so the usual
-    Steam libraries are searched. Set IMAGETOPAA to override the search."""
+    Steam libraries are searched. Set IMAGETOPAA to override the search. None if there is
+    none - always so off Windows, where the Tools do not exist and drive letters mean
+    nothing, unless IMAGETOPAA points at one."""
     override = os.environ.get("IMAGETOPAA")
     if override:
         return override if os.path.isfile(override) else None
+    if os.name != "nt":
+        return None
     for drive in "CDEFG":
         for library in ("Steam", "SteamLibrary", "Program Files (x86)/Steam"):
             found = glob.glob("%s:/%s/steamapps/common/Arma 3 Tools/ImageToPAA/ImageToPAA.exe"
@@ -28,6 +30,10 @@ def to_paa(tool, rgba, out_path):
     """The suffix of the file name is what picks the format: ImageToPAA reads its own
     TexConvert.cfg, which is where the rule that _nohq goes out as swizzled DXT5 lives.
     So the temporary PNG has to carry the final name, not a scratch one."""
+    # Pillow is imported here rather than at the top: only this needs it, and a machine
+    # without ImageToPAA - a cloud session - never gets here, so it can do without it.
+    from PIL import Image
+
     with tempfile.TemporaryDirectory() as work:
         png = os.path.join(work, os.path.basename(out_path).replace(".paa", ".png"))
         Image.fromarray(rgba, "RGBA").save(png)
