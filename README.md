@@ -172,7 +172,7 @@ Where each part lands on the atlas:
 | | |
 |---|---|
 | mount head | where antenna 03 has its own - each face is projected onto the nearest face of `muzzle_antenna_03_F` and takes its UVs, collar screws and flange markings included |
-| hose | antenna 02's galvanised rods, with a rib normal map of our own (`camhead_hose.rvmat`) |
+| hose | the camera body's plain panel, with a rib normal map of our own (`camhead_hose.rvmat`) |
 | camera body | the plain panel of antenna 01, with the KAISERKOM badge off the grip along the top |
 | lens, LED ring | the round socket on the device's front, the blue of its controls |
 | cable, plug | antenna 02's coax and plug |

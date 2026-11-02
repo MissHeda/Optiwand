@@ -52,8 +52,9 @@ changed blind - do not touch them again unless she reports back:
    directly: it is open at the hose/flange and head/mount joints and has T-junctions at
    the badge. If the shadow is now missing entirely, the engine is not using 11000 - first
    suspect `lodnoshadow`.
-2. **The hose was too light.** `HOSE_SHADE = 0.45` scales ambient and diffuse of
-   `camhead_hose.rvmat`. If still too light, lower it (0.3 = dark steel) and rebuild.
+2. **The hose was too light, and still silver when only darkened (2026-11-02).** It now sits
+   on `PLAIN_RECT`, the dark plastic of the camera body, with `esd_01.rvmat`'s own values.
+   Only the rib normal map differs.
 
 Mia has to re-render the inventory icons locally (`python tools/render_icon.py`).
 
