@@ -1,23 +1,20 @@
 #include "\a3\ui_f\hpp\defineResincl.inc"
 
 // ---------------------------------------------------------------------------------------
-// What is left of the overlay.
+// The overlay: a field monitor over the world, with two lines of text on its screen.
 //
-// There used to be a whole monitor in here - housing, bezel, screws, brand plate, the feed
-// blown up to a quarter of the screen and nine anchor positions to put it in. That is gone.
-// The picture belongs on the device's own screen, which is the entire point of building the
-// mod on the Spectrum Device, and a second screen floating over the world only ever
-// competed with it.
-//
-// Three controls remain:
-//
-//   Feed      never seen. Arma keeps a render target alive only while something draws it,
-//             and a hidden control draws nothing - so this one sits at zero opacity, one
-//             pixel wide, purely to stay a consumer. Take it out and the device screen goes
-//             black.
-//   Readout   heading, tilt, zoom. Used to live in the panel's top bar, where nobody with
-//             the device screen ever saw it.
+//   Screen    the monitor's dark screen, there for whenever no picture is on it.
+//   Feed      the camera picture. Arma keeps a render target alive only while something draws
+//             it, and a hidden control draws nothing - so while there is no picture it sits at
+//             full fade, never ctrlShow false. Take it out and the picture goes black.
+//   Monitor   the housing and the glass, one picture rendered by tools/render_monitor.py, with
+//             a hole for the feed to show through. Drawn in this order, so last on top.
+//   Acq*      the picture build-up on the dark screen: what to do, then a bar. The device
+//             addon drives them, fnc_openView places them.
+//   Readout   heading, tilt, zoom.
 //   Hints     the key legend, and the no-clearance report when there is one.
+//
+// fnc_openView sizes and places all of them.
 //
 // It is an RscTitles layer and nothing else. There is no dialog class any more, and no full
 // screen map control to blank the cursor either: a title layer never gets a cursor to begin
@@ -30,6 +27,7 @@
 #define OPW_FONT_BOLD   "RobotoCondensedBold"
 
 #define OPW_NONE        { 0, 0, 0, 0 }
+#define OPW_OSD         { 0, 0, 0, 0.55 }
 #define OPW_DEAD        "#(argb,8,8,3)color(0,0,0,1)"
 
 class RscTitles {
@@ -45,17 +43,51 @@ class RscTitles {
         onUnload = QUOTE(uiNamespace setVariable [ARR_2(QQGVAR(display),displayNull)];);
 
         class controls {
-            // Invisible on purpose - see the note above. fnc_openView parks it in a corner
-            // and pulls it to zero opacity; it must not be ctrlShow false.
-            class Feed {
-                idc = IDC_FEED;
+            class Screen {
+                idc = IDC_SCREEN;
                 type = CT_STATIC;
                 style = ST_PICTURE;
-                text = OPW_DEAD;
+                text = "#(argb,8,8,3)color(0.015,0.017,0.02,1)";
                 colorText[] = { 1, 1, 1, 1 };
                 colorBackground[] = OPW_NONE;
                 font = OPW_FONT;
                 sizeEx = 0.02;
+                x = 0; y = 0; w = 0.001; h = 0.001;
+            };
+
+            class Feed: Screen {
+                idc = IDC_FEED;
+                text = OPW_DEAD;
+            };
+
+            class Monitor: Screen {
+                idc = IDC_MONITOR;
+                text = MONITOR_TEXTURE;
+            };
+
+            class AcqTrack: Screen {
+                idc = IDC_ACQ_TRACK;
+                text = "#(argb,8,8,3)color(0.10,0.13,0.11,1)";
+                fade = 1;
+            };
+
+            class AcqFill: Screen {
+                idc = IDC_ACQ_FILL;
+                text = "#(argb,8,8,3)color(0.42,0.82,0.55,1)";
+                fade = 1;
+            };
+
+            class AcqLabel {
+                idc = IDC_ACQ_LABEL;
+                type = CT_STATIC;
+                style = ST_CENTER;
+                text = "";
+                colorText[] = { 0.42, 0.82, 0.55, 1 };
+                colorBackground[] = OPW_NONE;
+                font = OPW_FONT_BOLD;
+                sizeEx = 0.05;
+                shadow = 0;
+                fade = 1;
                 x = 0; y = 0; w = 0.001; h = 0.001;
             };
 
@@ -64,7 +96,7 @@ class RscTitles {
                 type = CT_STRUCTURED_TEXT;
                 style = ST_CENTER;
                 text = "";
-                colorBackground[] = OPW_NONE;
+                colorBackground[] = OPW_OSD;
                 shadow = 0;
                 size = 0.026;
                 x = 0.3; y = 0.9; w = 0.4; h = 0.03;
@@ -82,7 +114,7 @@ class RscTitles {
                 type = CT_STRUCTURED_TEXT;
                 style = ST_CENTER;
                 text = "";
-                colorBackground[] = OPW_NONE;
+                colorBackground[] = OPW_OSD;
                 shadow = 0;
                 size = 0.026;
                 x = 0.3; y = 0.94; w = 0.4; h = 0.03;

@@ -20,9 +20,8 @@ if (!GVAR(active)) exitWith {false};
 
 GVAR(nightVision) = !GVAR(nightVision);
 
-// setPiPEffect tints the render target itself, so the picture on the device screen comes
-// through green with nothing else to do. There used to be a second green wash laid over the
-// monitor panel; with the panel gone it would have been a block of colour in mid air.
+// setPiPEffect tints the render target itself, so the picture on the monitor comes through
+// green with nothing else to do.
 RTT_NAME setPiPEffect [parseNumber GVAR(nightVision)];
 
 // Force the readout to redraw in the same frame

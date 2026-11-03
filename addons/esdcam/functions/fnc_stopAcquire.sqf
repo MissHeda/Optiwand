@@ -1,7 +1,7 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Ends the picture build-up and resets the device's transmit readout.
+ * Ends the picture build-up.
  *
  * Arguments:
  * None
@@ -21,13 +21,10 @@ if (GVAR(pfh) != -1) then {
 };
 
 [false] call FUNC(showAcquire);
+// By now the overlay may be gone, and then that had nothing to do. The next one is a fresh
+// overlay with its readout faded out, whatever this was showing last.
+GVAR(acqShown) = -1;
 
 GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;
-
-// Resetting is mandatory, not cosmetic: if #EM_Transmit were left standing, the next time
-// the device is raised the transmit overlay would sit over the spectrum with nobody
-// transmitting - and it would do so even with no camera fitted.
-missionNamespace setVariable ["#EM_Transmit", false];
-missionNamespace setVariable ["#EM_Progress", 0];

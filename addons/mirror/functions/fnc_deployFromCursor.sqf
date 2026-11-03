@@ -43,9 +43,9 @@ private _fnc_freehand = {
     private _eyeASL = AGLToASL positionCameraToWorld [0, 0, 0];
     private _lookDir = vectorNormalized ((AGLToASL positionCameraToWorld [0, 0, 1]) vectorDiff _eyeASL);
 
-    // Base sits below the eye, roughly where the wand is actually held
-    private _baseASL = _eyeASL vectorAdd [0, 0, -FREE_BASE_DROP];
-    private _reach = POLE_LENGTH;
+    // Base is the hand the wand is held in, and the head sits at the end of the wand
+    private _baseASL = [_player] call FUNC(wandBase);
+    private _reach = TIP_REACH;
 
     // The head goes on the end of a stick, not through the wall in front of it. Clamp the
     // reach to whatever is in the way, and refuse outright if there is no room to work.

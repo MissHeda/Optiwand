@@ -1,37 +1,40 @@
 # -*- coding: utf-8 -*-
 """Build addons/esdcam/model/camhead.p3d on Bohemia's own Spectrum Device textures.
 
-The camera wand used to carry a texture set of its own, baked in Blender. Next to the
-device and its three antennas it never quite looked like part of the family - a
-different grey, a different grain, and none of the screws, labels and wear Bohemia
-painted into theirs. So nothing is baked any more. Every face of the model is mapped
-onto Bohemia's atlas, a3\\weapons_f_enoch\\pistols\\esd_01\\data\\esd_01_co.paa, and
-rendered with their esd_01.rvmat. That is the texture all four vanilla models share and
-every install has, so the mod references it and ships none of it.
+The attachment is an endoscope, the kind sold with a pistol grip and a screen, or the
+mirrorgun in Ready or Not: the Spectrum Device is the grip and the screen, and what goes on
+its muzzle slot is the thin black cable with the camera at its end.
 
-Where each part of the wand lands on the atlas:
+Only the connector that sits on the device comes from the artist's FBX, and it stays on
+Bohemia's atlas, a3\\weapons_f_enoch\\pistols\\esd_01\\data\\esd_01_co.paa, exactly where
+antenna 03 has its own: the connector was modelled off muzzle_antenna_03_F and still matches
+it to a fraction of a millimetre, so each face is projected onto the nearest face of that
+model and takes its UVs from there. Everything in front of it is built here, as one solid
+of revolution - see endoscope():
 
-    mount head    exactly where antenna 03 has its own. The head was modelled off
-                  muzzle_antenna_03_F and still matches it to a fraction of a millimetre,
-                  so each face is projected onto the nearest face of that model and takes
-                  its UVs from there - collar screws, flange markings and all.
-    hose          the same plain dark plastic as the camera body. The ribs are not in
-                  Bohemia's normal map, so the hose has a material that is theirs in every
-                  respect but that one - see write_hose_material().
-    camera body   the plain dark plastic of antenna 01's panel, with the KAISERKOM badge
-                  off the device's grip along the top.
-    lens          the round socket on the device's front, which reads as a lens.
-    LED ring      the blue of the device's controls.
-    cable, plug   antenna 02's coax and plug, on a cable and plug of our own.
+    collar        tapers from the connector down to the strain relief.
+    strain relief the ribbed cone where a cable leaves its plug.
+    coil          spare cable in a few loops, hanging just in front of the strain relief,
+                  as if the cable could be paid out further.
+    cable         thin and smooth.
+    camera head   a slim metal-less sleeve, a step wider than the cable.
+    lens          a texture and material of our own, because nothing on the atlas reads as
+                  glass: a coated lens in a ring of LEDs, with its reflections painted on, so
+                  it shows whatever the light does - see lens_colour().
 
-The cable is new. Antenna 02 runs a coax from its dipole into the lower socket under the
-device's display; the camera now does the same - clipped along the underside of the hose,
-dropping clear of the flange and taking antenna 02's route under the device into that same
-socket. Behind the mount the route is antenna 02's own, because that one is known to clear
-the device.
+All but the lens wears black rubber: the plain panel of the atlas with a darker, duller
+material of its own - see write_rubber_material().
+
+Behind the collar a thin coax takes antenna 02's route under the device into the lower socket
+under its display, on antenna 02's own coax and plug on the atlas.
+
+A cable is never quite straight, so the stretch in front of the coil is built straight and
+given a slight sway from side to side last - see SWAYS and bent(). The connector stays where it is. The memory
+points stay on the straight axis: they say where the view looks, which the sway is not
+meant to change.
 
 Writes LOD 1 and 2, two shadow volumes and a shadow buffer LOD, the geometry box and the
-memory points, plus the hose's material and its normal map.
+memory points, plus the materials of rubber and lens and the lens's texture.
 
     python tools/build_camhead.py
 
@@ -42,20 +45,20 @@ but the git checkout - and the build gets by without either:
 
     art/esdcam/reference/muzzle_antenna_03_F_mlod.p3d
         Bohemia's antenna, local only (ignored by git, and it must stay so). With it, the
-        mount head is projected onto it afresh. Without it, the head keeps the UVs the
+        connector is projected onto it afresh. Without it, the connector keeps the UVs the
         committed camhead.p3d already has, each face found again by its corners - see
         StoredHead. That writes the same model to the byte, for as long as the FBX and
-        the head's mapping stay as they are; once either changes, the build stops and
+        the connector's mapping stay as they are; once either changes, the build stops and
         asks for the reference.
 
     ImageToPAA, from the Arma 3 Tools (or IMAGETOPAA=path), plus Pillow to feed it
-        writes the hose's normal map, camhead_hose_nohq.paa. Without it that file is left
-        as it is in git, which is right for as long as rib_normal() is unchanged. The
-        p3d and the rvmat are written either way.
+        writes the lens's texture, camhead_lens_co.paa. Without it that file is left as it
+        is in git, which is right for as long as lens_colour() is unchanged. The p3d and the
+        rvmats are written either way.
 
-So in the cloud numpy is all it takes, for every change but one to the FBX, the head's
-mapping or rib_normal() - those need the machine with Arma. Locally, with the reference
-and the Tools, the build makes every file from scratch.
+So in the cloud numpy is all it takes, for every change but one to the FBX, the connector's
+mapping or lens_colour() - those need the machine with Arma. Locally, with the reference and
+the Tools, the build makes every file from scratch.
 """
 
 import argparse
@@ -79,22 +82,16 @@ MODEL = os.path.join(HERE, "addons", "esdcam", "model", "camhead.p3d")
 BI_DATA = r"a3\weapons_f_enoch\pistols\esd_01\data"
 TEXTURE = BI_DATA + r"\esd_01_co.paa"
 MATERIAL = BI_DATA + r"\esd_01.rvmat"
-HOSE_MATERIAL = r"z\opw\addons\esdcam\data\camhead_hose.rvmat"
-HOSE_NOHQ = r"z\opw\addons\esdcam\data\camhead_hose_nohq.paa"
+RUBBER_MATERIAL = r"z\opw\addons\esdcam\data\camhead_rubber.rvmat"
+LENS_MATERIAL = r"z\opw\addons\esdcam\data\camhead_lens.rvmat"
+LENS_TEXTURE = r"z\opw\addons\esdcam\data\camhead_lens_co.paa"
 
 ATLAS = 2048.0
 
 # ------------------------------------------------------------------------------ atlas
-# Regions in atlas pixels, (x0, y0, x1, y1), measured off esd_01_co with the UV layouts of
-# the device and its antennas drawn over it.
-PLAIN_RECT = (430.0, 1770.0, 630.0, 1890.0)    # antenna 01's panel, clear of screws and labels
-HOSE_RECT = PLAIN_RECT                         # the hose is the colour of the camera body
-CLIP_RECT = (300.0, 1560.0, 460.0, 1640.0)     # the same panel, elsewhere
-BADGE_RECT = (1461.0, 1453.0, 1494.0, 1578.0)  # KAISERKOM badge on the device's grip
-LENS_CENTRE = (619.0, 274.0)                   # round socket on the device's front
-LENS_SCALE = 3333.0                            # px per metre, Bohemia's own texel density
-LED_CENTRE = (1600.0, 1570.0)                  # inside the blue control panel
-LED_SCALE = 1000.0
+# Antenna 01's panel in atlas pixels, (x0, y0, x1, y1), clear of screws and labels: measured
+# off esd_01_co with the UV layouts of the device and its antennas drawn over it.
+PLAIN_RECT = (430.0, 1770.0, 630.0, 1890.0)
 
 # Antenna 02's coax: u runs along the cable at 1.6 per metre, v once round it.
 CABLE_U = (0.1583, 0.5370)
@@ -107,7 +104,46 @@ PLUG_U_PER_M = 2.0
 PLUG_V = (0.6890, 0.7212)
 
 # ------------------------------------------------------------------------------ geometry
-CABLE_RADIUS = 0.0022
+# What is kept of the FBX: faces entirely behind this, on the device's side.
+CONNECTOR_X = -0.0318
+
+# The endoscope, as (distance from the mount, radius), in metres. It starts with a core
+# inside the connector, which is open at the sides: without it you look right through.
+COLLAR = [(0.002, 0.0155), (0.026, 0.0155), (0.028, 0.0228), (0.036, 0.0228), (0.040, 0.0195), (0.046, 0.0125), (0.052, 0.0105)]
+RELIEF_END = 0.105
+RELIEF_RIBS = 7
+RELIEF_RADIUS = (0.0100, 0.0058)
+CABLE_RADIUS = 0.0042
+# Where the straight cable ends and the coil's tube takes over, overlapping it a little.
+CABLE_START = 0.212
+HEAD = [(0.512, CABLE_RADIUS), (0.514, 0.0058), (0.528, 0.0062), (0.530, 0.0068), (0.5345, 0.0068),
+        (0.5355, 0.0062), (0.5375, 0.0062), (0.5385, 0.0068), (0.577, 0.0068), (DEFAULT_LENGTH, 0.0062)]
+LENS_RADIUS = HEAD[-1][1]
+
+# The coil: loops in the wand's vertical plane, hanging below the axis, each beside the last.
+COIL_START_X = -0.215
+COIL_X = -0.175
+COIL_END_X = -0.100
+COIL_RADIUS = 0.034
+COIL_TURNS = 3
+COIL_PITCH = 0.0095
+
+# The stretch of cable that sways, in front of the coil. Essentially straight, with a few soft
+# turns left and right that cancel out, so the wand still points forward and stays within
+# about 2 mm of its axis. (x, degrees of turn).
+BEND_START = -0.25
+BEND_END = -0.512
+SWAYS = [
+    (-0.290, 1.0),
+    (-0.380, -2.0),
+    (-0.470, 1.0),
+]
+# Half the length of cable a turn takes up, in metres.
+SWAY_REACH = 0.035
+
+# The coax behind the collar, thin as antenna 02's: down from the collar's underside, then
+# antenna 02's route under the device and up into the socket. Model space, to the plug.
+COAX_RADIUS = 0.0022
 # Antenna 02's plug sits in the lower socket under the display, on this axis (Y, Z),
 # pointing forward. Ours goes in the same place.
 PLUG_AXIS = (0.0714, -0.0004)
@@ -115,28 +151,14 @@ PLUG_PROFILE = [  # (x, r): a plain SMA style plug, socket end first
     (0.1703, 0.0020), (0.1762, 0.0021), (0.1763, 0.0034), (0.1789, 0.0034),
     (0.1791, 0.0037), (0.1795, 0.0034), (0.1831, 0.0034), (0.1834, 0.0037),
     (0.1839, 0.0037), (0.1841, 0.0031), (0.1913, 0.0031), (0.2002, 0.0024),
-    (0.2004, CABLE_RADIUS),
+    (0.2004, COAX_RADIUS),
 ]
-# Where the cable leaves the camera body, and the ties holding it to the hose.
-CABLE_START_X = -0.5268
-CLIPS_X = (-0.455, -0.335, -0.215)
-CLIP_WIDTH = 0.0036
-CLIP_THICKNESS = 0.0008
-
-# Rib pitch of the hose, which its normal map repeats along the length.
-RIB_PITCH = 0.0032
-
-# The shadow buffer LOD, which Arma draws its shadow maps from.
-SHADOW_BUFFER = 11000.0
-
-# Behind the hose the cable takes antenna 02's route: down past the flange, under the
-# device and up into the socket. Model space, from the hose to the plug.
-CABLE_ROUTE = [
-    (-0.105, -0.040, -0.006),
-    (-0.080, -0.058, -0.012),
-    (-0.060, -0.072, -0.018),
-    (-0.040, -0.086, -0.025),
-    (-0.020, -0.097, -0.031),
+COAX_ROUTE = [
+    (-0.040, -0.010, -0.002),
+    (-0.036, -0.030, -0.008),
+    (-0.031, -0.055, -0.015),
+    (-0.021, -0.082, -0.023),
+    (-0.002, -0.104, -0.032),
     (0.025, -0.1174, -0.0391),
     (0.0817, -0.1285, -0.0416),
     (0.1454, -0.1326, -0.0391),
@@ -156,6 +178,13 @@ CABLE_ROUTE = [
     (0.2185, 0.0702, -0.0007),
     (0.2004, PLUG_AXIS[0], PLUG_AXIS[1]),
 ]
+
+# How far the flat lens's normals lean out at its rim, so light and reflections move over
+# it the way they do on a curved front element.
+LENS_DOME = 0.5
+
+# The shadow buffer LOD, which Arma draws its shadow maps from.
+SHADOW_BUFFER = 11000.0
 
 
 def px(x, y):
@@ -235,7 +264,8 @@ class Lod:
                          for p, n, uv in piece]
                 if len({v[0] for v in verts}) < 3:
                     continue  # collapsed onto an axis
-                self.lod.faces.append(p3d.Face(verts, TEXTURE if material else "", material))
+                texture = LENS_TEXTURE if material == LENS_MATERIAL else TEXTURE if material else ""
+                self.lod.faces.append(p3d.Face(verts, texture, material))
 
     def finish(self):
         # One section per material, and the UV set once more as a tagg, the way Object
@@ -464,70 +494,86 @@ def map_cylinder(corners, rect, x_range, around_u=True):
     return out
 
 
-def map_badge(corners, x_range, half_angle):
-    x0, y0, x1, y1 = BADGE_RECT
-    lo, hi = x_range
-    # Turned so it reads upright seen from above with the lens to the left, the way the
-    # wand lies in the inventory pictures.
-    return [px(x1 - (angle(c[0]) + half_angle) / (2 * half_angle) * (x1 - x0),
-               y0 + (c[0][0] - lo) / (hi - lo) * (y1 - y0)) for c in corners]
+def map_lens(corners, centre, radius):
+    """The lens's disc across its whole texture, with normals that lean out towards the rim
+    like those of a curved front element."""
+    out = []
+    for p, _n, _uv in corners:
+        y, z = (p[1] - centre[0]) / radius, (p[2] - centre[1]) / radius
+        normal = norm((-1.0, y * LENS_DOME, z * LENS_DOME))
+        out.append((p, normal, (0.5 + z * 0.5, 0.5 - y * 0.5)))
+    return out
 
 
-def map_planar(corners, centre, scale):
-    return [px(centre[0] + c[0][2] * scale, centre[1] - c[0][1] * scale) for c in corners]
-
-
-def map_wand(wand, mount):
-    """UVs and materials for the artist's mesh. mount maps the mount head: a Reference, or a
-    StoredHead where the reference is missing. Returns the Mesh and the hose radius, which
-    the cable and its ties are fitted to."""
-    hose = [c for c, m in wand if m == "Schlauch"]
-    hose_radius = max(math.hypot(p[0][1], p[0][2]) for c in hose for p in c)
-    hose_x = (max(p[0][0] for c in hose for p in c), min(p[0][0] for c in hose for p in c))
-
-    head = [c for c, m in wand if m == "Plastik" and np.mean([p[0][0] for p in c]) < -0.52]
-    head_x = (max(p[0][0] for c in head for p in c), min(p[0][0] for c in head for p in c))
-
-    # The badge goes on the body's plain cylinder, along the top, clear of the rings at
-    # either end.
-    badge_half = math.radians(32)
-    body = [c for c in head
-            if abs(face_normal(c)[0]) < 0.3
-            and np.mean([p[0][0] for p in c]) < -0.5385
-            and all(abs(angle(p[0])) < badge_half + 1e-3 for p in c)]
-    badge_x = (max(p[0][0] for c in body for p in c), min(p[0][0] for c in body for p in c))
-    body_ids = {id(c) for c in body}
-
+# ------------------------------------------------------------------------------ the model
+def connector(wand, mount):
+    """The faces of the artist's mesh that stay, mapped onto Bohemia's atlas."""
     mesh = Mesh()
-    for corners, name in wand:
-        centre = np.mean([p[0] for p in corners], axis=0)
-        material = MATERIAL
-        if name == "Schlauch":
-            uv = map_cylinder(corners, HOSE_RECT, hose_x, around_u=False)
-            material = HOSE_MATERIAL
-        elif name == "cam":
-            uv = map_planar(corners, LENS_CENTRE, LENS_SCALE)
-        elif name == "blitz":
-            uv = map_planar(corners, LED_CENTRE, LED_SCALE)
-        elif centre[0] < -0.52:
-            if face_normal(corners)[0] < -0.7:
-                uv = map_planar(corners, LENS_CENTRE, LENS_SCALE)
-            elif id(corners) in body_ids:
-                uv = map_badge(corners, badge_x, badge_half)
-            else:
-                uv = map_cylinder(corners, PLAIN_RECT, head_x)
-        elif centre[0] < -0.0875 and max(math.hypot(p[0][1], p[0][2]) for p in corners) < 0.0165:
-            # the short boot where the hose leaves the collar
-            uv = map_cylinder(corners, CLIP_RECT, (-0.0870, -0.0925))
-        else:
-            uv = mount.map_head(corners)
-        mesh.faces.append(([(p, n, u) for (p, n, _), u in zip(corners, uv)], material))
+    for corners, _name in wand:
+        if min(p[0][0] for p in corners) > CONNECTOR_X:
+            mesh.faces.append(([(p, n, u) for (p, n, _), u in zip(corners, mount.map_head(corners))], MATERIAL))
     print("  " + mount.summary())
-    print("  badge over x %.4f .. %.4f, %d faces" % (badge_x[0], badge_x[1], len(body)))
-    return mesh, hose_radius
+    return mesh
 
 
-# ------------------------------------------------------------------------------ new parts
+def rubber_uv(t, s):
+    """t along the part in metres, s once round it."""
+    x0, y0, x1, y1 = PLAIN_RECT
+    return px(x0 + s * (x1 - x0 - 8), y0 + t / DEFAULT_LENGTH * (y1 - y0))
+
+
+def endoscope(detail):
+    """What can be turned on the wand's axis: collar and strain relief, then the cable with
+    the camera head, with the lens as the disc that closes its end. The coil between the
+    two is a tube of its own - see coil_path()."""
+    relief = []
+    step = (RELIEF_END - COLLAR[-1][0]) / RELIEF_RIBS
+    for i in range(RELIEF_RIBS):
+        start = COLLAR[-1][0] + i * step
+        radius = RELIEF_RADIUS[0] + (RELIEF_RADIUS[1] - RELIEF_RADIUS[0]) * i / (RELIEF_RIBS - 1)
+        if detail:
+            relief += [(start, radius), (start + step * 0.55, radius),
+                       (start + step * 0.7, radius - 0.0014), (start + step * 0.9, radius - 0.0014)]
+        else:
+            relief.append((start, radius))
+    mesh = Mesh()
+    sides = 16 if detail else 8
+    for profile in (COLLAR[:-1] + relief + [(RELIEF_END, CABLE_RADIUS)], [(CABLE_START, CABLE_RADIUS)] + HEAD):
+        lathe(mesh, profile, (0.0, 0.0, 0.0), (-1.0, 0.0, 0.0), sides, rubber_uv, RUBBER_MATERIAL)
+    centre = np.array([-DEFAULT_LENGTH, 0.0, 0.0])
+    rim = [centre + np.array([0.0, math.cos(a), math.sin(a)]) * LENS_RADIUS
+           for a in np.linspace(0, 2 * math.pi, sides * 2 if detail else sides, endpoint=False)]
+    for a, b in zip(rim, rim[1:] + rim[:1]):
+        mesh.add(map_lens([(p, None, None) for p in (centre, a, b)], (0.0, 0.0), LENS_RADIUS), LENS_MATERIAL)
+    return mesh
+
+
+def coil_path(detail):
+    """From the straight cable into the loops and on to the strain relief. Each loop lies
+    beside the last, so the cable drifts sideways through them, and it moves over to the
+    side of the first loop and back from that of the last on the way in and out."""
+    side = COIL_PITCH * COIL_TURNS / 2
+    ease = lambda t: t * t * (3 - 2 * t)
+    path = [np.array([x, 0.0, -side * ease(i / 4.0)]) for i, x in enumerate(np.linspace(COIL_START_X, COIL_X, 5))]
+    count = COIL_TURNS * (28 if detail else 12)
+    for i in range(1, count + 1):
+        a = 2 * math.pi * COIL_TURNS * i / count
+        path.append(np.array([COIL_X + COIL_RADIUS * math.sin(a), -COIL_RADIUS + COIL_RADIUS * math.cos(a),
+                              -side + COIL_PITCH * a / (2 * math.pi)]))
+    path += [np.array([x, 0.0, side * (1 - ease((i + 1) / 5.0))])
+             for i, x in enumerate(np.linspace(COIL_X, COIL_END_X, 6)[1:])]
+    return path
+
+
+def build_coil(mesh, radius, sides, material=RUBBER_MATERIAL, caps=False):
+    path = coil_path(sides > 6)
+    tube(mesh, path, radius, sides, lambda i, k: rubber_uv(i / len(path) * DEFAULT_LENGTH, k / sides), material, caps)
+
+
+def coax_path(max_turn, max_step=0.06):
+    return resample(catmull_rom(COAX_ROUTE), max_turn, max_step)
+
+
 def catmull_rom(points, samples=24):
     """Centripetal Catmull-Rom through the points, as a dense polyline."""
     pts = [np.asarray(p, float) for p in points]
@@ -603,6 +649,39 @@ def tube(mesh, path, radius, sides, uv_fn, material=MATERIAL, caps=False, fr=Non
                           (rings[i][k + 1][0], t, (0.0, 0.0))], material)
 
 
+def plug_uv(x, s):
+    return (PLUG_U0 + (x - PLUG_X0) * PLUG_U_PER_M, PLUG_V[0] + (PLUG_V[1] - PLUG_V[0]) * s)
+
+
+def build_cable(mesh, path, sides):
+    """The strip of coax on the atlas is about 24 cm of cable. Bohemia's own cable starts
+    it over in each of its pieces; this one starts it over whenever it runs out, as a
+    separate tube, so the restart is a clean seam rather than one face smeared back across
+    the whole strip."""
+    lengths = [0.0]
+    for a, b in zip(path, path[1:]):
+        lengths.append(lengths[-1] + float(np.linalg.norm(b - a)))
+    strip = (CABLE_U[1] - CABLE_U[0]) / CABLE_U_PER_M
+    runs, start = [], 0
+    for i in range(1, len(path)):
+        if i == len(path) - 1 or lengths[i + 1] - lengths[start] > strip:
+            runs.append((start, i))
+            start = i
+    fr = frames(path)
+    for a, b in runs:
+        offsets = [x - lengths[a] for x in lengths[a:b + 1]]
+        tube(mesh, path[a:b + 1], COAX_RADIUS, sides,
+             lambda i, k, offsets=offsets: (CABLE_U[0] + offsets[i] * CABLE_U_PER_M,
+                                            CABLE_V[0] + (CABLE_V[1] - CABLE_V[0]) * k / sides),
+             fr=fr[a:b + 1])
+    return len(runs)
+
+
+def build_plug(mesh, sides):
+    lathe(mesh, PLUG_PROFILE, (0.0, PLUG_AXIS[0], PLUG_AXIS[1]), (1.0, 0.0, 0.0), sides,
+          lambda t, s: plug_uv(t, s))
+
+
 def lathe(mesh, profile, origin, axis, sides, uv_fn, material=MATERIAL, closed=False):
     """Solid of revolution, profile [(t, r)] along the axis. Faces are flat along the
     profile and smooth round it; uv_fn(t, s) with s going once round, 0..1."""
@@ -632,127 +711,111 @@ def lathe(mesh, profile, origin, axis, sides, uv_fn, material=MATERIAL, closed=F
                           (centre + dirs[k + 1] * r, t_dir * sign, (0.0, 0.0))], material)
 
 
-def plug_uv(x, s):
-    return (PLUG_U0 + (x - PLUG_X0) * PLUG_U_PER_M, PLUG_V[0] + (PLUG_V[1] - PLUG_V[0]) * s)
+# ------------------------------------------------------------------------------ the bend
+def bend_rotation(x):
+    """How the wand's cross section at x is turned by the sways it has passed."""
+    side = 0.0
+    for centre, degrees in SWAYS:
+        t = min(max((centre + SWAY_REACH - x) / (2 * SWAY_REACH), 0.0), 1.0)
+        side += math.radians(degrees) * t * t * (3 - 2 * t)
+    cs, ss = math.cos(side), math.sin(side)
+    return np.array([[cs, 0.0, ss], [0.0, 1.0, 0.0], [-ss, 0.0, cs]])
 
 
-def cable_path(hose_radius, max_turn, max_step=0.06):
-    """Along the underside of the hose, then antenna 02's way into the socket."""
-    lift = hose_radius + CABLE_RADIUS + 0.0002
-    start = CABLE_START_X + 0.0098  # past the boot
-    straight = [(start, -lift, 0.0)] + [(x, -lift, 0.0) for x in (-0.40, -0.28, -0.17)]
-    line = catmull_rom(straight + [(-0.135, -lift - 0.009, -0.002)] + CABLE_ROUTE)
-    return resample(line, max_turn, max_step), lift
+def bend_axis():
+    """The bent centre line, sampled by the distance along it from BEND_START: the same
+    length as the straight one, so the wand does not stretch."""
+    x = np.linspace(BEND_START, BEND_END, 2048)
+    ahead = np.array([bend_rotation(v) @ np.array([-1.0, 0.0, 0.0]) for v in x])
+    step = (x[0] - x[1]) * (ahead[:-1] + ahead[1:]) / 2
+    return x, np.vstack([np.zeros(3), np.cumsum(step, axis=0)]) + np.array([BEND_START, 0.0, 0.0])
 
 
-def build_cable(mesh, path, sides):
-    """The strip of coax on the atlas is about 24 cm of cable. Bohemia's own cable starts
-    it over in each of its pieces; this one starts it over whenever it runs out, as a
-    separate tube, so the restart is a clean seam rather than one face smeared back across
-    the whole strip."""
-    lengths = [0.0]
-    for a, b in zip(path, path[1:]):
-        lengths.append(lengths[-1] + float(np.linalg.norm(b - a)))
-    strip = (CABLE_U[1] - CABLE_U[0]) / CABLE_U_PER_M
-    runs, start = [], 0
-    for i in range(1, len(path)):
-        if i == len(path) - 1 or lengths[i + 1] - lengths[start] > strip:
-            runs.append((start, i))
-            start = i
-    fr = frames(path)
-    for a, b in runs:
-        offsets = [x - lengths[a] for x in lengths[a:b + 1]]
-        tube(mesh, path[a:b + 1], CABLE_RADIUS, sides,
-             lambda i, k, offsets=offsets: (CABLE_U[0] + offsets[i] * CABLE_U_PER_M,
-                                            CABLE_V[0] + (CABLE_V[1] - CABLE_V[0]) * k / sides),
-             fr=fr[a:b + 1])
-    return len(runs)
+BEND_X, BEND_LINE = bend_axis()
 
 
-def build_plug(mesh, sides):
-    lathe(mesh, PLUG_PROFILE, (0.0, PLUG_AXIS[0], PLUG_AXIS[1]), (1.0, 0.0, 0.0), sides,
-          lambda t, s: plug_uv(t, s))
+def bent(mesh):
+    """The mesh with the cable swaying and everything beyond it carried along. Each cross
+    section moves as a whole, so winding and closed volumes survive, and whatever lies on
+    the mount's side of BEND_START keeps its exact coordinates."""
+    out = Mesh()
+    for corners, material in mesh.faces:
+        moved = []
+        for p, n, uv in corners:
+            p = np.asarray(p, float)
+            if p[0] < BEND_START:
+                x = max(p[0], BEND_END)
+                turn = bend_rotation(x)
+                line = np.array([np.interp(-x, -BEND_X, BEND_LINE[:, k]) for k in range(3)])
+                p, n = line + turn @ np.array([p[0] - x, p[1], p[2]]), turn @ np.asarray(n, float)
+            moved.append((p, n, uv))
+        out.faces.append((moved, material))
+    return out
 
 
-def build_boot(mesh, lift, sides):
-    """Strain relief where the cable leaves the camera body: the tapered back end of
-    antenna 02's plug, on the cable's own axis."""
-    profile = [(0.0, 0.0029), (0.0035, 0.0029), (0.0098, CABLE_RADIUS + 0.0001)]
-    lathe(mesh, profile, (CABLE_START_X, -lift, 0.0), (1.0, 0.0, 0.0), sides,
-          lambda t, s: plug_uv(0.1913 + t / 0.0098 * (0.2002 - 0.1913), s))
+def subdivide(mesh, detail):
+    """Cut every face that runs through a sway across the wand's axis, so the turn has rings
+    to act on: the lathe's cable is one long ring of quads, and the lengths between sways
+    stay straight and need none. Points, normals and UVs are interpolated, so the straight
+    mesh looks just as it did, and neighbouring faces are cut at the same places, so no
+    T-junctions appear."""
+    steps = (-1.0, -0.5, 0.0, 0.5, 1.0) if detail else (-1.0, 0.0, 1.0)
+    levels = [sway[0] + s * SWAY_REACH for sway in SWAYS for s in steps]
+
+    def split(corner, other, x):
+        # The same way round from either face, so both get the very same point.
+        if tuple(corner[0]) > tuple(other[0]):
+            corner, other = other, corner
+        k = (x - corner[0][0]) / (other[0][0] - corner[0][0])
+        mix = lambda a, b: np.asarray(a, float) + (np.asarray(b, float) - np.asarray(a, float)) * k
+        return mix(corner[0], other[0]), norm(mix(corner[1], other[1])), tuple(mix(corner[2], other[2]))
+
+    def clip(corners, x, keep):
+        out = []
+        for a, b in zip(corners, corners[1:] + corners[:1]):
+            if keep(a[0][0]):
+                out.append(a)
+            if keep(a[0][0]) != keep(b[0][0]):
+                out.append(split(a, b, x))
+        return out
+
+    result = Mesh()
+    for corners, material in mesh.faces:
+        xs = [c[0][0] for c in corners]
+        cuts = [v for v in levels if min(xs) + 1e-6 < v < max(xs) - 1e-6]
+        rest = list(corners)
+        for x in sorted(cuts):
+            piece = clip(rest, x, lambda v, x=x: v <= x)
+            rest = clip(rest, x, lambda v, x=x: v >= x)
+            result.faces.extend((part, material) for part in convex_pieces(piece))
+        result.faces.extend((part, material) for part in convex_pieces(rest))
+    return result
 
 
-def build_clip(mesh, x, hose_radius, lift, points):
-    """A cable tie round hose and cable: a thin band over the outline of both."""
-    gap = 0.0004
-    outline = [(math.cos(a) * (hose_radius + gap), math.sin(a) * (hose_radius + gap))
-               for a in np.linspace(0, 2 * math.pi, points * 2, endpoint=False)]
-    outline += [(-lift + math.cos(a) * (CABLE_RADIUS + gap), math.sin(a) * (CABLE_RADIUS + gap))
-                for a in np.linspace(0, 2 * math.pi, points, endpoint=False)]
-    hull = _hull(outline)  # (y, z), counter clockwise
-    count = len(hull)
-    normals = []
-    for i in range(count):
-        a, b, c = hull[i - 1], hull[i], hull[(i + 1) % count]
-        e = norm((c[0] - a[0], c[1] - a[1]))
-        normals.append((e[1], -e[0]))  # right of the direction of travel: outwards
-    perimeter = [0.0]
-    for i in range(1, count + 1):
-        a, b = hull[i - 1], hull[i % count]
-        perimeter.append(perimeter[-1] + math.hypot(b[0] - a[0], b[1] - a[1]))
-    x0, x1 = x - CLIP_WIDTH / 2, x + CLIP_WIDTH / 2
-
-    def at(i, xx, off):
-        y, z = hull[i % count]
-        ny, nz = normals[i % count]
-        return np.array([xx, y + ny * off, z + nz * off]), np.array([0.0, ny, nz])
-
-    def uv(i, xx):
-        return px(CLIP_RECT[0] + perimeter[i] / perimeter[-1] * (CLIP_RECT[2] - CLIP_RECT[0]),
-                  CLIP_RECT[1] + (xx - x0) / CLIP_WIDTH * 12.0)
-
-    for i in range(count):
-        for off, sign in ((CLIP_THICKNESS, 1.0), (0.0, -1.0)):
-            mesh.add([(at(ii, xx, off)[0], at(ii, xx, off)[1] * sign, uv(ii, xx))
-                      for ii, xx in ((i, x0), (i + 1, x0), (i + 1, x1), (i, x1))])
-        for xx, sign in ((x0, -1.0), (x1, 1.0)):
-            mesh.add([(at(ii, xx, off)[0], np.array([sign, 0.0, 0.0]), uv(ii, xx))
-                      for ii, off in ((i, 0.0), (i + 1, 0.0), (i + 1, CLIP_THICKNESS), (i, CLIP_THICKNESS))])
-
-
-def _hull(points):
-    pts = sorted(set((round(a, 9), round(b, 9)) for a, b in points))
-
-    def cross(o, a, b):
-        return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-
-    lower, upper = [], []
-    for p in pts:
-        while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
-            lower.pop()
-        lower.append(p)
-    for p in reversed(pts):
-        while len(upper) >= 2 and cross(upper[-2], upper[-1], p) <= 0:
-            upper.pop()
-        upper.append(p)
-    return lower[:-1] + upper[:-1]
+def convex_pieces(corners):
+    """A convex polygon as faces Arma can hold, which have three or four corners."""
+    if len(corners) <= 4:
+        return [corners]
+    return [[corners[0], corners[i], corners[i + 1]] for i in range(1, len(corners) - 1)]
 
 
 # ------------------------------------------------------------------------------ LODs
-def resolution_lod(resolution, wand_mesh, hose_radius, detail):
+def wand_mesh(fixed, detail):
+    mesh = Mesh()
+    mesh.faces = fixed.faces + endoscope(detail).faces
+    return mesh
+
+
+def resolution_lod(resolution, fixed, detail):
     lod = Lod(resolution)
-    lod.mesh(wand_mesh)
+    lod.mesh(bent(subdivide(wand_mesh(fixed, detail), detail)))
     extra = Mesh()
     sides = 8 if detail else 5
-    path, lift = cable_path(hose_radius, 6.0 if detail else 14.0)
-    runs = build_cable(extra, path, sides)
+    build_coil(extra, CABLE_RADIUS, 10 if detail else 6)
+    build_cable(extra, coax_path(3.0 if detail else 10.0), sides)
     build_plug(extra, 12 if detail else 8)
-    build_boot(extra, lift, sides)
-    if detail:
-        for x in CLIPS_X:
-            build_clip(extra, x, hose_radius, lift, 10)
     lod.mesh(extra)
-    return lod.finish(), path, runs
+    return lod.finish()
 
 
 def convex_hull(points, eps=1e-9):
@@ -908,30 +971,24 @@ def slab_hulls(mesh, out, gap, inset, bins=None):
                 out.append(hull)
 
 
-def shadow_mesh(wand_mesh, hose_radius, detail):
-    """Closed pieces, a little inside the visible surface: what a shadow volume wants.
-    The wand as slab hulls of its own visible mesh - which is not closed itself (the hose
-    is open where it enters the flange, the head open where it meets the mount) - and the
-    cable, plug, boot and clips as closed solids of the same shape as their visible ones."""
+def shadow_mesh(fixed, detail):
+    """Closed pieces, a little inside the visible surface: what a shadow volume wants. What
+    lies along the wand's axis as slab hulls of its own visible mesh, which is not closed
+    itself where the connector meets the collar; coil, coax and plug, which do not, as closed
+    solids of the same shape as their visible ones."""
     pieces = []
     flat = lambda *_: (0.0, 0.0)
-    slab_hulls(wand_mesh, pieces, 0.001, 0.0006, None if detail else 8)
+    slab_hulls(subdivide(wand_mesh(fixed, detail), detail), pieces, 0.001, 0.0006, None if detail else 8)
     m = Mesh()
-    path, lift = cable_path(hose_radius, 6.0 if detail else 20.0, 0.06 if detail else 0.08)
-    tube(m, path, CABLE_RADIUS - 0.0004, 6 if detail else 4, flat, material="", caps=True)
-    sides = 12 if detail else 6
+    build_coil(m, CABLE_RADIUS - 0.0006, 8 if detail else 6, "", True)
+    tube(m, coax_path(6.0 if detail else 20.0, 0.06 if detail else 0.08), COAX_RADIUS - 0.0004,
+         6 if detail else 4, flat, material="", caps=True)
     plug = [(t, max(r - 0.0004, 0.0005)) for t, r in PLUG_PROFILE]
-    lathe(m, plug, (0.0, PLUG_AXIS[0], PLUG_AXIS[1]), (1.0, 0.0, 0.0), sides, flat,
+    lathe(m, plug, (0.0, PLUG_AXIS[0], PLUG_AXIS[1]), (1.0, 0.0, 0.0), 12 if detail else 6, flat,
           material="", closed=True)
-    if detail:
-        boot = [(0.0, 0.0025), (0.0035, 0.0025), (0.0098, CABLE_RADIUS - 0.0003)]
-        lathe(m, boot, (CABLE_START_X, -lift, 0.0), (1.0, 0.0, 0.0), sides, flat,
-              material="", closed=True)
-        for x in CLIPS_X:
-            clip = Mesh()
-            build_clip(clip, x, hose_radius, lift, 10)
-            slab_hulls(clip, pieces, 1.0, 0.0)
-    return pieces + [m]
+    # Bent as hulls, not before: the cut into slabs relies on the wand's axis being X. The
+    # coil and the coax lie behind BEND_START.
+    return [bent(piece) for piece in pieces] + [m]
 
 
 def shadow_lod(resolution, pieces):
@@ -968,36 +1025,34 @@ def manifold(lod):
 
 
 def geometry_lod(mass):
-    lod = fbx_to_p3d.geometry_lod((-DEFAULT_LENGTH, 0.0, -0.10, 0.0604, -0.0604, 0.0604), mass)
+    lod = fbx_to_p3d.geometry_lod((-DEFAULT_LENGTH, 0.0, -0.10, COLLAR[2][1], -COLLAR[2][1], COLLAR[2][1]), mass)
     # As on Bohemia's antennas: the origin is the mount point and has to stay there.
     lod.add_property("autocenter", "0")
     return lod
 
 
-# ------------------------------------------------------------------------------ hose
-def write_hose_material(rib_repeat):
-    """Bohemia's esd_01.rvmat value for value, with one stage swapped: the normal map is a
-    single rib, repeated along the hose by its uvTransform. The transform is diagonal, so
-    it reads the same whichever way round the engine composes the matrix."""
-    def stage(n, texture, scale=1, extra=""):
-        return ("class Stage%d {\n    texture = \"%s\";\n%s    uvSource = \"tex\";\n"
-                "    class uvTransform {\n        aside[] = {%d,0,0};\n        up[] = {0,1,0};\n"
-                "        dir[] = {0,0,0};\n        pos[] = {0,0,0};\n    };\n};\n\n"
-                % (n, texture, extra, scale))
+# ------------------------------------------------------------------------------ materials
+def stage(n, texture, scale=1, extra=""):
+    return ("class Stage%d {\n    texture = \"%s\";\n%s    uvSource = \"tex\";\n"
+            "    class uvTransform {\n        aside[] = {%d,0,0};\n        up[] = {0,1,0};\n"
+            "        dir[] = {0,0,0};\n        pos[] = {0,0,0};\n    };\n};\n\n"
+            % (n, texture, extra, scale))
 
+
+def write_rubber_material():
+    """Bohemia's esd_01.rvmat with less of everything: the plain panel of their atlas comes
+    out as dull black rubber, the way the cable of a real endoscope looks, and its smooth
+    surface needs no normal map. """
     text = (
         "// Generated by tools/build_camhead.py - change the script, not this file.\n"
         "//\n"
-        "// The camera wand's hose. Bohemia's esd_01.rvmat value for value, so the hose has the\n"
-        "// colour and sheen of the dark plastic it shares with the camera body - except for the\n"
-        "// normal map. Theirs is flat there, and a gooseneck needs its ribs: Stage1 is one rib,\n"
-        "// repeated %d times per atlas width along the hose, which is a %.1f mm pitch.\n\n"
-        % (rib_repeat, RIB_PITCH * 1000)
-        + "class StageTI {\n    texture = \"a3\\data_f\\default_vehicle_ti_ca.paa\";\n};\n\n"
-        "ambient[] = {1,1,1,1};\ndiffuse[] = {1.1,1.1,1.1,1};\nforcedDiffuse[] = {0,0,0,1};\n"
-        "emmisive[] = {0,0,0,0};\nspecular[] = {0.3,0.3,0.3,1};\nspecularPower = 100;\n"
+        "// The endoscope's black rubber: the plain panel of Bohemia's atlas, darker and duller\n"
+        "// than their esd_01.rvmat renders it.\n\n"
+        "class StageTI {\n    texture = \"a3\\data_f\\default_vehicle_ti_ca.paa\";\n};\n\n"
+        "ambient[] = {0.45,0.45,0.45,1};\ndiffuse[] = {0.5,0.5,0.5,1};\nforcedDiffuse[] = {0,0,0,1};\n"
+        "emmisive[] = {0,0,0,0};\nspecular[] = {0.12,0.12,0.12,1};\nspecularPower = 30;\n"
         "PixelShaderID = \"Super\";\nVertexShaderID = \"Super\";\n\n"
-        + stage(1, HOSE_NOHQ, rib_repeat)
+        + stage(1, "#(argb,8,8,3)color(0.5,0.5,1,1,NOHQ)")
         + stage(2, "#(argb,8,8,3)color(0.5,0.5,0.5,0.5,DT)")
         + stage(3, "#(argb,8,8,3)color(0.0,0.0,0.0,0.0,MC)")
         + stage(4, BI_DATA + "\\esd_01_as.paa")
@@ -1005,26 +1060,83 @@ def write_hose_material(rib_repeat):
         + stage(6, "#(ai,64,64,1)fresnel(0.4,0.2)")
         + stage(7, "a3\\data_f\\env_land_co.paa", extra="    useWorldEnvMap = \"true\";\n")
     )
-    path = os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose.rvmat")
+    path = os.path.join(HERE, "addons", "esdcam", "data", "camhead_rubber.rvmat")
     with open(path, "w", newline="\n") as handle:
         handle.write(text.rstrip("\n") + "\n")
 
 
-def rib_normal():
-    """One rib across the width: a rounded crest and a tight groove. Only red moves, so
-    it does not matter which way round the engine reads green."""
-    width, height = 32, 8
-    t = (np.arange(width) + 0.5) / width
-    h = np.abs(np.sin(math.pi * t)) ** 0.6
-    slope = np.gradient(h, 1.0 / width) * 0.035
-    nx = -slope / np.sqrt(1 + slope ** 2)
-    nz = 1 / np.sqrt(1 + slope ** 2)
-    rgba = np.zeros((height, width, 4), np.uint8)
-    rgba[:, :, 0] = np.clip((nx * 0.5 + 0.5) * 255, 0, 255)[None, :]
-    rgba[:, :, 1] = 128
-    rgba[:, :, 2] = np.clip((nz * 0.5 + 0.5) * 255, 0, 255)[None, :]
-    rgba[:, :, 3] = 255
-    return rgba
+# ------------------------------------------------------------------------------ lens
+def write_lens_material():
+    """Glass as far as the shader goes: full specular, a tight highlight and a strong
+    reflection of the sky. forcedDiffuse keeps the painted reflections of lens_colour()
+    readable when the lens faces away from the sun, without making it glow in the dark."""
+    text = (
+        "// Generated by tools/build_camhead.py - change the script, not this file.\n"
+        "//\n"
+        "// The camera wand's lens: glass with its reflections painted into camhead_lens_co.paa.\n\n"
+        "class StageTI {\n    texture = \"a3\\data_f\\default_vehicle_ti_ca.paa\";\n};\n\n"
+        "ambient[] = {1,1,1,1};\ndiffuse[] = {1,1,1,1};\nforcedDiffuse[] = {0.6,0.6,0.6,1};\n"
+        "emmisive[] = {0,0,0,0};\nspecular[] = {1,1,1,1};\nspecularPower = 300;\n"
+        "PixelShaderID = \"Super\";\nVertexShaderID = \"Super\";\n\n"
+        + stage(1, "#(argb,8,8,3)color(0.5,0.5,1,1,NOHQ)")
+        + stage(2, "#(argb,8,8,3)color(0.5,0.5,0.5,0.5,DT)")
+        + stage(3, "#(argb,8,8,3)color(0.0,0.0,0.0,0.0,MC)")
+        + stage(4, "#(argb,8,8,3)color(1,1,1,1,AS)")
+        + stage(5, "#(argb,8,8,3)color(1,1,1,1,SMDI)")
+        + stage(6, "#(ai,64,64,1)fresnel(1.3,0.9)")
+        + stage(7, "a3\\data_f\\env_land_co.paa", extra="    useWorldEnvMap = \"true\";\n")
+    )
+    path = os.path.join(HERE, "addons", "esdcam", "data", "camhead_lens.rvmat")
+    with open(path, "w", newline="\n") as handle:
+        handle.write(text.rstrip("\n") + "\n")
+
+
+def lens_colour():
+    """The front of the camera head, painted: glass with the violet and green sheen of an
+    anti-reflection coating, a dark pupil and two highlights, in a ring of white LEDs. Not a
+    real reflection, but at a centimetre across nobody can tell, and it reads as a lens from
+    any angle and in any light. The top of the picture is the top of the lens."""
+    size = 256
+    v, u = np.mgrid[0:size, 0:size]
+    face_x, face_y = (u + 0.5) / size * 2 - 1, (v + 0.5) / size * 2 - 1
+    # The lens takes up the middle of the face, the LEDs the ring round it.
+    x, y = face_x / 0.66, face_y / 0.66
+    r = np.hypot(x, y)
+    around = np.arctan2(y, x)
+
+    def glow(cx, cy, rx, ry):
+        return np.exp(-(((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2))
+
+    def band(radius, width, towards, spread):
+        off = np.angle(np.exp(1j * (around - towards)))
+        return np.exp(-((r - radius) / width) ** 2) * np.exp(-(off / spread) ** 2)
+
+    def add(colour, amount):
+        rgb[:] = rgb + np.array(colour)[None, None, :] * amount[:, :, None]
+
+    rgb = np.zeros((size, size, 3)) + np.array([0.03, 0.03, 0.06])
+    glass = np.clip((0.86 - r) / 0.02, 0, 1)
+    add((0.03, 0.05, 0.12), glass * (1 - r))
+    add((0.62, 0.18, 0.85), glass * band(0.60, 0.20, math.radians(-135), 1.0))
+    add((0.10, 0.70, 0.55), glass * band(0.50, 0.17, math.radians(45), 0.9))
+    add((0.15, 0.35, 0.95), glass * band(0.72, 0.09, math.radians(-30), 0.8))
+    add((0.60, 0.42, 0.10), glass * band(0.36, 0.08, math.radians(150), 0.7))
+    pupil = np.clip((r - 0.20) / 0.07, 0, 1)
+    rgb[:] = rgb * pupil[:, :, None] + np.array([0.01, 0.01, 0.02])[None, None, :] * (1 - pupil[:, :, None])
+    add((1.0, 1.0, 1.0), glass * glow(-0.34, -0.40, 0.20, 0.13))
+    add((0.8, 0.9, 1.0), glass * glow(0.32, 0.38, 0.07, 0.05))
+    # The barrel: dark metal with one bright ring where it holds the glass.
+    barrel = np.clip((r - 0.86) / 0.02, 0, 1)[:, :, None]
+    rgb[:] = rgb * (1 - barrel) + 0.07 * barrel
+    add((0.42, 0.42, 0.45), np.exp(-((r - 0.88) / 0.018) ** 2))
+    for a in np.linspace(0, 2 * math.pi, 8, endpoint=False):
+        add((0.95, 0.98, 1.0), np.exp(-((face_x - 0.79 * math.cos(a)) ** 2 + (face_y - 0.79 * math.sin(a)) ** 2) / 0.085 ** 2))
+    add((0.30, 0.30, 0.32), np.exp(-((np.hypot(face_x, face_y) - 0.97) / 0.03) ** 2))
+
+    out = np.zeros((size, size, 4), np.uint8)
+    out[:, :, :3] = np.clip(rgb * 255, 0, 255)
+    out[:, :, 3] = 255
+    return out
 
 
 # ------------------------------------------------------------------------------ main
@@ -1052,14 +1164,13 @@ def main():
                          "to take the mount head from either" % (args.reference, MODEL))
     tool = imagetopaa.find_imagetopaa()
 
-    wand_mesh, hose_radius = map_wand(read_wand(args.fbx, DEFAULT_LENGTH), mount)
-    lod1, path, runs = resolution_lod(1.0, wand_mesh, hose_radius, True)
-    lod2, _path, _runs = resolution_lod(2.0, wand_mesh, hose_radius, False)
+    fixed = connector(read_wand(args.fbx, DEFAULT_LENGTH), mount)
+    lod1, lod2 = resolution_lod(1.0, fixed, True), resolution_lod(2.0, fixed, False)
     # Antenna 03's arrangement: the visual LODs cast no shadow, shadow volumes and a
     # shadow buffer LOD do it for them.
     for lod in (lod1, lod2):
         lod.add_property("lodnoshadow", "1")
-    near, far = shadow_mesh(wand_mesh, hose_radius, True), shadow_mesh(wand_mesh, hose_radius, False)
+    near, far = shadow_mesh(fixed, True), shadow_mesh(fixed, False)
     shadow, shadow_far = shadow_lod(p3d.LOD_SHADOW, near), shadow_lod(p3d.LOD_SHADOW + 10, far)
     buffer = shadow_buffer_lod(SHADOW_BUFFER, near)
     open_edges = manifold(shadow) + manifold(shadow_far)
@@ -1067,27 +1178,23 @@ def main():
     size = p3d.write(args.out, [lod1, lod2, shadow, shadow_far, buffer, geometry_lod(args.mass),
                                 fbx_to_p3d.memory_lod(DEFAULT_LENGTH)])
 
-    hose_length = abs(-0.527 - -0.0922)
-    rib_repeat = round(hose_length / RIB_PITCH / ((HOSE_RECT[2] - HOSE_RECT[0]) / ATLAS))
-    write_hose_material(rib_repeat)
+    write_rubber_material()
+    write_lens_material()
     if tool:
-        imagetopaa.to_paa(tool, rib_normal(),
-                          os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose_nohq.paa"))
+        imagetopaa.to_paa(tool, lens_colour(),
+                          os.path.join(HERE, "addons", "esdcam", "data", "camhead_lens_co.paa"))
 
     for name, lod in (("LOD 1", lod1), ("LOD 2", lod2), ("shadow", shadow),
                       ("shadow far", shadow_far), ("buffer", buffer)):
         print("  %-10s %5d points %5d faces" % (name, len(lod.points), len(lod.faces)))
     print("  shadow volumes: %d pieces near, %d far, %d edges not closed"
           % (len(near), len(far), open_edges))
-    print("  hose radius %.2f mm, ribs repeat %d times per atlas width, cable in %d runs"
-          % (hose_radius * 1000, rib_repeat, runs))
     print("  winding %+.6f  normals %+.6f  %s" % (
         volume, flux, "ok" if volume < 0 and flux < 0 else "INSIDE OUT"))
     print("  %d bytes" % size)
     if not tool:
-        print("  camhead_hose_nohq.paa not written: no ImageToPAA (Arma 3 Tools, or set\n"
-              "  IMAGETOPAA). The one in git is rib_normal() and nothing else, so it holds\n"
-              "  until that changes.")
+        print("  camhead_lens_co.paa not written: no ImageToPAA (Arma 3 Tools, or set IMAGETOPAA).\n"
+              "  The one in git is lens_colour() and nothing else, so it holds until that changes.")
     if volume >= 0 or flux >= 0:
         raise SystemExit("model is inside out")
     if open_edges:

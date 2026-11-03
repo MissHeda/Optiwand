@@ -33,30 +33,44 @@ version 1.22.0) to run `hemtt check` / `hemtt build`.
 
 - `tools/build_camhead.py` runs here: without the antenna 03 reference it reuses the
   mount head UVs stored in the committed `camhead.p3d` (byte-identical output), and
-  without ImageToPAA it keeps the committed `camhead_hose_nohq.paa`.
+  without ImageToPAA it keeps the committed `camhead_lens_co.paa`.
 - `tools/render_icon.py` (inventory pictures) cannot run in the cloud. After any visual
   change, tell Mia to run `python tools/render_icon.py` locally.
 
 ## Waiting for Mia's in-game test (2026-11-01)
 
-Her verdict after the last round: "Ist sehr gut geworden", with two complaints, both now
-changed blind - do not touch them again unless she reports back:
+The look was reworked on 2026-11-02, nothing of it seen in game yet. Mia did not like the
+thick hose with its flange, however it was bent: she wants it to look like a real endoscope
+or the mirrorgun in Ready or Not, still as an attachment. Now only the connector comes from
+the FBX; `endoscope()` builds collar, strain relief, thin cable and slim camera head, in
+`camhead_rubber.rvmat`. On top of that she asked for a coil of cable in front of the attachment, so it looks as if it
+could be paid out further (`coil_path()`), and a cable back into the device (`COAX_ROUTE`).
+She also asked for a monitor of her own, a real looking 16:9 picture rather than one built
+from Arma UI elements, which reverses the old "no second screen" decision, and the device's
+own monitor is to go, keeping only the attachment (`fnc_hideDevice`, not yet seen in game; the
+esdcam `gui.hpp` is gone). gui.hpp holds Screen, Feed, Monitor and the build-up, `tools/render_monitor.py` renders `addons/mirror/data/monitor_ca.paa`.
+The freehand camera now sits on the wand's real end: the right hand plus `TIP_REACH` along
+the weapon direction (`fnc_wandBase`), fine offset in the `tipOffset*` settings. Not yet seen
+in game. The monitor sits almost on the bottom edge of the screen (`MONITOR_BOTTOM`), readout and legend
+on its screen, keys labelled with what they do in game, no reflection on the glass: she took
+that for a see-through screen.
+Things she already decided:
 
-1. **The shadow looked weird.** The old shadow volume was a crude 8-sided lathe. Now:
-   `lodnoshadow = 1` on LODs 1 and 2 (as Bohemia's `muzzle_antenna_03_F`), shadow volumes
-   10000 and 10010 and a shadow buffer LOD 11000, built by `shadow_mesh()`: the visible wand
-   cut into ~1 mm slabs, each replaced by its convex hull (`convex_hull()`, own quickhull -
-   no scipy) and pulled 0.6 mm in radially; cable, plug and boot as closed tubes/lathes,
-   clips as hulls. Each piece has points of its own (no shared edges between pieces). The
-   build fails if an edge is not used exactly twice. The visible mesh could not be used
-   directly: it is open at the hose/flange and head/mount joints and has T-junctions at
-   the badge. If the shadow is now missing entirely, the engine is not using 11000 - first
-   suspect `lodnoshadow`.
-2. **The hose was too light, and still silver when only darkened (2026-11-02).** It now sits
-   on `PLAIN_RECT`, the dark plastic of the camera body, with `esd_01.rvmat`'s own values.
-   Only the rib normal map differs.
+1. **Shape of the cable.** Rejected: a downward curve, and sharp kinks. Wanted: essentially
+   straight, minimally swaying left and right now and then. `bent()` applies `SWAYS` in every
+   LOD; the memory points stay on the straight axis on purpose.
+2. **Shadow.** `lodnoshadow = 1` on LODs 1 and 2 (as Bohemia's `muzzle_antenna_03_F`), shadow
+   volumes 10000 and 10010 and a shadow buffer LOD 11000, built by `shadow_mesh()`: the
+   visible wand cut into ~1 mm slabs, each replaced by its convex hull (`convex_hull()`, own
+   quickhull - no scipy) and pulled 0.6 mm in radially. Each piece has points of its own. The
+   build fails if an edge is not used exactly twice. If the shadow is missing entirely, the
+   engine is not using 11000 - first suspect `lodnoshadow`.
+3. **Lens.** Its own material and painted texture with LEDs (`lens_colour()`,
+   `camhead_lens.rvmat`). If it looks flat or too bright in game, the rvmat's `forcedDiffuse`
+   is the first knob.
 
-Mia has to re-render the inventory icons locally (`python tools/render_icon.py`).
+After any visual change Mia's machine re-renders the inventory icons
+(`python tools/render_icon.py`).
 
 Still waiting for Mia's in-game feedback (do not reopen unless she reports a problem):
 mouse escaping a borderless window while aiming (fixed in b773f9d by removing the map

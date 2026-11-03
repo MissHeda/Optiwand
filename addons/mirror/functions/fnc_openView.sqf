@@ -1,9 +1,9 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Puts the mirror out: creates the render to texture camera, raises the overlay and hooks
- * up the controls. The picture appears on the device's own screen - the device addon listens
- * for the deployed event below and puts the render target there.
+ * Puts the mirror out: creates the render to texture camera, raises the overlay with its field
+ * monitor and hooks up the controls. The device addon listens for the deployed event below and
+ * decides when the picture comes up on the monitor.
  * The camera renders into a texture instead of onto the screen (same technique as
  * ace_viewports_fnc_viewCreate by PabstMirror), so the world keeps rendering normally behind
  * the device. The overlay is a title layer, not a dialog, so the player keeps moving.
@@ -68,9 +68,6 @@ if (_mode isEqualTo MODE_FREE) then {
     GVAR(depthDefault) = _reach;
     GVAR(slideLimit) = 0;
 
-    // Lift the head a little above the shaft axis, or the model itself stands in the picture
-    // when swivelling up.
-    GVAR(basePosASL) = GVAR(basePosASL) vectorAdd [0, 0, FREE_CAM_LIFT];
 } else {
     GVAR(basePitch) = PITCH_DEFAULT;
     GVAR(depthDefault) = DEPTH_DEFAULT min GVAR(maxDepth);
@@ -122,9 +119,7 @@ GVAR(lastCamPosASL) = [[], _basePosASL] select (_mode isEqualTo MODE_FREE);
 // Raise the device
 ////////////////////////////////////////////////////////////////////////////////
 //
-// The picture lives on the device's own screen, and that screen only exists while the device
-// is up: Arma opens RscWeaponSpectrumAnalyzerGeneric when the weapon is raised, and the
-// device addon needs it open to put the render target on it.
+// The peek belongs to the aimed view: fnc_update ends it when the player leaves that.
 //
 // Aiming gets there by itself - right click is what deploys. The ACE interaction does not:
 // nobody is aiming when they pick an action out of the menu. That path used to be covered by
@@ -161,9 +156,8 @@ GVAR(camera) camCommit 0;
 // Overlay
 ////////////////////////////////////////////////////////////////////////////////
 //
-// A title layer with three controls and no panel. The picture goes on the device's own
-// screen; all that is out here is the readout, the key legend, and an invisible feed control
-// that exists only to keep the render target alive - see gui.hpp.
+// A title layer: the field monitor with the camera picture in it, the readout and the key
+// legend - see gui.hpp.
 //
 // cutRsc creates the display within the same frame; its onLoad puts it into the uiNamespace,
 // which is why it can be picked up immediately afterwards.
@@ -177,35 +171,68 @@ if (isNull _display) exitWith {
     call FUNC(closeView);
 };
 
-// The size must match FEED_TEXTURE in the device addon: both bind the same render target,
-// and the number in the texture string tells Arma how large a buffer to allocate for it.
-// Two different figures under the same name is a coin toss over which one wins.
+// The number in the texture string tells Arma how large a buffer to allocate.
 private _feedTexture = format ["#(argb,%1,%1,1)r2t(%2,1)", RTT_SIZE, RTT_NAME];
+
+// The monitor, in real proportions whatever the player's screen: a UI unit is not as wide as it
+// is high, and pixelW and pixelH say by how much. The device addon decides when the picture
+// comes up, so it stays dark until then.
+private _monitorW = MONITOR_WIDTH * safezoneW;
+private _monitorH = _monitorW * MONITOR_ASPECT * pixelH / pixelW;
+if (_monitorH > MONITOR_MAX_HEIGHT * safezoneH) then {
+    _monitorW = _monitorW * MONITOR_MAX_HEIGHT * safezoneH / _monitorH;
+    _monitorH = MONITOR_MAX_HEIGHT * safezoneH;
+};
+private _monitorX = safezoneX + (safezoneW - _monitorW) / 2;
+private _monitorY = safezoneY + (1 - MONITOR_BOTTOM) * safezoneH - _monitorH;
+private _screenRect = [
+    _monitorX + MONITOR_SCREEN_X * _monitorW,
+    _monitorY + MONITOR_SCREEN_Y * _monitorH,
+    MONITOR_SCREEN_W * _monitorW,
+    MONITOR_SCREEN_H * _monitorH
+];
+
+private _monitor = _display displayCtrl IDC_MONITOR;
+_monitor ctrlSetPosition [_monitorX, _monitorY, _monitorW, _monitorH];
+_monitor ctrlCommit 0;
+
+private _screen = _display displayCtrl IDC_SCREEN;
+_screen ctrlSetPosition _screenRect;
+_screen ctrlCommit 0;
 
 // Faded out, not hidden. Arma keeps a render target alive only while something draws it, and
 // a hidden control draws nothing - at zero opacity it still counts as a consumer and is
 // invisible all the same.
 private _feed = _display displayCtrl IDC_FEED;
 _feed ctrlSetText _feedTexture;
+_feed ctrlSetPosition _screenRect;
 _feed ctrlSetFade 1;
 _feed ctrlCommit 0;
 
-// Two lines along the bottom edge: the readout above, the legend below. Both in safezone
-// units, so they sit in the same place whatever the resolution.
-//
-// They cannot go into the camera picture itself. The render target is a camera's output and
-// Arma offers no way to draw into one - drawIcon3D and friends draw onto the player's
-// screen, not into a render target. Hence a strip down here rather than an overlay on the
-// picture.
-private _lineH = 0.030 * safezoneH;
-private _stripW = 0.7 * safezoneW;
-private _stripX = safezoneX + (safezoneW - _stripW) / 2;
-private _legendY = safezoneY + safezoneH - _lineH - 0.045 * safezoneH;
-private _readoutY = _legendY - _lineH;
+// The picture build-up, in the middle of the dark screen.
+_screenRect params ["_screenX", "_screenY", "_screenW", "_screenH"];
+private _ctrlAcqLabel = _display displayCtrl IDC_ACQ_LABEL;
+_ctrlAcqLabel ctrlSetPosition [_screenX, _screenY + 0.38 * _screenH, _screenW, 0.1 * _screenH];
+_ctrlAcqLabel ctrlCommit 0;
+private _acqBar = [_screenX + 0.2 * _screenW, _screenY + 0.5 * _screenH, 0.6 * _screenW, 0.035 * _screenH];
+{
+    private _ctrl = _display displayCtrl _x;
+    _ctrl ctrlSetPosition _acqBar;
+    _ctrl ctrlCommit 0;
+} forEach [IDC_ACQ_TRACK, IDC_ACQ_FILL];
+
+// The readout along the top of the monitor's screen, the legend along its bottom, as if the
+// monitor were drawing them. They are controls over the picture rather than part of it: the
+// render target is a camera's output and Arma offers no way to draw into one.
+private _lineH = 0.028 * safezoneH;
+private _stripW = _screenW;
+private _stripX = _screenX;
+private _legendY = _screenY + _screenH - _lineH;
+private _readoutY = _screenY;
 
 GVAR(stripRect) = [_stripX, _legendY, _stripW, _lineH];
 // The no-clearance report is two lines, so it takes the readout's row as well.
-GVAR(stripRectFault) = [_stripX, _readoutY, _stripW, _lineH * 2];
+GVAR(stripRectFault) = [_stripX, _legendY - _lineH, _stripW, _lineH * 2];
 
 private _ctrlReadout = _display displayCtrl IDC_READOUT;
 _ctrlReadout ctrlSetPosition [_stripX, _readoutY, _stripW, _lineH];

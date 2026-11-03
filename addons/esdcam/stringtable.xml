@@ -15,7 +15,7 @@
             <English>Hold to acquire picture</English>
         </Key>
         <Key ID="STR_opw_esdcam_Setting_RequireAcquire_Description">
-            <English>Hold the left mouse button to bring the\npicture up, using the device's own transmit\nbar.\n\nOff: the picture is there the moment the\ncamera is deployed.</English>
+            <English>Hold the left mouse button to bring the\npicture up.\n\nOff: the picture is there the moment the\ncamera is deployed.</English>
         </Key>
         <Key ID="STR_opw_esdcam_Setting_AcquireTime">
             <English>Acquire time</English>

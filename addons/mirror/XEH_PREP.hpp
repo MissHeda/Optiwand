@@ -17,5 +17,6 @@ PREP(setFault);
 PREP(startDeploy);
 PREP(toggleNightVision);
 PREP(update);
+PREP(wandBase);
 PREP(wandReady);
 PREP(watchAim);

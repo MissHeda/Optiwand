@@ -160,19 +160,19 @@
             <English>Camera offset, forward</English>
         </Key>
         <Key ID="STR_opw_mirror_Setting_OffsetForward_Description">
-            <English>How far ahead of the eye the camera head sits, in metres.\n\nToo little and it sits inside the device model, too much and it\nhangs in front of the muzzle. Set it once and leave it.</English>
+            <English>How far past the end of the wand the\ncamera sits, in metres.\n\nSet it once and leave it.</English>
         </Key>
         <Key ID="STR_opw_mirror_Setting_OffsetRight">
             <English>Camera offset, sideways</English>
         </Key>
         <Key ID="STR_opw_mirror_Setting_OffsetRight_Description">
-            <English>Sideways offset of the camera head, in metres.\nPositive is to the right.\n\nThe device is held slightly off centre, so a small value here\nlines the picture up with where the head actually is.</English>
+            <English>Sideways offset of the camera from the end\nof the wand, in metres.\n\nPositive is to the right.</English>
         </Key>
         <Key ID="STR_opw_mirror_Setting_OffsetUp">
             <English>Camera offset, height</English>
         </Key>
         <Key ID="STR_opw_mirror_Setting_OffsetUp_Description">
-            <English>Height offset of the camera head, in metres.\nPositive is up.</English>
+            <English>Height offset of the camera from the end of\nthe wand, in metres.\n\nPositive is up.</English>
         </Key>
     </Package>
 </Project>

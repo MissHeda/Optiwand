@@ -44,15 +44,36 @@
 //
 // This only runs while the mirror is out, so it costs nothing during normal play.
 //
-// Must match FEED_TEXTURE in the device addon. If you need frame rate, set both back to
-// 1024.
+// If you need frame rate, set it back to 1024.
 #define RTT_SIZE        2048
 
-// Three controls, and that is the whole overlay - see gui.hpp. There is no idd: this is a
-// title layer, not a dialog, and giving it one is part of what let the mouse escape.
+// The whole overlay - see gui.hpp. There is no idd: this is a title layer, not a dialog, and
+// giving it one is part of what let the mouse escape.
+#define IDC_SCREEN      9140100
 #define IDC_FEED        9140102
+#define IDC_MONITOR     9140104
 #define IDC_READOUT     9140108
 #define IDC_HINTS       9140110
+// The picture build-up on the monitor's dark screen, which the device addon drives. Must match
+// addons\esdcam\script_component.hpp.
+#define IDC_ACQ_LABEL   9140112
+#define IDC_ACQ_TRACK   9140114
+#define IDC_ACQ_FILL    9140116
+
+// The field monitor, a picture rendered by tools/render_monitor.py. Its proportions and where
+// the screen lies in it, as fractions of the picture - that tool prints them, and they have
+// to agree with it. Its screen is 16:9.
+#define MONITOR_TEXTURE     QPATHTOF(data\monitor_ca.paa)
+#define MONITOR_ASPECT      0.64844
+#define MONITOR_SCREEN_X    0.07031
+#define MONITOR_SCREEN_Y    0.08584
+#define MONITOR_SCREEN_W    0.85938
+#define MONITOR_SCREEN_H    0.74548
+// Its size and place on the player's screen, as fractions of that screen: along the bottom
+// edge, where a monitor held in the hands would be.
+#define MONITOR_WIDTH       0.50
+#define MONITOR_MAX_HEIGHT  0.72
+#define MONITOR_BOTTOM      0.012
 
 ////////////////////////////////////////////////////////////////////////////////
 // Door detection
@@ -109,32 +130,23 @@
 // There is no fault mode. Having no room to work is a state, not a way of deploying - see
 // fnc_setFault.
 
-// Freehand: the head sits on the end of the shaft. Base drops below the eye, roughly where
-// the wand is actually held, and the reach is fixed - no pushing it further out from there.
+// Freehand: the head sits on the end of the wand, measured from the hand that holds it. The
+// hand follows every stance, lean and bit of sway, which the eye does not.
+//
+// From the device's origin at the grip to the lens: the muzzle proxy sits 0.098 m ahead of it
+// and the attachment is 0.579 m long. The fine offset lives in the settings (tipOffset*), so it
+// can be dialled in while playing.
+#define TIP_REACH           0.68
+// Where the hand cannot be read, the head is placed from the eye, this far below it.
 #define FREE_BASE_DROP      0.22
-// How far out the head sits in freehand mode, before anything in the way shortens it.
-//
-// Base reach in freehand mode. An outstretched arm from hand height is roughly 0.2 m, plus
-// the length of the attachment; much beyond that and the head floats in mid air rather
-// than sitting on the device.
-//
-// The fine offset lives in the settings (freeOffset*), so it can be dialled in while
-// playing.
-#define POLE_LENGTH         0.65
 
 // Refuse to deploy if there is less clear air than this in front of the operator
 #define FREE_MIN_CLEAR      0.35
 
-// How far the head sits above the shaft axis. Without it the camera looks along its own
-// model when swivelling up, and the shaft stands in the middle of the picture. A few
-// centimetres above and the device stays below the field of view.
-#define FREE_CAM_LIFT       0.08
-
 // How far past its starting position the head can be pushed in freehand mode.
-// Deliberately small: the arm is outstretched, and the posture allows little more than a
-// handspan of regrip. The wall check still applies and stops it earlier when something is
+// The wall check still applies and stops it earlier when something is
 // in the way.
-#define FREE_EXTEND         0.25
+#define FREE_EXTEND         0.5
 
 // How far around the operator loose shafts are hunted down after a detach
 #define SHAFT_SWEEP_RANGE   8

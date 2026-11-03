@@ -53,7 +53,6 @@ _ctrlHints ctrlSetPosition ([GVAR(stripRect), GVAR(stripRectFault)] select _faul
 _ctrlHints ctrlSetStructuredText parseText _text;
 _ctrlHints ctrlCommit 0;
 
-// The device addon takes its own picture off the screen while this is up - on the Spectrum
-// Device the screen IS the display, and a live camera picture under a "no clearance" banner
-// would contradict itself.
+// The device addon takes the picture off the monitor while this is up - a live camera picture
+// over a "no clearance" report would contradict itself.
 [QGVAR(fault), [_faulted]] call CBA_fnc_localEvent;

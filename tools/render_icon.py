@@ -21,8 +21,8 @@ Bohemia's files rather than composed by eye:
     hgun_esd_01_antenna_03_f_ca    256 x 128   mount 247.0,  63.7   flat
 
 The 512s all hang their mount at x = 500 and run away to the left, and like antenna 02's
-the cable leaves the picture on the right. The slot overlay is laid out like antenna 02's
-instead of antenna 03's, because it has to show the cable too: the wand to the left of the
+the coax leaves the picture on the right. The slot overlay is laid out like antenna 02's
+instead of antenna 03's, because it has to show the coax too: the wand to the left of the
 mount and the loop into the device to the right of it. That moves the mount off the right
 edge, and MuzzleSlot4's iconPosition with it - see CfgWeapons.hpp.
 
@@ -64,8 +64,8 @@ REFERENCE_LENGTH = 0.5563  # muzzle_antenna_03_F
 #     gear_muzzle_antenna_03_ca      median 55.0   max 184
 #     hgun_esd_01_antenna_03_f_ca    median 49.3   max  80
 PRESETS = {
-    "item": (512, 512, 0.62, 0.30, (500.0, 236.0), (6.0, 314.0), 55.0, "gear_camhead_ca.paa"),
-    # Flat side on. 275 px per metre - a little under antenna 02's 330 - so wand and cable
+    "item": (512, 512, 0.62, 0.30, (500.0, 236.0), (16.0, 314.0), 55.0, "gear_camhead_ca.paa"),
+    # Flat side on. 275 px per metre - a little under antenna 02's 330 - so wand and coax
     # loop both fit: tip at 6, mount at 165, the loop's far end at about 250.
     "slot": (256, 128, 0.0, 0.0, (165.0, 64.0), (6.0, 64.0), 49.3,
              "hgun_esd_01_camhead_F_ca.paa"),
@@ -175,11 +175,16 @@ def main():
         for name in ("co", "as", "smdi", "nohq"):
             maps[name] = imagetopaa.to_png(tool, os.path.join(bi_data, "esd_01_%s.paa" % name),
                                            os.path.join(work, "esd_01_%s.png" % name))
-        rib = os.path.join(work, "camhead_hose_nohq.png")
-        Image.fromarray(build_camhead.rib_normal(), "RGBA").save(rib)
-        rib_repeat = int(open(os.path.join(HERE, "addons", "esdcam", "data", "camhead_hose.rvmat"))
-                         .read().split("aside[] = {")[1].split(",")[0])
-        hose = dict(maps, nohq=rib, nohq_scale=[rib_repeat, 1])
+        lens_co, white, flat = (os.path.join(work, n + ".png") for n in ("lens_co", "white", "flat"))
+        Image.fromarray(build_camhead.lens_colour(), "RGBA").save(lens_co)
+        Image.new("RGB", (8, 8), (255, 255, 255)).save(white)
+        Image.new("RGB", (8, 8), (128, 128, 255)).save(flat)
+        lens = {"co": lens_co, "as": white, "smdi": white, "nohq": flat}
+        # The rubber's rvmat darkens the atlas through its ambient and diffuse, which the
+        # render does not read, so the atlas itself goes darker here.
+        rubber_co = os.path.join(work, "rubber_co.png")
+        Image.fromarray((np.array(Image.open(maps["co"]).convert("RGB")) * 0.5).astype(np.uint8)).save(rubber_co)
+        rubber = dict(maps, co=rubber_co, nohq=flat)
 
         jobs = []
         for preset in presets:
@@ -199,7 +204,8 @@ def main():
                                               width * s, height * s, REFERENCE_LENGTH)})
 
         spec = {"samples": args.samples, "jobs": jobs, "materials": {
-            build_camhead.MATERIAL: maps, build_camhead.HOSE_MATERIAL: hose}}
+            build_camhead.MATERIAL: maps, build_camhead.RUBBER_MATERIAL: rubber,
+            build_camhead.LENS_MATERIAL: lens}}
         spec_path = os.path.join(work, "jobs.json")
         json.dump(spec, open(spec_path, "w"))
         subprocess.run([blender, "-b", "--factory-startup", "-P",

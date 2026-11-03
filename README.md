@@ -4,9 +4,8 @@ An under-door inspection camera for Arma 3, in the spirit of the Optiwand from S
 the mirrorgun from Ready or Not.
 
 It is **not** a separate weapon. It is a muzzle attachment for the vanilla Spectrum Device
-from the Contact platform, and the picture appears on that device's own screen, next to its
-compass. The device already brings a screen, a compass and attachment slots - building a
-second device next to it would have been redundant.
+from the Contact platform, and the picture appears on a 16:9 field monitor over the world. The
+device's own housing and screen go out of the aimed view during a peek.
 
 ## Requirements
 
@@ -35,14 +34,13 @@ There are three ways to deploy it:
 
 At a door the picture is there immediately - you are kneeling in a doorway and want to see
 what is behind it. Freehand, hold the **left mouse button** until the picture builds up. The
-device says so while you do: `HOLD LMB TO ACQUIRE`, then a twelve segment bar, both drawn on
-the device's own screen. `#EM_Transmit` and `#EM_Progress` are driven alongside them, so the
-device's factory transmit overlay comes along too.
+monitor says so while you do: `HOLD LMB TO ACQUIRE`, then a bar, both on its dark screen.
 
-There is no second screen. The picture lives on the Spectrum Device and nowhere else - that
-is the whole reason the mod is built on that device rather than shipping one of its own. All
-that appears over the world is two lines of text along the bottom edge: the readout and the
-key legend.
+The picture shows on a field monitor, half the screen wide, with its screen in 16:9. It is a picture rendered in Blender (`python tools/render_monitor.py`), not a
+stack of UI controls: the camera's picture sits behind it and shows through a hole with some
+glass painted over it. The readout and the key legend are on its
+screen, as if it were drawing them. Its size and place are `MONITOR_*` in
+`addons/mirror/script_component.hpp`.
 
 You keep moving the whole time. The overlay is an `RscTitles` layer, not a dialog - a dialog
 would take input focus and pin you in place, and it would hand the mouse cursor back to the
@@ -116,8 +114,8 @@ mouse button, and how long that takes.
 ```
 addons/main      framework, version, macros
 addons/mirror    all of the mechanics - deploying, camera, controls, overlay
-addons/esdcam    registers the Spectrum Device with the above and puts the
-                 picture on its screen
+addons/esdcam    registers the Spectrum Device with the above, decides when the
+                 picture comes up and hides the device's own screen
 include/         CBA and Arma headers the preprocessor needs at build time
 tools/           the model pipeline, see "The model" below
 art/             model sources - the FBX ships, Bohemia's reference stays on disk
@@ -156,36 +154,35 @@ agreeing with each other.
 
 ## The model
 
-The wand is modelled outside this repo and arrives as an FBX. It wears no texture of its
-own: every face is mapped onto Bohemia's Spectrum Device atlas, `esd_01_co.paa`, and
-rendered with their `esd_01.rvmat` - the texture all four vanilla models share, so the
-camera has exactly the colour, grain, screws and wear of the device it is bolted to. The
-mod references those files and ships none of them.
+The attachment looks like a real endoscope, the mirrorgun of Ready or Not: the Spectrum
+Device is the grip and the screen, and on its muzzle sits a thin black cable with the camera
+at its end. The build makes it from two sources:
 
 ```bash
 python tools/build_camhead.py     # art/esdcam/arma3_cam.fbx  ->  addons/esdcam/model/camhead.p3d
 python tools/render_icon.py       # the model                 ->  data/ui/*_camhead_*_ca.paa
 ```
 
-Where each part lands on the atlas:
-
 | | |
 |---|---|
-| mount head | where antenna 03 has its own - each face is projected onto the nearest face of `muzzle_antenna_03_F` and takes its UVs, collar screws and flange markings included |
-| hose | the camera body's plain panel, with a rib normal map of our own (`camhead_hose.rvmat`) |
-| camera body | the plain panel of antenna 01, with the KAISERKOM badge off the grip along the top |
-| lens, LED ring | the round socket on the device's front, the blue of its controls |
-| cable, plug | antenna 02's coax and plug |
+| connector | the only part kept from the FBX, on Bohemia's atlas where antenna 03 has its own: each face is projected onto the nearest face of `muzzle_antenna_03_F` and takes its UVs. The mod references those files and ships none of them |
+| collar, strain relief, cable, camera head | built by `endoscope()` as solids of revolution, in black rubber: the atlas's plain panel with a darker, duller material (`camhead_rubber.rvmat`) |
+| coil | spare cable in three loops just in front of the strain relief (`coil_path()`), same rubber |
+| coax, plug | antenna 02's on the atlas, from the collar under the device into the lower socket under the display |
+| lens | a texture and material of our own (`camhead_lens_co.paa`, `camhead_lens.rvmat`): a coated lens in a ring of LEDs with its reflections painted on, as nothing on the atlas reads as glass |
 
-The cable is ours: like antenna 02's it runs into the lower socket under the display -
-clipped along the hose, down past the flange and under the device the way antenna 02's
-does. The build also writes LOD 2 and the geometry box with `autocenter = 0`, as Bohemia's
-antennas have, and shadows the way antenna 03 has them: the visual LODs carry
-`lodnoshadow = 1`, and two shadow volumes (10000 near, 10010 far) plus a shadow buffer LOD
-(11000) cast the shadow instead. The volumes are the visible wand cut into thin slabs, each
-slab replaced by its convex hull and pulled 0.6 mm in - closed by construction and close to
-the silhouette, which the visible mesh itself is not (it is open where the hose meets the
-flange). The build stops if any edge of a volume is not used exactly twice.
+A cable is never quite straight, so the build gives the stretch in front of the coil a slight
+sway from side to side last, in every LOD: `SWAYS` lists a few soft turns that cancel out, and `bent()` turns each cross
+section as a whole. The connector stays where it is, and so do the memory points, which keep
+the view on the straight axis.
+
+The build also writes LOD 2 and the geometry box with `autocenter = 0`, as Bohemia's antennas
+have, and shadows the way antenna 03 has them: the visual LODs carry `lodnoshadow = 1`, and
+two shadow volumes (10000 near, 10010 far) plus a shadow buffer LOD (11000) cast the shadow
+instead. The volumes are the visible wand cut into thin slabs, each slab replaced by its
+convex hull and pulled 0.6 mm in - closed by construction and close to the silhouette, which
+the visible mesh itself is not. Coil, coax and plug are closed solids of their own. The build stops if any edge of a volume is not used exactly
+twice.
 
 The model ships as MLOD (`addons/esdcam/addon.toml`). Binarize embeds a model's materials
 into the ODOL from files it has to read at build time, and without a P drive it cannot read

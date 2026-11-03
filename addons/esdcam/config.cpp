@@ -20,4 +20,3 @@ class CfgPatches {
 
 #include "CfgEventHandlers.hpp"
 #include "CfgWeapons.hpp"
-#include "gui.hpp"

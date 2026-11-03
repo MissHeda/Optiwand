@@ -125,13 +125,13 @@ if (!_isDoor) then {
         _look = getCameraViewDirection _player;
     };
 
-    // The eye is the basis, with the offset from the settings on top: forward along the look
-    // direction, sideways along the right vector, up along world Z.
+    // The hand holding the device is the basis, with the offset from the settings on top:
+    // forward along the look direction, sideways along the right vector, up along world Z.
     private _right = vectorNormalized ([_look select 0, _look select 1, 0] vectorCrossProduct [0, 0, 1]);
-    GVAR(basePosASL) = (eyePos _player)
-        vectorAdd [0, 0, FREE_CAM_LIFT - FREE_BASE_DROP + GVAR(freeOffsetUp)]
-        vectorAdd (_look vectorMultiply GVAR(freeOffsetForward))
-        vectorAdd (_right vectorMultiply GVAR(freeOffsetRight));
+    GVAR(basePosASL) = ([_player] call FUNC(wandBase))
+        vectorAdd [0, 0, GVAR(tipOffsetUp)]
+        vectorAdd (_look vectorMultiply GVAR(tipOffsetForward))
+        vectorAdd (_right vectorMultiply GVAR(tipOffsetRight));
     // The reach direction has to come along too, and for a long time it did not: it was set
     // once at deploy and left there, so the base swung round with the player while the head
     // went on extending along whatever direction had been current at the moment of deploy.

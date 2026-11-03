@@ -80,9 +80,9 @@ GVAR(basePitch)  = PITCH_DEFAULT;
 // Measured fresh every frame in freehand mode: the look direction that GVAR(pitch) is
 // added to as an offset. Unused at a door.
 GVAR(freeLookPitch) = 0;
-GVAR(freeOffsetForward) = 0.2;
-GVAR(freeOffsetRight) = 0;
-GVAR(freeOffsetUp) = 0;
+GVAR(tipOffsetForward) = 0;
+GVAR(tipOffsetRight) = 0;
+GVAR(tipOffsetUp) = 0;
 GVAR(depthDefault) = DEPTH_DEFAULT;
 GVAR(slideLimit) = 0;
 GVAR(aimPfhId)   = -1;

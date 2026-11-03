@@ -206,10 +206,19 @@ private _fnc_passes = {
     (_pass findIf {(_id find _x) == 0}) > -1
 };
 
+// The keys of the keybinds that stay live are not swallowed above either. Those handlers have
+// to run, and a handler that returns true on the mission display can keep CBA's from running at
+// all - which left N, Page Up and Page Down, none of them bound to a walking action, dead while
+// the arrow keys went on working. Letting them through gives nothing to the engine: our own
+// keybinds return true, and that stops it acting on the key by itself.
 {
     private _key = _forEachIndex;
     {
-        if !([_x] call _fnc_passes) then {[_handlersDown, _x, _key] call FUNC(muteKeybind)};
+        if ([_x] call _fnc_passes) then {
+            GVAR(inputAllowedKeys) pushBackUnique _key;
+        } else {
+            [_handlersDown, _x, _key] call FUNC(muteKeybind);
+        };
     } forEach _x;
 } forEach _down;
 

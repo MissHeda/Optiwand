@@ -163,11 +163,12 @@ private _fnc_addAxis = {
     [QGVAR(headRight),  LLSTRING(Keybind_HeadRight),  AXIS_YAW,   1,  DIK_RIGHT, MOD_NONE],
 
     // Moving the shaft: the same arrow keys with Ctrl. Stays under one hand, and the
-    // mapping matches the swivel - up extends, left slides left.
-    [QGVAR(extend),     LLSTRING(Keybind_Extend),     AXIS_DEPTH, 1,  DIK_UP,    MOD_CTRL],
-    [QGVAR(retract),    LLSTRING(Keybind_Retract),    AXIS_DEPTH, -1, DIK_DOWN,  MOD_CTRL],
-    [QGVAR(slideLeft),  LLSTRING(Keybind_SlideLeft),  AXIS_SLIDE, -1, DIK_LEFT,  MOD_CTRL],
-    [QGVAR(slideRight), LLSTRING(Keybind_SlideRight), AXIS_SLIDE, 1,  DIK_RIGHT, MOD_CTRL],
+    // mapping matches the swivel - up extends, left slides left. The 2 in the names is the
+    // same as on the zoom below: older bindings of these were still stored in profiles.
+    [QGVAR(extend2),    LLSTRING(Keybind_Extend),     AXIS_DEPTH, 1,  DIK_UP,    MOD_CTRL],
+    [QGVAR(retract2),   LLSTRING(Keybind_Retract),    AXIS_DEPTH, -1, DIK_DOWN,  MOD_CTRL],
+    [QGVAR(slideLeft2), LLSTRING(Keybind_SlideLeft),  AXIS_SLIDE, -1, DIK_LEFT,  MOD_CTRL],
+    [QGVAR(slideRight2), LLSTRING(Keybind_SlideRight), AXIS_SLIDE, 1,  DIK_RIGHT, MOD_CTRL],
 
     // Zoom on Page Up/Down, not on the numpad.
     //
@@ -208,16 +209,19 @@ private _fnc_addAxis = {
     "OPW", QGVAR(nightVision),
     [LLSTRING(Keybind_NightVision), ""],
     {call FUNC(toggleNightVision)},
-    {false},
-    [DIK_N, MOD_NONE]
+    {GVAR(active)},
+    [DIK_N, MOD_NONE],
+    false // one toggle per press, however long it is held
 ] call CBA_fnc_addKeybind;
 
 // R rather than Delete. Reloading does nothing with the device in hand, so the key is
-// free - and it sits where the hand already rests while walking.
+// free - and it sits where the hand already rests while walking. Recentre2 for the same reason
+// as zoomIn2: the old Delete binding was still stored in profiles.
 [
-    "OPW", QGVAR(recentre),
+    "OPW", QGVAR(recentre2),
     [LLSTRING(Keybind_Recentre), ""],
     {call FUNC(recentre)},
-    {false},
-    [DIK_R, MOD_NONE]
+    {GVAR(active)},
+    [DIK_R, MOD_NONE],
+    false
 ] call CBA_fnc_addKeybind;

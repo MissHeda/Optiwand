@@ -10,11 +10,12 @@ GVAR(pfh) = -1;
 GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;
-// How many segments of the acquisition readout are lit. -1 means the readout is not on
-// screen at all, which is a different state from zero lit segments.
-GVAR(acqLit) = -1;
-
-uiNamespace setVariable [QGVAR(hidden), []];   // [control, original fade]
+// The percentage the acquisition readout shows. -1 means the readout is not on screen at all,
+// which is a different state from zero percent.
+GVAR(acqShown) = -1;
+// Hiding the device's own housing and screen during a peek - see fnc_hideDevice.
+GVAR(devicePfh) = -1;
+GVAR(deviceScales) = [];  // [control, original scale]
 
 // Register the Spectrum Device with the mirror component - but only with a camera head on.
 //

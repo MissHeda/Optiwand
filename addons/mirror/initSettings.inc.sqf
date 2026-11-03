@@ -102,40 +102,35 @@
 ] call CBA_fnc_addSetting;
 
 // ---------------------------------------------------------------------------------------
-// Fine offset of the freehand camera, relative to the look direction.
+// Fine offset of the freehand camera, relative to the end of the wand.
 //
-// A setting rather than a constant, because it can only be judged in game: the camera must
-// sit neither inside the device model nor floating beside it. Three axes, because reach
+// A setting rather than a constant, because it can only be judged in game: how far the hand
+// sits from the device's origin differs a little with the animation. Three axes, because reach
 // along the line of sight and offset across it are separate problems.
 //
-// The defaults moved after testing: forward from 0.20 to 0.35, sideways from 0 to 0.10, up
-// from 0 to 0.06. The wand is held in the right hand and reaches out in front, so a camera
-// sitting on the eye looks straight down its own shaft - the shaft and the operator's own
-// hands were both in the picture. Out, right and up puts the lens past all of it.
-//
-// A stored value beats a default, so anyone who has already touched these sliders keeps what
-// they set. Reset them in Configure Addons to pick the new ones up.
+// New names rather than the old freeOffset*: those measured from the eye, and a value stored
+// under them would throw the head far off the wand.
 // ---------------------------------------------------------------------------------------
 [
-    QGVAR(freeOffsetForward), "SLIDER",
+    QGVAR(tipOffsetForward), "SLIDER",
     [LSTRING(Setting_OffsetForward), LSTRING(Setting_OffsetForward_Description)],
     CATEGORY_MIRROR,
-    [-0.5, 1, 0.35, 2],
+    [-0.5, 0.5, 0, 2],
     0
 ] call CBA_fnc_addSetting;
 
 [
-    QGVAR(freeOffsetRight), "SLIDER",
+    QGVAR(tipOffsetRight), "SLIDER",
     [LSTRING(Setting_OffsetRight), LSTRING(Setting_OffsetRight_Description)],
     CATEGORY_MIRROR,
-    [-0.5, 0.5, 0.10, 2],
+    [-0.5, 0.5, 0, 2],
     0
 ] call CBA_fnc_addSetting;
 
 [
-    QGVAR(freeOffsetUp), "SLIDER",
+    QGVAR(tipOffsetUp), "SLIDER",
     [LSTRING(Setting_OffsetUp), LSTRING(Setting_OffsetUp_Description)],
     CATEGORY_MIRROR,
-    [-0.5, 0.5, 0.06, 2],
+    [-0.5, 0.5, 0, 2],
     0
 ] call CBA_fnc_addSetting;
