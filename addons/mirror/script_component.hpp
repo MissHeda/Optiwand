@@ -27,24 +27,8 @@
 
 #define ICON_MIRROR     "\A3\ui_f\data\IGUI\Cfg\simpleTasks\types\scout_ca.paa"
 
-// Screen mask drawn on top of the feed: opaque surround, rounded transparent centre.
-// This is what gives the picture rounded corners and a vignette instead of a hard rectangle.
-#define TEXTURE_SCREENMASK "\z\ace\addons\viewports\data\optic_window_ca.paa"
-
-// Optional: one image of a device with a fully transparent screen cutout. Leave "" and the
-// housing is built from procedural colours instead. If you set it, DEVICE_CUT_* say where the
-// cutout sits inside that image as fractions of the image, and the feed is fitted into it -
-// the image is then scaled so the cutout lands exactly on the feed.
-//   e.g. a 1024x640 image whose cutout runs from px 96..928 across and 72..520 down gives
-//   L 0.094  T 0.113  R 0.906  B 0.813
-#define TEXTURE_DEVICE  ""
-#define DEVICE_CUT_L    0.07
-#define DEVICE_CUT_T    0.12
-#define DEVICE_CUT_R    0.93
-#define DEVICE_CUT_B    0.80
-
 ////////////////////////////////////////////////////////////////////////////////
-// Render target / dialog
+// Render target / overlay
 ////////////////////////////////////////////////////////////////////////////////
 
 #define RTT_NAME        QGVAR(rtt)
@@ -60,36 +44,57 @@
 //
 // This only runs while the mirror is out, so it costs nothing during normal play.
 //
-// Must match FEED_TEXTURE in the device addon. If you need frame rate, set both back to
-// 1024.
+// If you need frame rate, set it back to 1024.
 #define RTT_SIZE        2048
-#define IDD_MIRROR      91401
 
-#define IDC_CURSORKILL  9140090
-#define IDC_DEVICE      9140099
-#define IDC_BODY        9140100
-#define IDC_BEZEL       9140101
+// The whole overlay - see gui.hpp. There is no idd: this is a title layer, not a dialog, and
+// giving it one is part of what let the mouse escape.
+#define IDC_SCREEN      9140100
 #define IDC_FEED        9140102
-#define IDC_SCREENMASK  9140103
-#define IDC_TOPBAR      9140105
-#define IDC_TITLE       9140106
+#define IDC_MONITOR     9140104
 #define IDC_READOUT     9140108
-#define IDC_BOTBAR      9140109
 #define IDC_HINTS       9140110
-#define IDC_BRAND       9140111
-#define IDC_FAULT       9140115
-#define IDC_IRTINT      9140116
-#define IDC_SCREW_TL    9140120
-#define IDC_SCREW_TR    9140121
-#define IDC_SCREW_BL    9140122
-#define IDC_SCREW_BR    9140123
+// The picture build-up on the monitor's dark screen, which the device addon drives. Must match
+// addons\esdcam\script_component.hpp.
+#define IDC_ACQ_LABEL   9140112
+#define IDC_ACQ_TRACK   9140114
+#define IDC_ACQ_FILL    9140116
+#define IDC_OSD_TOP     9140118
+#define IDC_OSD_BOTTOM  9140120
+#define IDC_BACKING     9140122
+// The invisible dialog that holds the player still during a locked peek - see fnc_lockDialog.
+#define IDD_LOCK        9140198
+#define IDC_LOCK_CURSOR 9140124
+// How long the dialog waits for mouse buttons still held to come up, in seconds.
+#define LOCK_DIALOG_WAIT 2
+// How far from the middle the pointer may go during that dialog, as a share of the screen.
+#define MOUSE_RANGE 0.25
+
+// The field monitor, a picture rendered by tools/render_monitor.py. Its proportions and where
+// the screen lies in it, as fractions of the picture - that tool prints them, and they have
+// to agree with it. Its screen is 16:9.
+#define MONITOR_TEXTURE     QPATHTOF(data\monitor_ca.paa)
+#define MONITOR_ASPECT      0.64844
+#define MONITOR_SCREEN_X    0.07031
+#define MONITOR_SCREEN_Y    0.08584
+#define MONITOR_SCREEN_W    0.85938
+#define MONITOR_SCREEN_H    0.74548
+// Its size and place on the player's screen, as fractions of that screen: along the bottom
+// edge, where a monitor held in the hands would be.
+#define MONITOR_WIDTH       0.50
+#define MONITOR_MAX_HEIGHT  0.72
+#define MONITOR_BOTTOM      0.012
+// The dark bands on the monitor's screen, and how far the text sits inside them: structured
+// text hangs from the top of its control, so a band of its own lets it be centred by eye.
+#define OSD_BAND_HEIGHT     0.034
+#define OSD_TEXT_DROP       0.011
 
 ////////////////////////////////////////////////////////////////////////////////
 // Door detection
 ////////////////////////////////////////////////////////////////////////////////
 
 // How far in front of the camera we look for a door (same idea as ACE's door reach)
-#define DOOR_REACH_DISTANCE (((AGLToASL positionCameraToWorld [0, 0, 0]) vectorDistance (ACE_player modelToWorldWorld (ACE_player selectionPosition "Head"))) + 2)
+#define DOOR_REACH_DISTANCE (((AGLToASL positionCameraToWorld [0, 0, 0]) vectorDistance (CURRENT_UNIT modelToWorldWorld (CURRENT_UNIT selectionPosition "Head"))) + 2)
 
 // How far around the player a door is looked for, and at what height.
 // The search deliberately does not depend on where you are looking: standing next to a
@@ -98,6 +103,8 @@
 #define DOOR_SEARCH_RADIUS  3.2
 #define DOOR_SEARCH_HEIGHT  0.9
 #define DOOR_SEARCH_RAYS    12
+// How far the door may lie behind the surface the line hit first, in metres: its own thickness.
+#define DOOR_HIT_TOLERANCE  0.25
 
 // Interact-menu action point sits this far above the bottom edge of the door
 #define ACTION_HEIGHT       0.06
@@ -136,35 +143,26 @@
 // Deploy modes
 #define MODE_DOOR           0
 #define MODE_FREE           1
-// Nothing to show, just the device reporting it cannot be worked here
-#define MODE_FAULT          2
+// There is no fault mode. Having no room to work is a state, not a way of deploying - see
+// fnc_setFault.
 
-// Freehand: the head sits on the end of the shaft. Base drops below the eye, roughly where
-// the wand is actually held, and the reach is fixed - no pushing it further out from there.
+// Freehand: the head sits on the end of the wand, measured from the hand that holds it. The
+// hand follows every stance, lean and bit of sway, which the eye does not.
+//
+// From the device's origin at the grip to the lens: the muzzle proxy sits 0.098 m ahead of it
+// and the attachment is 0.579 m long. The fine offset lives in the settings (tipOffset*), so it
+// can be dialled in while playing.
+#define TIP_REACH           0.68
+// Where the hand cannot be read, the head is placed from the eye, this far below it.
 #define FREE_BASE_DROP      0.22
-// How far out the head sits in freehand mode, before anything in the way shortens it.
-//
-// Base reach in freehand mode. An outstretched arm from hand height is roughly 0.2 m, plus
-// the length of the attachment; much beyond that and the head floats in mid air rather
-// than sitting on the device.
-//
-// The fine offset lives in the settings (freeOffset*), so it can be dialled in while
-// playing.
-#define POLE_LENGTH         0.65
 
 // Refuse to deploy if there is less clear air than this in front of the operator
 #define FREE_MIN_CLEAR      0.35
 
-// How far the head sits above the shaft axis. Without it the camera looks along its own
-// model when swivelling up, and the shaft stands in the middle of the picture. A few
-// centimetres above and the device stays below the field of view.
-#define FREE_CAM_LIFT       0.08
-
 // How far past its starting position the head can be pushed in freehand mode.
-// Deliberately small: the arm is outstretched, and the posture allows little more than a
-// handspan of regrip. The wall check still applies and stops it earlier when something is
+// The wall check still applies and stops it earlier when something is
 // in the way.
-#define FREE_EXTEND         0.25
+#define FREE_EXTEND         0.5
 
 // How far around the operator loose shafts are hunted down after a detach
 #define SHAFT_SWEEP_RANGE   8
@@ -174,7 +172,11 @@
 #define FREE_PITCH_MAX      75
 
 #define DEPTH_MIN           0.02
-#define DEPTH_DEFAULT       0.14
+// At a door the depth counts from the leaf's face. The head has to start and stay clear past it:
+// inside the leaf, the sweep in fnc_update sees the leaf's far side as a wall in the way, and
+// throws the head back out in front of the door.
+#define DEPTH_DEFAULT       0.30
+#define DOOR_DEPTH_MIN      0.20
 // camSetFov: a smaller number means more zoomed in.
 //
 // A render target does not behave like the main view, and the usable range sits an order of
@@ -204,13 +206,47 @@
 #define PROBE_TOLERANCE     0.02
 // Probe window around the expected floor height
 #define PROBE_UP            0.3
+#define PROBE_FIRST         1.4
 #define PROBE_DOWN          0.9
 // Stop this far short of whatever the head ran into
-#define COLLISION_CLEARANCE 0.09
+#define COLLISION_CLEARANCE 0.25
 
 ////////////////////////////////////////////////////////////////////////////////
 // Session
 ////////////////////////////////////////////////////////////////////////////////
+
+// How long the aimed-view check is held off after the ACE interaction raises the device
+// itself. Long enough for the engine to have switched, short enough that a deploy which
+// genuinely never gets there still ends promptly.
+#define VIEW_GRACE          0.6
+
+// Engine actions that keep working while the keyboard is locked for a peek - see
+// fnc_lockInput. Only the voice and the pause menu: with the lock on, a peek means standing
+// still with the device up. Names the engine does not know simply resolve to no keys.
+#define PASS_ACTIONS [ \
+    "PushToTalk", "PushToTalkAll", "PushToTalkSide", "PushToTalkCommand", \
+    "PushToTalkGroup", "PushToTalkVehicle", "PushToTalkDirect", "VoiceOverNet", "Chat", \
+    "IngamePause" \
+]
+
+// CBA's key dispatch, read out of cba_events (CBA 3.19). keyDownStates/keyUpStates are arrays
+// of 270 lists of handler ids, one per key, and are only read here, never written.
+// keyHandlersDown/Up are the namespaces holding each id's parameters as
+// [key, modifiers, code, allowHold, holdDelay] - the code is what fnc_muteKeybind swaps.
+// keyDownActiveList holds the releases armed by presses still held. Named here so a CBA rename
+// has exactly one place to be fixed - fnc_lockInput checks and skips if they are gone.
+#define CBA_KEY_DOWN            "cba_events_keyDownStates"
+#define CBA_KEY_UP              "cba_events_keyUpStates"
+#define CBA_KEY_HANDLERS_DOWN   "cba_events_keyHandlersDown"
+#define CBA_KEY_HANDLERS_UP     "cba_events_keyHandlersUp"
+#define CBA_KEY_DOWN_ACTIVE     "cba_events_keyDownActiveList"
+// Where CBA files mouse buttons in those arrays: 0xF0 + button, from its MOUSE_OFFSET.
+#define CBA_MOUSE_OFFSET        0xF0
+
+// How long the lock may go on draining after a peek, waiting for keys pressed during it to come
+// up. Normally it ends the moment they do; this only matters for a release that went to
+// another display and is never coming.
+#define DRAIN_TIMEOUT           3
 
 // Auto-retract once the operator steps away from where they deployed
 #define ABORT_DISTANCE      1.5

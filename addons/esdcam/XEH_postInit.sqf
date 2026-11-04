@@ -3,45 +3,15 @@
 if (!hasInterface) exitWith {};
 
 // ---------------------------------------------------------------------------------------
-// Put the picture on the device screen as soon as the mirror component deploys.
-//
-// The mirror component already raises events on deploy and retract - we only listen, and
-// nothing has to change over there. By that point its camera is already rendering to
-// opw_mirror_rtt, so we are just showing the same target in a second place.
-//
-// The display comes from the uiNamespace: BIS_fnc_initDisplay stores it there under the
-// display's scriptName. That is why no onLoad of our own and no polling loop is needed.
+// The mirror component raises events on deploy and retract - we only listen. By the time of the
+// deploy its camera is rendering and its monitor is up. What is left to do here is deciding
+// when the picture comes up.
 // ---------------------------------------------------------------------------------------
-
-#define HIDE_LIST [IDC_LINES, IDC_LABELS_V, IDC_LABELS_H, IDC_SIGNAL_TEXT, \
-                   IDC_NO_ANTENNA, IDC_SELECTED, IDC_FOCUS, IDC_SELECTED_TEXT]
 
 [QEGVAR(mirror,deployed), {
     params ["", "", "", ["_mode", -1, [0]]];
 
-    if (!GVAR(useDeviceScreen)) exitWith {};
-    if (!(ESD_WEAPON_PREFIX in (currentWeapon ACE_player))) exitWith {};
-
-    private _display = uiNamespace getVariable [SPECTRUM_DISPLAY, displayNull];
-    if (isNull _display) exitWith {
-        diag_log text "OPW-ESDCAM  device display not open, picture stays on the monitor";
-    };
-
-    // Mute the spectrum side. The original fade is remembered rather than assumed - some of
-    // these controls are hidden by default and should be hidden again afterwards.
-    //
-    // IDC_PROGRESS is deliberately NOT in the list: that is the progress bar, which we are
-    // about to use for the picture build-up.
-    private _hidden = [];
-    {
-        private _ctrl = _display displayCtrl _x;
-        if (!isNull _ctrl) then {
-            _hidden pushBack [_ctrl, ctrlFade _ctrl];
-            _ctrl ctrlSetFade FADE_HIDE;
-            _ctrl ctrlCommit 0;
-        };
-    } forEach HIDE_LIST;
-    uiNamespace setVariable [QGVAR(hidden), _hidden];
+    if (!(ESD_WEAPON_PREFIX in (currentWeapon CURRENT_UNIT))) exitWith {};
 
     GVAR(acquire) = 0;
     GVAR(holding) = false;
@@ -50,34 +20,46 @@ if (!hasInterface) exitWith {};
     // There you slide the mirror under the leaf and want to see what is behind it at once -
     // having to hold a key while kneeling in a doorway is exactly the wrong moment for it.
     // Freehand is the other way round: you are standing still and can spare the second, and
-    // the transmit bar is what gives the act any weight.
+    // the bar is what gives the act any weight.
     GVAR(acquired) = !GVAR(requireAcquire) || {_mode isEqualTo MODE_DOOR};
 
     [GVAR(acquired)] call FUNC(showFeed);
 
     if (!GVAR(acquired)) then {
-        missionNamespace setVariable ["#EM_Transmit", false];
-        missionNamespace setVariable ["#EM_Progress", 0];
+        // Up straight away, before a single frame of the handler, so right click puts "HOLD"
+        // on the screen instead of an empty monitor that looks like nothing happened.
+        [true, 0] call FUNC(showAcquire);
         GVAR(pfh) = [FUNC(acquireTick), 0] call CBA_fnc_addPerFrameHandler;
+    };
+}] call CBA_fnc_addEventHandler;
+
+// The head ran out of room, or found some again. The mirror component reports it as a state
+// rather than refusing the deploy, so all that is needed here is to take the picture off the
+// screen and put it back - the operator stays in control the whole time.
+[QEGVAR(mirror,fault), {
+    params [["_faulted", false, [false]]];
+
+    if (_faulted) exitWith {
+        [false] call FUNC(showFeed);
+    };
+
+    // Only back on if it had been acquired in the first place - a fault clearing must not
+    // hand out a picture the operator has not held the button for yet.
+    if (GVAR(acquired)) then {
+        [true] call FUNC(showFeed);
     };
 }] call CBA_fnc_addEventHandler;
 
 [QEGVAR(mirror,retracted), {
     call FUNC(stopAcquire);
-
-    // The display may already be gone by now - then its controls are gone with it, and
-    // isNull catches that instead of throwing an error.
-    {
-        _x params ["_ctrl", "_fade"];
-        if (!isNull _ctrl) then {
-            _ctrl ctrlSetFade _fade;
-            _ctrl ctrlCommit 0;
-        };
-    } forEach (uiNamespace getVariable [QGVAR(hidden), []]);
-    uiNamespace setVariable [QGVAR(hidden), []];
-
-    [false] call FUNC(showFeed);
 }] call CBA_fnc_addEventHandler;
+
+// The device's own housing and screen stay out of the aimed view for as long as it is in hand -
+// see fnc_hideDevice.
+["weapon", {
+    params ["", "_weapon"];
+    [_weapon in EGVAR(mirror,wandClasses)] call FUNC(hideDevice);
+}, true] call CBA_fnc_addPlayerEventHandler;
 
 // ---------------------------------------------------------------------------------------
 // Holding the left mouse button builds the picture up.
@@ -102,26 +84,10 @@ if (!hasInterface) exitWith {};
     false
 }] call CBA_fnc_addDisplayHandler;
 
-// ---------------------------------------------------------------------------------------
-// Whether the overlay's monitor panel stays away.
-//
-// screenWands is the list of devices that carry the picture on their own model - for those
-// the mirror component holds its monitor back and shows only the key legend. Anyone who
-// would rather have the monitor turns the setting off.
-// ---------------------------------------------------------------------------------------
-["CBA_settingsInitialized", {
-    private _classes = [
-        "hgun_esd_01_F",
-        "hgun_esd_01_antenna_01_F",
-        "hgun_esd_01_antenna_02_F",
-        "hgun_esd_01_antenna_03_F"
-    ];
-    if (GVAR(useDeviceScreen)) then {
-        {EGVAR(mirror,screenWands) pushBackUnique _x} forEach _classes;
-    } else {
-        {
-            private _i = EGVAR(mirror,screenWands) find _x;
-            if (_i > -1) then {EGVAR(mirror,screenWands) deleteAt _i};
-        } forEach _classes;
+// During a locked peek the mouse goes to the lock's dialog, which passes the buttons on as this.
+[QEGVAR(mirror,lockedMouse), {
+    params ["_button", "_down"];
+    if (_button isEqualTo 0) then {
+        GVAR(holding) = _down && {EGVAR(mirror,active)};
     };
 }] call CBA_fnc_addEventHandler;

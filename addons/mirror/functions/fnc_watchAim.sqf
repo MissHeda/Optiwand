@@ -23,7 +23,7 @@
 // While the monitor is up the latch is owned by fnc_closeView - do not touch it
 if (GVAR(active)) exitWith {};
 
-private _player = ACE_player;
+private _player = CURRENT_UNIT;
 
 // Cheap early out - this runs whether or not the wand is out
 // Also checks the muzzle attachment where one is demanded - the Spectrum Device without a

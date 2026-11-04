@@ -12,7 +12,7 @@
  * Wand in hand <BOOL>
  *
  * Example:
- * [ACE_player] call opw_mirror_fnc_wandReady
+ * [CURRENT_UNIT] call opw_mirror_fnc_wandReady
  *
  * Public: No
  */

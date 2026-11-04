@@ -28,24 +28,25 @@ if (GVAR(active)) exitWith {
     true
 };
 
-private _player = ACE_player;
+private _player = CURRENT_UNIT;
 
 if (!isNull objectParent _player) exitWith {false};
 if (!([_player] call FUNC(wandReady))) exitWith {false};
-if (!([_player, objNull, ["isNotInside", "isNotSwimming", "isNotSitting"]] call ACEFUNC(common,canInteractWith))) exitWith {false};
+// Swimming and diving, by the name of the animation.
+if (((animationState _player) select [1, 3]) in ["bdv", "bsw", "dve", "sdv", "ssw", "swm"]) exitWith {false};
 
 private _fnc_freehand = {
     if (!GVAR(allowFreehand)) exitWith {
-        if (!_silent) then {[LLSTRING(Hint_NoDoor), 1.5] call ACEFUNC(common,displayTextStructured)};
+        if (!_silent) then {[LLSTRING(Hint_NoDoor)] call CBA_fnc_notify};
         false
     };
 
     private _eyeASL = AGLToASL positionCameraToWorld [0, 0, 0];
     private _lookDir = vectorNormalized ((AGLToASL positionCameraToWorld [0, 0, 1]) vectorDiff _eyeASL);
 
-    // Base sits below the eye, roughly where the wand is actually held
-    private _baseASL = _eyeASL vectorAdd [0, 0, -FREE_BASE_DROP];
-    private _reach = POLE_LENGTH;
+    // Base is the hand the wand is held in, and the head sits at the end of the wand
+    private _baseASL = [_player] call FUNC(wandBase);
+    private _reach = TIP_REACH;
 
     // The head goes on the end of a stick, not through the wall in front of it. Clamp the
     // reach to whatever is in the way, and refuse outright if there is no room to work.
@@ -54,16 +55,13 @@ private _fnc_freehand = {
         _reach = (_baseASL vectorDistance ((_blocked select 0) select 0)) - COLLISION_CLEARANCE;
     };
 
-    // With no clearance the head cannot extend. Nothing happening at all reads as a broken
-    // mod, so the device says so itself.
+    // No clearance check here.
     //
-    // Switchable: anyone who does not want the check gets the mirror deployed right up
-    // against a wall too. The head then sits wherever there was still room.
-    if (GVAR(requireClearance) && {_reach < FREE_MIN_CLEAR}) exitWith {
-        [objNull, "", [], [], 0, MODE_FAULT] call FUNC(openView);
-        true
-    };
-
+    // It used to refuse the deploy outright, which put the report on the screen at the
+    // moment the device was raised rather than at the moment it would have shown a picture -
+    // and left the operator with a monitor that nothing was left running to close. The check
+    // is in fnc_update now, measured against the reach the head actually achieves, and shown
+    // through fnc_setFault. Walk back a step and the picture arrives by itself.
     _reach = _reach max DEPTH_MIN;
 
     [objNull, "", _baseASL, _lookDir, 0, MODE_FREE, _reach] call FUNC(openView);

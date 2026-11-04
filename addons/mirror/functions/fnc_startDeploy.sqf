@@ -1,8 +1,8 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Runs the deploy progress bar and opens the feed. Shared by both ways in: the ACE
- * interaction at the door slit and the keybind.
+ * Runs the deploy progress bar and opens the feed. Shared by every way in that finds a
+ * door: aiming, the keybind and, with ACE3 loaded, the interaction at the door slit.
  *
  * Arguments:
  * 0: House <OBJECT>
@@ -33,14 +33,31 @@ if (_time <= 0) exitWith {
     true
 };
 
+// With ACE3 its own bar, so the deploy looks and behaves like every other ACE action and follows
+// the player's ACE setting for where the bar sits.
+if (isClass (configFile >> "CfgPatches" >> "ace_common")) exitWith {
+    [
+        _time,
+        _args,
+        {(_this select 0) call FUNC(openView)},
+        {},
+        LLSTRING(Progress_Deploy),
+        {[CURRENT_UNIT] call FUNC(wandReady)},
+        ["isNotInside", "isNotSwimming", "isNotSitting"]
+    ] call ACEFUNC(common,progressBar);
+    [uiNamespace getVariable ["ace_common_dlgProgress", displayNull]] call FUNC(trackHeldKeys);
+    true
+};
+
 [
+    LLSTRING(Progress_Deploy),
     _time,
-    _args,
+    {[CURRENT_UNIT] call FUNC(wandReady)},
     {(_this select 0) call FUNC(openView)},
     {},
-    LLSTRING(Progress_Deploy),
-    {[ACE_player] call FUNC(wandReady)},
-    ["isNotInside", "isNotSwimming", "isNotSitting"]
-] call ACEFUNC(common,progressBar);
+    _args
+] call CBA_fnc_progressBar;
+
+[uiNamespace getVariable ["cba_ui_BlockInputDisplay", displayNull]] call FUNC(trackHeldKeys);
 
 true

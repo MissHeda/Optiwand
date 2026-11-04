@@ -16,3 +16,15 @@ _attic/*.zip
 # the first commit has it, so it can be recovered from there at any time:
 #   git checkout 5cf04f1 -- _attic
 _attic/
+
+# Model sources. The FBX is small enough to keep - the p3d can be rebuilt from it with
+# tools/fbx_to_p3d.py. The 4096 bakes and the archive they came in are 30-plus MB and
+# stay on disk only.
+art/esdcam/bake/
+art/esdcam/*.zip
+art/esdcam/*-empty-export.p3d
+
+# Python bytecode from tools/
+__pycache__/
+*.pyc
+art/esdcam/reference/

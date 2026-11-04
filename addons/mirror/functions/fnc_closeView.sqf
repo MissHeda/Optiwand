@@ -21,6 +21,10 @@ if (isNil QGVAR(active) || {!GVAR(active)}) exitWith {};
 
 GVAR(active) = false;
 
+// Before anything else. The lock swaps another mod's state - CBA's key dispatch - and that is
+// the one thing that must not be left behind should a later step in here throw.
+[false] call FUNC(lockInput);
+
 // The overlay goes first. It is only a title layer now and traps nobody, but it would be
 // the one thing left standing should a later step in here throw - so it goes before
 // anything else.
@@ -33,7 +37,6 @@ if (!isNull GVAR(camera)) then {
 GVAR(camera) = objNull;
 uiNamespace setVariable [QGVAR(display), displayNull];
 uiNamespace setVariable [QGVAR(ctrlReadout), controlNull];
-uiNamespace setVariable [QGVAR(ctrlIrTint), controlNull];
 
 if (GVAR(pfhId) >= 0) then {
     [GVAR(pfhId)] call CBA_fnc_removePerFrameHandler;
@@ -46,6 +49,7 @@ GVAR(helper) = objNull;
 GVAR(axes) = [0, 0, 0, 0, 0];
 GVAR(keyAxes) = createHashMap;
 GVAR(nightVision) = false;
+GVAR(faulted) = false;
 GVAR(lastCamPosASL) = [];
 GVAR(lastAppliedPos) = [];
 GVAR(lastAppliedDir) = [];
@@ -58,7 +62,7 @@ GVAR(aimLatched) = true;
 // Right click brought us in, so right click should hand the operator back a normal stance
 // rather than leaving them still shouldered against nothing.
 if (cameraView isEqualTo "GUNNER") then {
-    ACE_player switchCamera GVAR(viewBefore);
+    CURRENT_UNIT switchCamera GVAR(viewBefore);
 };
 
-[QGVAR(retracted), [ACE_player]] call CBA_fnc_localEvent;
+[QGVAR(retracted), [CURRENT_UNIT]] call CBA_fnc_localEvent;

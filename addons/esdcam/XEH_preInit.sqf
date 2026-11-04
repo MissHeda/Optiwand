@@ -10,8 +10,12 @@ GVAR(pfh) = -1;
 GVAR(acquire) = 0;
 GVAR(acquired) = false;
 GVAR(holding) = false;
-
-uiNamespace setVariable [QGVAR(hidden), []];   // [control, original fade]
+// The percentage the acquisition readout shows. -1 means the readout is not on screen at all,
+// which is a different state from zero percent.
+GVAR(acqShown) = -1;
+// Hiding the device's own housing and screen during a peek - see fnc_hideDevice.
+GVAR(devicePfh) = -1;
+GVAR(deviceScales) = [];  // [control, original scale]
 
 // Register the Spectrum Device with the mirror component - but only with a camera head on.
 //
@@ -33,10 +37,5 @@ if (isNil QEGVAR(mirror,wandMuzzle)) then {EGVAR(mirror,wandMuzzle) = createHash
     "hgun_esd_01_antenna_02_F",
     "hgun_esd_01_antenna_03_F"
 ];
-
-// screenWands is handled in XEH_postInit rather than here, because it follows a setting:
-// that list holds devices carrying the render target on their own model, and for those the
-// mirror component keeps its monitor panel out of the way. Whether the Spectrum Device
-// belongs in it depends on useDeviceScreen, which is not known until settings are read.
 
 ADDON = true;

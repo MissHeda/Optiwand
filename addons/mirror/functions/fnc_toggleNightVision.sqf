@@ -20,14 +20,9 @@ if (!GVAR(active)) exitWith {false};
 
 GVAR(nightVision) = !GVAR(nightVision);
 
-// Two halves: the effect in the render target, and a wash over the display. The wash is
-// what makes the switch unmistakable even where the render effect does little.
+// setPiPEffect tints the render target itself, so the picture on the monitor comes through
+// green with nothing else to do.
 RTT_NAME setPiPEffect [parseNumber GVAR(nightVision)];
-
-private _ctrlIrTint = uiNamespace getVariable [QGVAR(ctrlIrTint), controlNull];
-if (!isNull _ctrlIrTint) then {
-    _ctrlIrTint ctrlShow GVAR(nightVision);
-};
 
 // Force the readout to redraw in the same frame
 GVAR(readoutState) = [];

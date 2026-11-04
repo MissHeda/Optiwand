@@ -1,20 +1,6 @@
 #define CATEGORY_MIRROR LLSTRING(SettingCategory)
 
-[
-    QGVAR(requireItem), "CHECKBOX",
-    [LSTRING(Setting_RequireItem), LSTRING(Setting_RequireItem_Description)],
-    CATEGORY_MIRROR,
-    [true],
-    1
-] call CBA_fnc_addSetting;
-
-[
-    QGVAR(allowFreehand), "CHECKBOX",
-    [LSTRING(Setting_AllowFreehand), LSTRING(Setting_AllowFreehand_Description)],
-    CATEGORY_MIRROR,
-    [true],
-    1
-] call CBA_fnc_addSetting;
+// In order: numbers, then switches. The device addon's settings join on the end of the category.
 
 [
     QGVAR(deployTime), "SLIDER",
@@ -40,33 +26,47 @@
     1
 ] call CBA_fnc_addSetting;
 
-// When the carried monitor comes along - split by mode, because the two feel different: at
-// a door you stand still and look, while freehand you hold the device out in front of you
-// and want the view clear.
-//
-// Off by default: the screen on the device is the whole point of the thing. Through the ACE
-// interaction the monitor comes up regardless - nobody is aiming there, so the eye never
-// gets close enough to read the small screen.
-// With no clearance the head cannot extend, and the device says so. Anyone who does not
-// want the message - because their unit does not expect to see through walls anyway -
-// turns the check off and deploys the mirror anywhere.
+// How much further than its starting position the head can be pushed in freehand mode. The wall
+// check still stops it earlier when something is in the way.
 [
-    QGVAR(requireClearance), "CHECKBOX",
-    [LSTRING(Setting_RequireClearance), LSTRING(Setting_RequireClearance_Description)],
+    QGVAR(freeExtend), "SLIDER",
+    [LSTRING(Setting_FreeExtend), LSTRING(Setting_FreeExtend_Description)],
     CATEGORY_MIRROR,
-    [true],
+    [0, 1.0, FREE_EXTEND, 2],
     1
 ] call CBA_fnc_addSetting;
 
+// ---------------------------------------------------------------------------------------
+// Fine offset of the freehand camera, relative to the end of the wand.
+//
+// A setting rather than a constant, because it can only be judged in game: how far the hand
+// sits from the device's origin differs a little with the animation. Three axes, because reach
+// along the line of sight and offset across it are separate problems.
+//
+// New names rather than the old freeOffset*: those measured from the eye, and a value stored
+// under them would throw the head far off the wand.
+// ---------------------------------------------------------------------------------------
 [
-    QGVAR(guiMode), "LIST",
-    [LSTRING(Setting_GuiMode), LSTRING(Setting_GuiMode_Description)],
+    QGVAR(tipOffsetForward), "SLIDER",
+    [LSTRING(Setting_OffsetForward), LSTRING(Setting_OffsetForward_Description)],
     CATEGORY_MIRROR,
-    [
-        [0, 1, 2, 3],
-        [LSTRING(GuiMode_Never), LSTRING(GuiMode_Door), LSTRING(GuiMode_Free), LSTRING(GuiMode_Always)],
-        0
-    ],
+    [-0.5, 0.5, 0, 2],
+    0
+] call CBA_fnc_addSetting;
+
+[
+    QGVAR(tipOffsetRight), "SLIDER",
+    [LSTRING(Setting_OffsetRight), LSTRING(Setting_OffsetRight_Description)],
+    CATEGORY_MIRROR,
+    [-0.5, 0.5, 0, 2],
+    0
+] call CBA_fnc_addSetting;
+
+[
+    QGVAR(tipOffsetUp), "SLIDER",
+    [LSTRING(Setting_OffsetUp), LSTRING(Setting_OffsetUp_Description)],
+    CATEGORY_MIRROR,
+    [-0.5, 0.5, 0, 2],
     0
 ] call CBA_fnc_addSetting;
 
@@ -98,69 +98,39 @@
     0
 ] call CBA_fnc_addSetting;
 
-// How much further than its starting position the head can be pushed in freehand mode.
-// The arm is already extended, and the posture does not allow much beyond a regrip - anyone
-// who wants more turns it up here. The wall check still stops it earlier when something is
-// in the way.
 [
-    QGVAR(freeExtend), "SLIDER",
-    [LSTRING(Setting_FreeExtend), LSTRING(Setting_FreeExtend_Description)],
+    QGVAR(requireItem), "CHECKBOX",
+    [LSTRING(Setting_RequireItem), LSTRING(Setting_RequireItem_Description)],
     CATEGORY_MIRROR,
-    [0, 1.0, FREE_EXTEND, 2],
+    [true],
     1
 ] call CBA_fnc_addSetting;
 
 [
-    QGVAR(feedScale), "SLIDER",
-    [LSTRING(Setting_FeedScale), LSTRING(Setting_FeedScale_Description)],
+    QGVAR(allowFreehand), "CHECKBOX",
+    [LSTRING(Setting_AllowFreehand), LSTRING(Setting_AllowFreehand_Description)],
     CATEGORY_MIRROR,
-    [0.12, 0.7, 0.24, 2],
-    0
+    [true],
+    1
 ] call CBA_fnc_addSetting;
 
+// With no clearance the head cannot extend, and the monitor says so. Anyone who does not want
+// the message - because their unit does not expect to see through walls anyway - turns the
+// check off and deploys the mirror anywhere.
 [
-    QGVAR(feedPosition), "LIST",
-    [LSTRING(Setting_FeedPosition), LSTRING(Setting_FeedPosition_Description)],
+    QGVAR(requireClearance), "CHECKBOX",
+    [LSTRING(Setting_RequireClearance), LSTRING(Setting_RequireClearance_Description)],
     CATEGORY_MIRROR,
-    [
-        [0, 1, 2, 3, 4, 5, 6, 7, 8],
-        [
-            LSTRING(Anchor_TopLeft),    LSTRING(Anchor_TopCentre),    LSTRING(Anchor_TopRight),
-            LSTRING(Anchor_MiddleLeft), LSTRING(Anchor_Centre),       LSTRING(Anchor_MiddleRight),
-            LSTRING(Anchor_BottomLeft), LSTRING(Anchor_BottomCentre), LSTRING(Anchor_BottomRight)
-        ],
-        7
-    ],
-    0
+    [true],
+    1
 ] call CBA_fnc_addSetting;
 
-// ---------------------------------------------------------------------------------------
-// Fine offset of the freehand camera, relative to the look direction.
-//
-// A setting rather than a constant, because it can only be judged in game: the camera must
-// sit neither inside the device model nor floating beside it. Three axes, because reach
-// along the line of sight and offset across it are separate problems.
-// ---------------------------------------------------------------------------------------
+// Off lets every other mod's keys fire while peeking again - the TFAR stereo keys on
+// Ctrl+arrows among them. For the player who wants that trade, not a default.
 [
-    QGVAR(freeOffsetForward), "SLIDER",
-    [LSTRING(Setting_OffsetForward), LSTRING(Setting_OffsetForward_Description)],
+    QGVAR(lockInput), "CHECKBOX",
+    [LSTRING(Setting_LockInput), LSTRING(Setting_LockInput_Description)],
     CATEGORY_MIRROR,
-    [-0.5, 1, 0.2, 2],
-    0
-] call CBA_fnc_addSetting;
-
-[
-    QGVAR(freeOffsetRight), "SLIDER",
-    [LSTRING(Setting_OffsetRight), LSTRING(Setting_OffsetRight_Description)],
-    CATEGORY_MIRROR,
-    [-0.5, 0.5, 0, 2],
-    0
-] call CBA_fnc_addSetting;
-
-[
-    QGVAR(freeOffsetUp), "SLIDER",
-    [LSTRING(Setting_OffsetUp), LSTRING(Setting_OffsetUp_Description)],
-    CATEGORY_MIRROR,
-    [-0.5, 0.5, 0, 2],
+    [true],
     0
 ] call CBA_fnc_addSetting;

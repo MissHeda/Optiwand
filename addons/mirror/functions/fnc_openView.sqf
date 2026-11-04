@@ -1,18 +1,22 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Puts the mirror out: creates the render to texture camera, raises the overlay and hooks
- * up the controls.
+ * Puts the mirror out: creates the render to texture camera, raises the overlay with its field
+ * monitor and hooks up the controls. The device addon listens for the deployed event below and
+ * decides when the picture comes up on the monitor.
  * The camera renders into a texture instead of onto the screen (same technique as
  * ace_viewports_fnc_viewCreate by PabstMirror), so the world keeps rendering normally behind
- * the device. The overlay is a title layer, not a dialog, so the player keeps moving.
+ * the device. The overlay is a title layer, not a dialog, so the keyboard lock decides what the
+ * player can still do.
  *
  * Three modes:
  *   MODE_DOOR   the head sits in the door slit, rides the floor and slides along the gap
  *   MODE_FREE   the head sits on the end of the shaft, wherever the operator pointed it -
  *               for looking over a wall or round a corner. No floor, no sideways slide.
- *   MODE_FAULT  no camera at all, just the device reporting it has no room to work. Better
- *               than nothing happening, which reads as a broken mod.
+ *
+ * There is no fault mode any more. Having no room to work is a state the head can be in and
+ * come out of again, so it is measured every frame in fnc_update and shown through
+ * fnc_setFault - see the note there for why the old mode had to go.
  *
  * Arguments:
  * 0: House <OBJECT> (objNull in free mode)
@@ -36,7 +40,7 @@ params ["_house", "_door", "_basePosASL", "_reachDir", ["_halfWidth", PANEL_FALL
 
 if (!hasInterface) exitWith {};
 if (GVAR(active)) exitWith {};
-if (_mode isNotEqualTo MODE_FAULT && {_basePosASL isEqualTo [] || {_reachDir isEqualTo []}}) exitWith {};
+if (_basePosASL isEqualTo [] || {_reachDir isEqualTo []}) exitWith {};
 if (_mode isEqualTo MODE_DOOR && {isNull _house}) exitWith {};
 
 GVAR(active) = true;
@@ -45,7 +49,7 @@ GVAR(house) = _house;
 GVAR(door) = _door;
 GVAR(basePosASL) = _basePosASL;
 GVAR(baseDir) = _reachDir;
-GVAR(anchorASL) = getPosASL ACE_player;
+GVAR(anchorASL) = getPosASL CURRENT_UNIT;
 
 // The head is aimed in spherical terms around the direction the shaft points
 GVAR(baseAzimuth) = 0;
@@ -65,12 +69,9 @@ if (_mode isEqualTo MODE_FREE) then {
     GVAR(depthDefault) = _reach;
     GVAR(slideLimit) = 0;
 
-    // Lift the head a little above the shaft axis, or the model itself stands in the picture
-    // when swivelling up.
-    GVAR(basePosASL) = GVAR(basePosASL) vectorAdd [0, 0, FREE_CAM_LIFT];
 } else {
     GVAR(basePitch) = PITCH_DEFAULT;
-    GVAR(depthDefault) = DEPTH_DEFAULT min GVAR(maxDepth);
+    GVAR(depthDefault) = DEPTH_DEFAULT;
     GVAR(slideLimit) = 0 max (_halfWidth - SLIDE_MARGIN);
 };
 
@@ -85,6 +86,9 @@ GVAR(fovFar) = GVAR(zoomNear) max GVAR(zoomFar);
 GVAR(fovStart) = (GVAR(defaultFov) max GVAR(fovNear)) min GVAR(fovFar);
 GVAR(fov) = GVAR(fovStart);
 GVAR(nightVision) = false;
+// Cleared here rather than in fnc_setFault: that one only acts on a change, so it has to
+// start from a known state or the first real measurement is swallowed as "no change".
+GVAR(faulted) = false;
 GVAR(axes) = [0, 0, 0, 0, 0];
 GVAR(keyAxes) = createHashMap;
 GVAR(readoutState) = [];
@@ -113,30 +117,52 @@ GVAR(lastProbeXY) = [0, 0, 0];
 GVAR(lastCamPosASL) = [[], _basePosASL] select (_mode isEqualTo MODE_FREE);
 
 ////////////////////////////////////////////////////////////////////////////////
-// Camera
+// Raise the device
 ////////////////////////////////////////////////////////////////////////////////
-
-// A fault has nothing to show, so it gets no camera and no render target
-if (_mode isNotEqualTo MODE_FAULT) then {
-    GVAR(camera) = "camera" camCreate (ASLToAGL _basePosASL);
-    GVAR(camera) cameraEffect ["INTERNAL", "BACK", RTT_NAME];
-    RTT_NAME setPiPEffect [0];
-    GVAR(camera) camSetFov GVAR(fov);
-    GVAR(camera) camCommit 0;
+//
+// The peek belongs to the aimed view: fnc_update ends it when the player leaves that.
+//
+// Aiming gets there by itself - right click is what deploys. The ACE interaction does not:
+// nobody is aiming when they pick an action out of the menu. That path used to be covered by
+// the monitor panel, and with the panel gone it showed nothing at all - worse, fnc_update
+// ends the session on `cameraView isNotEqualTo "GUNNER"`, so an interaction deploy closed
+// again on its very first frame. It was broken before the panel went; the panel just hid it.
+//
+// So the interaction raises the device itself, and everything downstream is the same session
+// the right click would have opened.
+// A grace window with it, and that part is not decoration. fnc_update ends the session on
+// `cameraView isNotEqualTo "GUNNER"`, and it is called once at the bottom of this very
+// function - the same frame as the switchCamera above. Whether the engine has switched by
+// then is not something that can be checked from outside the game, and if it has not, the
+// session closes on the frame it opened. So the check is held off briefly; anything that
+// still is not in the aimed view once the window passes gets closed as before.
+GVAR(viewGrace) = 0;
+if (GVAR(viaInteraction) && {cameraView isNotEqualTo "GUNNER"}) then {
+    GVAR(viewBefore) = cameraView;
+    CURRENT_UNIT switchCamera "GUNNER";
+    GVAR(viewGrace) = diag_tickTime + VIEW_GRACE;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// Monitor
+// Camera
 ////////////////////////////////////////////////////////////////////////////////
 
-// Title layer rather than dialog.
+GVAR(camera) = "camera" camCreate (ASLToAGL _basePosASL);
+GVAR(camera) cameraEffect ["INTERNAL", "BACK", RTT_NAME];
+RTT_NAME setPiPEffect [0];
+GVAR(camera) camSetFov GVAR(fov);
+GVAR(camera) camCommit 0;
+
+////////////////////////////////////////////////////////////////////////////////
+// Overlay
+////////////////////////////////////////////////////////////////////////////////
 //
-// A dialog captures every input - the player stood fixed in place for as long as the mirror
-// was out. An RscTitles layer draws the same thing but leaves walking, looking around and
-// the weapon free. The keys in turn come from CBA keybinds rather than from the display.
+// A title layer: the field monitor with the camera picture in it, the readout and the key
+// legend - see gui.hpp.
 //
 // cutRsc creates the display within the same frame; its onLoad puts it into the uiNamespace,
 // which is why it can be picked up immediately afterwards.
+
 private _layer = QGVAR(layer) call BIS_fnc_rscLayer;
 _layer cutRsc [QGVAR(layer), "PLAIN", 0, false];
 
@@ -146,228 +172,95 @@ if (isNull _display) exitWith {
     call FUNC(closeView);
 };
 
-// Kill the mouse pointer - a floating arrow ruins the illusion completely.
-// This is a full screen map control, which is the only way Arma offers to swap the cursor.
-// A live map control also takes mouse input and starts a drag on button down, so it is
-// disabled straight afterwards: it still paints, it just cannot capture the mouse any more.
-private _cursorKill = _display displayCtrl IDC_CURSORKILL;
-if (!isNull _cursorKill) then {
-    _cursorKill ctrlMapCursor ["", "ace_common_blank"];
-    _cursorKill ctrlEnable false;
-};
-
-// The render target always inherits the main video aspect ratio, so size the screen to match.
-// Vertical sizes below are fractions of safezoneH; horizontal ones go through the same
-// conversion, so a control meant to be square comes out square instead of stretched.
-private _screenAR = getResolution select 4;
-private _fnc_sq = {(_this) * _screenAR * 0.75};
-
-private _screenH = ((GVAR(feedScale) * safezoneH) max 0.1) min (0.75 * safezoneH);
-private _screenW = _screenH call _fnc_sq;
-
-private _padY = 0.013 * safezoneH;
-private _padX = _padY call _fnc_sq;
-private _barY = 0.030 * safezoneH;
-private _botY = 0.044 * safezoneH;
-
-private _bodyW = _screenW + 2 * _padX;
-private _bodyH = _screenH + 2 * _padY + _barY + _botY;
-
-private _bodyX = 0;
-private _bodyY = 0;
-
-// Nine anchors on a grid, read left to right and top to bottom
-private _col = GVAR(feedPosition) % 3;
-private _row = floor (GVAR(feedPosition) / 3);
-private _marginX = 0.015;
-private _marginY = 0.04 * safezoneH;
-
-_bodyX = switch (_col) do {
-    case 0: {safezoneX + _marginX};
-    case 2: {safezoneX + safezoneW - _bodyW - _marginX};
-    default {safezoneX + 0.5 * (safezoneW - _bodyW)};
-};
-
-_bodyY = switch (_row) do {
-    case 0: {safezoneY + _marginY};
-    case 1: {safezoneY + 0.5 * (safezoneH - _bodyH)};
-    default {safezoneY + safezoneH - _bodyH - _marginY};
-};
-
-// Keep the whole device on screen even at silly feed sizes
-_bodyX = (_bodyX max safezoneX) min (safezoneX + safezoneW - _bodyW);
-_bodyY = (_bodyY max safezoneY) min (safezoneY + safezoneH - _bodyH);
-
-private _screenX = _bodyX + _padX;
-private _screenY = _bodyY + _barY + _padY * 0.4;
-
-// The legend strip mirrors the title strip exactly: same inset from the bezel, same height.
-// Deriving it from _barY rather than picking numbers out of _botY is the whole point - the
-// two strips are supposed to look like the same piece of the same device.
-private _bezelBottom = _screenY + _screenH + _padY * 0.4;
-private _legendY = _bezelBottom + _barY * 0.12;
-private _legendH = _barY * 0.76;
-
-// Badge sits in whatever the strip leaves, centred by its own valign
-private _brandY = _legendY + _legendH + _barY * 0.12;
-private _brandH = (_bodyY + _bodyH) - _brandY;
-
-private _screwW = (0.005 * safezoneH) call _fnc_sq;
-private _screwH = 0.005 * safezoneH;
-private _screwIX = 0.35 * _padX;
-private _screwIY = 0.35 * _padY;
-
-{
-    _x params ["_idc", "_position"];
-    private _ctrl = _display displayCtrl _idc;
-    _ctrl ctrlSetPosition _position;
-    _ctrl ctrlCommit 0;
-} forEach [
-    [IDC_BODY,       [_bodyX, _bodyY, _bodyW, _bodyH]],
-    [IDC_BEZEL,      [_screenX - _padX * 0.4, _screenY - _padY * 0.4, _screenW + _padX * 0.8, _screenH + _padY * 0.8]],
-    [IDC_FEED,       [_screenX, _screenY, _screenW, _screenH]],
-    [IDC_IRTINT,     [_screenX, _screenY, _screenW, _screenH]],
-    [IDC_SCREENMASK, [_screenX, _screenY, _screenW, _screenH]],
-    [IDC_TOPBAR,     [_bodyX + _padX * 0.5, _bodyY + _barY * 0.12, _bodyW - _padX, _barY * 0.76]],
-    [IDC_TITLE,      [_bodyX, _bodyY + _barY * 0.12, _bodyW, _barY * 0.76]],
-    [IDC_READOUT,    [_bodyX + _bodyW * 0.5, _bodyY + _barY * 0.12, _bodyW * 0.5 - _padX, _barY * 0.76]],
-    [IDC_SCREW_TL,   [_bodyX + _screwIX, _bodyY + _screwIY, _screwW, _screwH]],
-    [IDC_SCREW_TR,   [_bodyX + _bodyW - _screwIX - _screwW, _bodyY + _screwIY, _screwW, _screwH]],
-    [IDC_SCREW_BL,   [_bodyX + _screwIX, _bodyY + _bodyH - _screwIY - _screwH, _screwW, _screwH]],
-    [IDC_SCREW_BR,   [_bodyX + _bodyW - _screwIX - _screwW, _bodyY + _bodyH - _screwIY - _screwH, _screwW, _screwH]],
-    [IDC_BOTBAR,     [_bodyX + _padX * 0.5, _legendY, _bodyW - _padX, _legendH]],
-    [IDC_HINTS,      [_bodyX, _legendY, _bodyW, _legendH]],
-    [IDC_BRAND,      [_bodyX, _brandY, _bodyW, _brandH]]
-];
-
-private _ctrlFault = _display displayCtrl IDC_FAULT;
-private _ctrlIrTint = _display displayCtrl IDC_IRTINT;
-_ctrlIrTint ctrlShow false;
-uiNamespace setVariable [QGVAR(ctrlIrTint), _ctrlIrTint];
-// The size must match FEED_TEXTURE in the device addon: both bind the same render target,
-// and the number in the texture string tells Arma how large a buffer to allocate for it.
-// Two different figures under the same name is a coin toss over which one wins.
+// The number in the texture string tells Arma how large a buffer to allocate.
 private _feedTexture = format ["#(argb,%1,%1,1)r2t(%2,1)", RTT_SIZE, RTT_NAME];
 
-// The chosen text is remembered: the no-panel branch sets it a second time straight after,
-// larger and white.
-private _hintText = "";
-
-switch (_mode) do {
-    case MODE_FAULT: {
-        (_display displayCtrl IDC_FEED) ctrlSetText "#(argb,8,8,3)color(0.02,0.02,0.02,1)";
-        (_display displayCtrl IDC_TITLE) ctrlSetText LLSTRING(Feed_Title_Fault);
-        _hintText = LLSTRING(Feed_Hints_Fault);
-        (_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
-        _ctrlFault ctrlSetPosition [_screenX, _screenY, _screenW, _screenH];
-        _ctrlFault ctrlSetStructuredText parseText LLSTRING(Fault_NoClearance);
-        _ctrlFault ctrlCommit 0;
-    };
-    case MODE_FREE: {
-        (_display displayCtrl IDC_FEED) ctrlSetText _feedTexture;
-        (_display displayCtrl IDC_TITLE) ctrlSetText LLSTRING(Feed_Title_Free);
-        _hintText = LLSTRING(Feed_Hints_Free);
-        (_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
-        _ctrlFault ctrlShow false;
-    };
-    default {
-        (_display displayCtrl IDC_FEED) ctrlSetText _feedTexture;
-        (_display displayCtrl IDC_TITLE) ctrlSetText LLSTRING(Feed_Title);
-        _hintText = LLSTRING(Feed_Hints);
-        (_display displayCtrl IDC_HINTS) ctrlSetStructuredText parseText _hintText;
-        _ctrlFault ctrlShow false;
-    };
+// The monitor, in real proportions whatever the player's screen: a UI unit is not as wide as it
+// is high, and pixelW and pixelH say by how much. The device addon decides when the picture
+// comes up, so it stays dark until then.
+private _monitorW = MONITOR_WIDTH * safezoneW;
+private _monitorH = _monitorW * MONITOR_ASPECT * pixelH / pixelW;
+if (_monitorH > MONITOR_MAX_HEIGHT * safezoneH) then {
+    _monitorW = _monitorW * MONITOR_MAX_HEIGHT * safezoneH / _monitorH;
+    _monitorH = MONITOR_MAX_HEIGHT * safezoneH;
 };
-
-private _housing = [
-    IDC_BODY, IDC_BEZEL, IDC_TOPBAR, IDC_TITLE, IDC_READOUT, IDC_BOTBAR, IDC_HINTS,
-    IDC_BRAND, IDC_SCREW_TL, IDC_SCREW_TR, IDC_SCREW_BL, IDC_SCREW_BR
+private _monitorX = safezoneX + (safezoneW - _monitorW) / 2;
+private _monitorY = safezoneY + (1 - MONITOR_BOTTOM) * safezoneH - _monitorH;
+private _screenRect = [
+    _monitorX + MONITOR_SCREEN_X * _monitorW,
+    _monitorY + MONITOR_SCREEN_Y * _monitorH,
+    MONITOR_SCREEN_W * _monitorW,
+    MONITOR_SCREEN_H * _monitorH
 ];
 
-// A wand that brings its own screen needs no panel in front of it - the picture sits on the
-// device in your hand. Anyone who wants it anyway turns the monitor setting on.
-//
-// The overlay layer comes up either way: it carries the key legend.
-//
-// When the monitor comes along. Through the ACE interaction always - nobody is aiming
-// there, so the screen on the device stays too small to make anything out.
-private _wantPanel = GVAR(viaInteraction) || {
-    switch (GVAR(guiMode)) do {
-        case 1: {_mode isEqualTo MODE_DOOR};
-        case 2: {_mode isEqualTo MODE_FREE};
-        case 3: {true};
-        default {false};
-    }
-};
+private _monitor = _display displayCtrl IDC_MONITOR;
+_monitor ctrlSetPosition [_monitorX, _monitorY, _monitorW, _monitorH];
+_monitor ctrlCommit 0;
 
-if ((currentWeapon ACE_player) in GVAR(screenWands) && {!_wantPanel}) then {
-    {
-        (_display displayCtrl _x) ctrlShow false;
-    } forEach (_housing + [IDC_SCREENMASK]);
-    _ctrlFault ctrlShow false;
+GVAR(screenRect) = _screenRect;
+{
+    private _ctrl = _display displayCtrl _x;
+    _ctrl ctrlSetPosition _screenRect;
+    _ctrl ctrlCommit 0;
+} forEach [IDC_BACKING, IDC_SCREEN];
 
-    // The feed control is faded out, not hidden. Arma only keeps a render target alive while
-    // something draws it, and a hidden control draws nothing. Pulled to zero opacity it still
-    // counts as a consumer and is invisible all the same.
-    private _feed = _display displayCtrl IDC_FEED;
-    _feed ctrlSetFade 1;
-    _feed ctrlCommit 0;
+// Parked at one pixel until the device addon brings the picture up, and never hidden: Arma
+// keeps a render target alive only while something draws it.
+private _feed = _display displayCtrl IDC_FEED;
+_feed ctrlSetText _feedTexture;
+_feed ctrlSetPosition [_screenRect select 0, _screenRect select 1, 0.001, 0.001];
+_feed ctrlCommit 0;
 
-    // Night vision must show nothing here. The IR wash sits on the panel's screen area, and
-    // that area is invisible but still present - switched on it slapped a large green block
-    // into the middle of the view. On the device screen setPiPEffect already does the
-    // tinting anyway, directly in the render target.
-    uiNamespace setVariable [QGVAR(ctrlIrTint), controlNull];
+// The picture build-up, in the middle of the dark screen.
+_screenRect params ["_screenX", "_screenY", "_screenW", "_screenH"];
+private _ctrlAcqLabel = _display displayCtrl IDC_ACQ_LABEL;
+_ctrlAcqLabel ctrlSetPosition [_screenX, _screenY + 0.38 * _screenH, _screenW, 0.1 * _screenH];
+_ctrlAcqLabel ctrlCommit 0;
+private _acqBar = [_screenX + 0.2 * _screenW, _screenY + 0.5 * _screenH, 0.6 * _screenW, 0.035 * _screenH];
+{
+    private _ctrl = _display displayCtrl _x;
+    _ctrl ctrlSetPosition _acqBar;
+    _ctrl ctrlCommit 0;
+} forEach [IDC_ACQ_TRACK, IDC_ACQ_FILL];
 
-    // Key legend as a thin strip along the bottom edge.
-    //
-    // It cannot be written into the camera picture itself: the render target is a camera's
-    // output, and Arma offers no way to draw into one - drawIcon3D and friends draw onto the
-    // player's screen, not into a render target. So the strip sits down there, in the
-    // device's own style, rather than covering the picture.
-    //
-    // In the fault case the same strip carries the error message. It cannot live on the
-    // device screen for the same reason, and an ACE notification would have struck the wrong
-    // note.
-    // Text only, no bar behind it. With a background it looked like a leftover piece of
-    // panel that had no business being there.
-    private _fault = _mode isEqualTo MODE_FAULT;
-    private _stripH = (0.030 * safezoneH) * ([1, 2.2] select _fault);
-    private _stripW = 0.6 * safezoneW;
-    private _stripX = safezoneX + (safezoneW - _stripW) / 2;
-    private _stripY = safezoneY + safezoneH - _stripH - 0.045 * safezoneH;
+// The readout along the top of the monitor's screen, the legend along its bottom, as if the
+// monitor were drawing them. They are controls over the picture rather than part of it: the
+// render target is a camera's output and Arma offers no way to draw into one.
+private _bandH = OSD_BAND_HEIGHT * safezoneH;
+private _drop = OSD_TEXT_DROP * safezoneH;
+private _lineH = 0.028 * safezoneH;
+private _stripW = _screenW;
+private _stripX = _screenX;
+private _bandY = _screenY + _screenH - _bandH;
+private _legendY = _bandY + _drop;
+private _readoutY = _screenY + _drop;
 
-    (_display displayCtrl IDC_BOTBAR) ctrlShow false;
+GVAR(stripRect) = [_stripX, _legendY, _stripW, _lineH];
+// The no-clearance report is two lines, so it takes the readout's row as well.
+GVAR(stripRectFault) = [_stripX, _legendY - _lineH, _stripW, _lineH * 2];
+GVAR(osdRect) = [_stripX, _bandY, _stripW, _bandH];
+GVAR(osdRectFault) = [_stripX, _bandY - _lineH, _stripW, _bandH + _lineH];
 
-    private _hints = _display displayCtrl IDC_HINTS;
-    _hints ctrlShow true;
-    _hints ctrlSetPosition [_stripX, _stripY, _stripW, _stripH];
-    _hints ctrlCommit 0;
+private _osdTop = _display displayCtrl IDC_OSD_TOP;
+_osdTop ctrlSetPosition [_stripX, _screenY, _stripW, _bandH];
+_osdTop ctrlCommit 0;
 
-    // Larger, white and with a shadow - but only here. Inside the panel the same legend sits
-    // on a dark background and was right as it was. The size comes as a factor in the text
-    // rather than as a control property, so the config stays untouched.
-    //
-    // The green key names override the colour within their own span and inherit the size
-    // from here.
-    private _fnc_big = {
-        format ["<t size='1.9' color='#ffffff' shadow='1'>%1</t>", _this]
-    };
+private _osdBottom = _display displayCtrl IDC_OSD_BOTTOM;
+_osdBottom ctrlSetPosition GVAR(osdRect);
+_osdBottom ctrlCommit 0;
 
-    if (_fault) then {
-        _hintText = format ["%1<br/>%2", LLSTRING(Fault_NoClearance), LLSTRING(Feed_Hints_Fault)];
-    };
+private _ctrlReadout = _display displayCtrl IDC_READOUT;
+_ctrlReadout ctrlSetPosition [_stripX, _readoutY, _stripW, _lineH];
+_ctrlReadout ctrlCommit 0;
+uiNamespace setVariable [QGVAR(ctrlReadout), _ctrlReadout];
 
-    _hints ctrlSetStructuredText parseText (_hintText call _fnc_big);
-} else {
-    // Full panel. That also applies to any wand with no screen of its own - without the
-    // panel there would simply be nothing to look at.
-    {
-        (_display displayCtrl _x) ctrlShow true;
-    } forEach _housing;
-};
+private _hintText = [_mode] call FUNC(hintText);
+GVAR(hintText) = _hintText;
 
-uiNamespace setVariable [QGVAR(ctrlReadout), _display displayCtrl IDC_READOUT];
+private _hints = _display displayCtrl IDC_HINTS;
+_hints ctrlSetPosition GVAR(stripRect);
+_hints ctrlSetStructuredText parseText _hintText;
+_hints ctrlCommit 0;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Input
@@ -377,18 +270,26 @@ uiNamespace setVariable [QGVAR(ctrlReadout), _display displayCtrl IDC_READOUT];
 //
 // A title layer gets no input focus, so it could not see a key press in any case. The
 // controls now live on CBA keybinds, registered in XEH_postInit and remappable in the
-// settings - which is necessary here, because the player keeps walking while peeking and
+// settings - which is necessary here, because the player may keep walking while peeking and
 // the keys can collide with the normal bindings.
 //
 // Ending is handled by the aimed view itself: fnc_update closes as soon as the player
 // leaves it. Right click brings you in and back out, with no special case at all.
 
-playSound "ACE_Sound_Click";
-[QGVAR(deployed), [ACE_player, _house, _door, _mode]] call CBA_fnc_localEvent;
+playSound "ClickSoft";
+[QGVAR(deployed), [CURRENT_UNIT, _house, _door, _mode]] call CBA_fnc_localEvent;
 
-// A fault screen has no camera to drive, so it needs no per frame handler either
-if (_mode isNotEqualTo MODE_FAULT) then {
-    GVAR(pfhId) = [{call FUNC(update)}, 0, []] call CBA_fnc_addPerFrameHandler;
-    // Aim the camera straight away so the first rendered frame is already correct
-    call FUNC(update);
-};
+// Take the keyboard - on the next frame, not this one. The deploy keybind gets here from
+// inside CBA's key dispatch, and muting handlers halfway through CBA walking the very list
+// they sit in would split that one key press: handlers ahead of ours run, those after it are
+// silenced, and their releases are armed muted. A frame later the press is fully dispatched.
+// Last of the setup on purpose: anything above that bails out has not locked anything.
+[{
+    if (GVAR(active)) then {[true] call FUNC(lockInput)};
+}] call CBA_fnc_execNextFrame;
+
+// Unconditional, and it has to stay that way. fnc_update is the only thing that ever closes
+// the monitor again - leaving a deploy without one is what used to trap the operator.
+GVAR(pfhId) = [{call FUNC(update)}, 0, []] call CBA_fnc_addPerFrameHandler;
+// Aim the camera straight away so the first rendered frame is already correct
+call FUNC(update);

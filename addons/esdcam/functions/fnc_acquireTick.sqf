@@ -1,12 +1,7 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Builds the picture up while the left mouse button is held, driving the device's own
- * transmit readout as it goes.
- *
- * #EM_Transmit and #EM_Progress are engine variables of the Spectrum Device: the game draws
- * the transmit overlay and the progress bar on the screen from them, so nothing has to be
- * rebuilt here.
+ * Builds the picture up while the left mouse button is held.
  *
  * Arguments:
  * None (called as a frame handler)
@@ -39,12 +34,13 @@ if (GVAR(holding)) then {
     GVAR(acquire) = (GVAR(acquire) - _step * 2) max 0;
 };
 
-missionNamespace setVariable ["#EM_Transmit", GVAR(holding)];
-missionNamespace setVariable ["#EM_Progress", GVAR(acquire)];
+[true, GVAR(acquire)] call FUNC(showAcquire);
 
 if (GVAR(acquire) >= 1) then {
     GVAR(acquired) = true;
-    missionNamespace setVariable ["#EM_Transmit", false];
-    missionNamespace setVariable ["#EM_Progress", 0];
-    [true] call FUNC(showFeed);
+    // Acquiring against a wall is allowed - the bar is the operator transmitting, not the
+    // head seeing something. The picture itself waits until there is room; the fault event
+    // brings it up the moment there is.
+    [false] call FUNC(showAcquire);
+    [!EGVAR(mirror,faulted)] call FUNC(showFeed);
 };

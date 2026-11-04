@@ -22,8 +22,8 @@ params ["_interactionType"];
 
 if (_interactionType != 0) exitWith {};
 if (GVAR(active)) exitWith {};
-if (!isNull objectParent ACE_player) exitWith {};
-if (!([ACE_player] call FUNC(wandReady))) exitWith {};
+if (!isNull objectParent CURRENT_UNIT) exitWith {};
+if (!([CURRENT_UNIT] call FUNC(wandReady))) exitWith {};
 
 // A leftover scan would keep spawning helpers, so never run two
 if (GVAR(scanPfhId) >= 0) then {
@@ -35,7 +35,7 @@ GVAR(lastScan) = [[0, 0, 0], [0, 0, 0]];
 GVAR(scanPfhId) = [{
     params ["", "_pfhId"];
 
-    if (!ACEGVAR(interact_menu,keyDown) || {isNull ACE_player} || {GVAR(active)}) exitWith {
+    if (!ACEGVAR(interact_menu,keyDown) || {isNull CURRENT_UNIT} || {GVAR(active)}) exitWith {
         [_pfhId] call CBA_fnc_removePerFrameHandler;
         GVAR(scanPfhId) = -1;
         deleteVehicle GVAR(helper);
@@ -45,7 +45,7 @@ GVAR(scanPfhId) = [{
     // A second pass from the same spot finds the same door, so the search only runs when the
     // player has actually moved. Gated on position rather than on view direction, because
     // the search itself does not depend on where you look.
-    private _camAGL = getPosATL ACE_player;
+    private _camAGL = getPosATL CURRENT_UNIT;
     private _aheadAGL = _camAGL;
 
     // exitWith inside a then block only leaves that block, so the verdict is carried out
@@ -62,7 +62,7 @@ GVAR(scanPfhId) = [{
 
     // A fan all the way round, at door handle height. The nearest door wins - whether the
     // player happens to be looking at it or standing with their back to it.
-    private _originAGL = ACE_player modelToWorldVisual [0, 0, DOOR_SEARCH_HEIGHT];
+    private _originAGL = CURRENT_UNIT modelToWorldVisual [0, 0, DOOR_SEARCH_HEIGHT];
     private _best = [objNull, "", [], []];
     private _bestDist = 1e6;
 

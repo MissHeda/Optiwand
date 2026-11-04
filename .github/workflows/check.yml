@@ -21,7 +21,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  HEMTT_VERSION: "1.11.2"
+  HEMTT_VERSION: "1.22.0"
 
 jobs:
   hemtt:
@@ -38,7 +38,8 @@ jobs:
             "https://github.com/BrettMayson/HEMTT/releases/download/v${HEMTT_VERSION}/linux-x64.zip"
           unzip -q hemtt.zip
           chmod +x hemtt
-          ./hemtt --version
+          # 1.22.0 prints its version and then exits 1, so the step must not fail on it.
+          ./hemtt --version || true
 
       - name: Check configs and SQF
         run: ./hemtt check
