@@ -167,12 +167,14 @@ if (isNil QGVAR(inputEhDown)) then {
     }] call CBA_fnc_addDisplayHandler;
 };
 
-// The dialog waits until nothing is held any more. A release that lands on a dialog never reaches
-// the game, so whatever was down as it opened would stay down as far as the game is concerned: the
+// The dialog waits for the mouse buttons to come up. A release that lands on a dialog never reaches
+// the game, so a button down as it opened would stay down as far as the game is concerned: the
 // right click that raised the device left the view frozen after the peek until it had been clicked
-// a few more times. The timeout is for an entry in GVAR(heldKeys) whose release went elsewhere.
+// a few more times. It does not wait for the keyboard: walking into the peek with W held kept the
+// player moving, turning and animating for the whole of the wait. The timeout is for an entry in
+// GVAR(heldKeys) whose release went elsewhere.
 [
-    {GVAR(heldKeys) isEqualTo [] || {!GVAR(inputLocked)}},
+    {(GVAR(heldKeys) findIf {_x >= CBA_MOUSE_OFFSET}) < 0 || {!GVAR(inputLocked)}},
     {if (GVAR(inputLocked)) then {[true] call FUNC(lockDialog)}},
     [],
     LOCK_DIALOG_WAIT,

@@ -62,7 +62,7 @@ GVAR(aimLatched) = true;
 // Right click brought us in, so right click should hand the operator back a normal stance
 // rather than leaving them still shouldered against nothing.
 if (cameraView isEqualTo "GUNNER") then {
-    ACE_player switchCamera GVAR(viewBefore);
+    CURRENT_UNIT switchCamera GVAR(viewBefore);
 };
 
-[QGVAR(retracted), [ACE_player]] call CBA_fnc_localEvent;
+[QGVAR(retracted), [CURRENT_UNIT]] call CBA_fnc_localEvent;

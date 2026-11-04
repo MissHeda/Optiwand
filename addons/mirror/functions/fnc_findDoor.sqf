@@ -54,8 +54,13 @@ if (_house isKindOf "AllVehicles") exitWith {NO_DOOR};
 private _hits = [_house, "GEOM"] intersect [_posCamAGL, _posEndAGL];
 if (_hits isEqualTo []) exitWith {NO_DOOR};
 
-private _selection = toLowerANSI ((_hits select 0) select 0);
+(_hits select 0) params ["_name", "_nameDistance"];
+private _selection = toLowerANSI _name;
 if (_selection isEqualTo "") exitWith {NO_DOOR};
+
+// The selection has to be what the line hit first. It goes on through the house, so aimed at a
+// plain wall it finds a door in the room behind, and the head would come out through the wall.
+if (abs (_nameDistance - ((AGLToASL _posCamAGL) vectorDistance _hitASL)) > DOOR_HIT_TOLERANCE) exitWith {NO_DOOR};
 
 // Windows open and animate just like doors, so the animation test below is not enough on
 // its own. Anything that says it is a window is not a door - the mirror is not meant to be

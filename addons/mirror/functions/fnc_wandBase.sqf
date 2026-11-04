@@ -14,7 +14,7 @@
  * Position, ASL <ARRAY>
  *
  * Example:
- * [ACE_player] call opw_mirror_fnc_wandBase
+ * [CURRENT_UNIT] call opw_mirror_fnc_wandBase
  *
  * Public: No
  */

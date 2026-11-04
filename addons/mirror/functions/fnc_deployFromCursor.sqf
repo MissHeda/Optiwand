@@ -28,15 +28,16 @@ if (GVAR(active)) exitWith {
     true
 };
 
-private _player = ACE_player;
+private _player = CURRENT_UNIT;
 
 if (!isNull objectParent _player) exitWith {false};
 if (!([_player] call FUNC(wandReady))) exitWith {false};
-if (!([_player, objNull, ["isNotInside", "isNotSwimming", "isNotSitting"]] call ACEFUNC(common,canInteractWith))) exitWith {false};
+// Swimming and diving, by the name of the animation.
+if (((animationState _player) select [1, 3]) in ["bdv", "bsw", "dve", "sdv", "ssw", "swm"]) exitWith {false};
 
 private _fnc_freehand = {
     if (!GVAR(allowFreehand)) exitWith {
-        if (!_silent) then {[LLSTRING(Hint_NoDoor), 1.5] call ACEFUNC(common,displayTextStructured)};
+        if (!_silent) then {[LLSTRING(Hint_NoDoor)] call CBA_fnc_notify};
         false
     };
 

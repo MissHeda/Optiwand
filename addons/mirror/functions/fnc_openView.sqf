@@ -49,7 +49,7 @@ GVAR(house) = _house;
 GVAR(door) = _door;
 GVAR(basePosASL) = _basePosASL;
 GVAR(baseDir) = _reachDir;
-GVAR(anchorASL) = getPosASL ACE_player;
+GVAR(anchorASL) = getPosASL CURRENT_UNIT;
 
 // The head is aimed in spherical terms around the direction the shaft points
 GVAR(baseAzimuth) = 0;
@@ -139,7 +139,7 @@ GVAR(lastCamPosASL) = [[], _basePosASL] select (_mode isEqualTo MODE_FREE);
 GVAR(viewGrace) = 0;
 if (GVAR(viaInteraction) && {cameraView isNotEqualTo "GUNNER"}) then {
     GVAR(viewBefore) = cameraView;
-    ACE_player switchCamera "GUNNER";
+    CURRENT_UNIT switchCamera "GUNNER";
     GVAR(viewGrace) = diag_tickTime + VIEW_GRACE;
 };
 
@@ -254,7 +254,7 @@ _ctrlReadout ctrlSetPosition [_stripX, _readoutY, _stripW, _lineH];
 _ctrlReadout ctrlCommit 0;
 uiNamespace setVariable [QGVAR(ctrlReadout), _ctrlReadout];
 
-private _hintText = [LLSTRING(Feed_Hints), LLSTRING(Feed_Hints_Free)] select (_mode isEqualTo MODE_FREE);
+private _hintText = [_mode] call FUNC(hintText);
 GVAR(hintText) = _hintText;
 
 private _hints = _display displayCtrl IDC_HINTS;
@@ -276,8 +276,8 @@ _hints ctrlCommit 0;
 // Ending is handled by the aimed view itself: fnc_update closes as soon as the player
 // leaves it. Right click brings you in and back out, with no special case at all.
 
-playSound "ACE_Sound_Click";
-[QGVAR(deployed), [ACE_player, _house, _door, _mode]] call CBA_fnc_localEvent;
+playSound "ClickSoft";
+[QGVAR(deployed), [CURRENT_UNIT, _house, _door, _mode]] call CBA_fnc_localEvent;
 
 // Take the keyboard - on the next frame, not this one. The deploy keybind gets here from
 // inside CBA's key dispatch, and muting handlers halfway through CBA walking the very list

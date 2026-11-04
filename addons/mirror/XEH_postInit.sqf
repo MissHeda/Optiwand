@@ -4,21 +4,25 @@
 if (!hasInterface) exitWith {};
 
 ["CBA_settingsInitialized", {
-    // One cached ACE action, re-used by every door helper we spawn.
-    GVAR(action) = [
-        QGVAR(deploy),
-        LLSTRING(Action_Deploy),
-        ICON_MIRROR,
-        {_this call FUNC(deploy)},
-        {_this call FUNC(canDeploy)},
-        {},
-        [],
-        [0, 0, 0],
-        ACTION_DISTANCE,
-        [false, false, false, false, true]
-    ] call ACEFUNC(interact_menu,createAction);
+    // The interaction at a door, for whoever has ACE3. Without it, aiming and the keybind do the
+    // same job.
+    if (isClass (configFile >> "CfgPatches" >> "ace_interact_menu")) then {
+        // One cached ACE action, re-used by every door helper we spawn.
+        GVAR(action) = [
+            QGVAR(deploy),
+            LLSTRING(Action_Deploy),
+            ICON_MIRROR,
+            {_this call FUNC(deploy)},
+            {_this call FUNC(canDeploy)},
+            {},
+            [],
+            [0, 0, 0],
+            ACTION_DISTANCE,
+            [false, false, false, false, true]
+        ] call ACEFUNC(interact_menu,createAction);
 
-    ["ace_interactMenuOpened", {_this call FUNC(handleInteractMenuOpened)}] call CBA_fnc_addEventHandler;
+        ["ace_interactMenuOpened", {_this call FUNC(handleInteractMenuOpened)}] call CBA_fnc_addEventHandler;
+    };
 
     // Aiming down sight with the wand out is the third, and most natural, way in.
     // The watcher only exists while the wand is actually in hand - no idle cost otherwise.
@@ -56,7 +60,7 @@ if (!hasInterface) exitWith {};
 // Never leave a camera or a hijacked render target behind
 ["ace_unconscious", {
     params ["_unit"];
-    if (_unit isEqualTo ACE_player) then {call FUNC(closeView)};
+    if (_unit isEqualTo CURRENT_UNIT) then {call FUNC(closeView)};
 }] call CBA_fnc_addEventHandler;
 
 ["ace_playerChanged", {call FUNC(closeView)}] call CBA_fnc_addEventHandler;
@@ -178,31 +182,6 @@ private _fnc_addAxis = {
     // resetting these two bindings once.
     [QGVAR(zoomIn2),    LLSTRING(Keybind_ZoomIn),     AXIS_FOV,   -1, DIK_PRIOR, MOD_NONE],
     [QGVAR(zoomOut2),   LLSTRING(Keybind_ZoomOut),    AXIS_FOV,   1,  DIK_NEXT,  MOD_NONE]
-];
-
-// ---------------------------------------------------------------------------------------
-// Numpad + and - while the monitor is up.
-//
-// Those are Arma's own zoom, and the overlay is a title layer, which takes no input focus -
-// so the game goes on acting on them underneath us. On the Spectrum Device that pulls the
-// whole view in and out from under the picture.
-//
-// A CBA keybind that returns true consumes the key, which is what stops the engine acting on
-// it. Returning false while the monitor is down leaves Arma's zoom exactly as it was during
-// normal play - this only ever bites while peeking.
-// ---------------------------------------------------------------------------------------
-{
-    _x params ["_name", "_key"];
-    [
-        "OPW", _name,
-        [LLSTRING(Keybind_BlockZoom), LLSTRING(Keybind_BlockZoom_Description)],
-        {GVAR(active)},
-        {GVAR(active)},
-        [_key, MOD_NONE]
-    ] call CBA_fnc_addKeybind;
-} forEach [
-    [QGVAR(blockZoomIn), DIK_ADD],
-    [QGVAR(blockZoomOut), DIK_SUBTRACT]
 ];
 
 [

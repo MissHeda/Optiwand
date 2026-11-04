@@ -22,12 +22,13 @@
 
 if (!GVAR(active)) exitWith {};
 
-private _player = ACE_player;
+private _player = CURRENT_UNIT;
 private _isDoor = GVAR(mode) isEqualTo MODE_DOOR;
 private _now = diag_tickTime;
 
 if (
     !alive _player
+    || {lifeState _player isEqualTo "INCAPACITATED"}
     || {_player getVariable ["ACE_isUnconscious", false]}
     || {!isNull objectParent _player}
     // Walking away only ends door work - there the mirror hangs in one particular gap.
@@ -68,8 +69,19 @@ if (_isDoor && {_now > GVAR(nextDoorCheck)}) then {
 
 if (!GVAR(active)) exitWith {};
 
-// The lock's dialog frees the mouse pointer, and it must not wander out of the window.
-if (GVAR(lockDialogOpen)) then {setMousePosition [0.5, 0.5]};
+// The lock's dialog frees the mouse pointer, and it must not wander out of the window. Brought
+// back long before it reaches the edge, as a fast flick covers a lot of screen in one frame. Not
+// held in the very middle: anything else that opens on top of the dialog, an error message for
+// one, still has to be clickable.
+if (GVAR(lockDialogOpen)) then {
+    getMousePosition params ["_mouseX", "_mouseY"];
+    if (
+        abs (_mouseX - 0.5) > safezoneW * MOUSE_RANGE
+        || {abs (_mouseY - 0.5) > safezoneH * MOUSE_RANGE}
+    ) then {
+        setMousePosition [0.5, 0.5];
+    };
+};
 
 private _delta = (_now - GVAR(lastTick)) min 0.25;
 GVAR(lastTick) = _now;
@@ -176,10 +188,19 @@ if (_last isNotEqualTo []) then {
 
     // Standing still costs nothing - no raycast unless the head actually moved
     if (vectorMagnitude _travel > 0.001) then {
-        private _blocked = lineIntersectsSurfaces [_last, _target, _player, objNull, true, 1, "GEOM", "FIRE"];
+        private _hits = lineIntersectsSurfaces [_last, _target, _player, objNull, true, 5, "GEOM", "FIRE"];
 
-        if (_blocked isNotEqualTo []) then {
-            private _hitASL = (_blocked select 0) select 0;
+        // A line that starts inside a solid part of a house reports a hit right at its start. Only
+        // what lies ahead, within the distance travelled, counts as in the way.
+        private _reach = vectorMagnitude _travel;
+        private _along = vectorNormalized _travel;
+        _hits = _hits select {
+            private _ahead = ((_x select 0) vectorDiff _last) vectorDotProduct _along;
+            _ahead > 0.01 && {_ahead <= _reach}
+        };
+
+        if (_hits isNotEqualTo []) then {
+            private _hitASL = (_hits select 0) select 0;
             _target = _hitASL vectorDiff ((vectorNormalized _travel) vectorMultiply COLLISION_CLEARANCE);
 
             // Feed the achieved position back into the controls, otherwise reach and slide
@@ -199,19 +220,47 @@ if (_last isNotEqualTo []) then {
     _wanted = _target;
 };
 
+// The sweep above only looks from where the head was last frame. Stepping up to a wall carries
+// the base forward, and the head could end up past the wall with no line from its last position
+// ever crossing it. So freehand the whole wand is checked as well, from the hand out to the head.
+if (!_isDoor) then {
+    private _out = _wanted vectorDiff GVAR(basePosASL);
+    private _outDir = vectorNormalized _out;
+    private _hits = (lineIntersectsSurfaces [GVAR(basePosASL), _wanted vectorAdd (_outDir vectorMultiply COLLISION_CLEARANCE), _player, objNull, true, 5, "GEOM", "FIRE"]) select {
+        ((_x select 0) vectorDistance GVAR(basePosASL)) > 0.01
+    };
+    if (_hits isNotEqualTo []) then {
+        _wanted = ((_hits select 0) select 0) vectorDiff (_outDir vectorMultiply COLLISION_CLEARANCE);
+    };
+};
+
 if (_isDoor) then {
     // Follow the floor under the head rather than the floor at the door. A room behind a
     // threshold usually sits a few centimetres higher, which is what buries the camera
     // otherwise. Only re-probed once the head has actually shifted.
     if ((_wanted distance2D GVAR(lastProbeXY)) > PROBE_TOLERANCE) then {
+        // The first probe starts high. The bottom of a door leaf can sit well below the floor behind
+        // it, on a house standing on a solid base with steps up to the door.
+        private _first = GVAR(lastProbeXY) isEqualTo [0, 0, 0];
+        private _probeUp = [PROBE_UP, PROBE_FIRST] select _first;
         GVAR(lastProbeXY) = +_wanted;
 
-        private _probeTop = [_wanted select 0, _wanted select 1, GVAR(floorZ) + PROBE_UP];
+        private _probeTop = [_wanted select 0, _wanted select 1, GVAR(floorZ) + _probeUp];
         private _probeBottom = [_wanted select 0, _wanted select 1, GVAR(floorZ) - PROBE_DOWN];
-        private _floorHits = lineIntersectsSurfaces [_probeTop, _probeBottom, _player, objNull, true, 1, "GEOM", "FIRE"];
+        private _floorHits = lineIntersectsSurfaces [_probeTop, _probeBottom, _player, objNull, true, 5, "GEOM", "FIRE"];
 
+        // A probe that starts inside the geometry of a house reports a hit right at its start, and
+        // nothing below that can be trusted: measured in game, the next hit was the ground under
+        // the house. Taken as the floor, that first hit lifted the head a little further on every
+        // probe, up to the roof. So the floor stays where it is, a little above the bottom of the
+        // door if this is the first we hear of it.
         if (_floorHits isNotEqualTo []) then {
-            GVAR(floorZ) = ((_floorHits select 0) select 0) select 2;
+            private _height = ((_floorHits select 0) select 0) select 2;
+            if (_height < (_probeTop select 2) - 0.01) then {
+                GVAR(floorZ) = _height;
+            } else {
+                if (_first) then {GVAR(floorZ) = GVAR(floorZ) + PROBE_UP};
+            };
         };
     };
 
@@ -258,6 +307,19 @@ private _pitch = [
 private _cosPitch = cos _pitch;
 
 private _dir = [(sin _azimuth) * _cosPitch, (cos _azimuth) * _cosPitch, sin _pitch];
+
+// Swivelled towards a wall, the head has to stay clear of it in that direction too, or the near
+// edge of the view reaches through. At a door not back past the leaf, though.
+private _ahead = (lineIntersectsSurfaces [_wanted, _wanted vectorAdd (_dir vectorMultiply COLLISION_CLEARANCE), _player, objNull, true, 5, "GEOM", "FIRE"]) select {
+    ((_x select 0) vectorDistance _wanted) > 0.01
+};
+if (_ahead isNotEqualTo []) then {
+    private _clear = ((_ahead select 0) select 0) vectorDistance _wanted;
+    private _backed = _wanted vectorAdd (_dir vectorMultiply (_clear - COLLISION_CLEARANCE));
+    if (!_isDoor || {((_backed vectorDiff GVAR(basePosASL)) vectorDotProduct GVAR(baseDir)) >= DOOR_DEPTH_MIN}) then {
+        _wanted = _backed;
+    };
+};
 
 // Nothing on the wand moved this frame, so there is nothing to tell the engine
 if (_wanted isNotEqualTo GVAR(lastAppliedPos) || {_dir isNotEqualTo GVAR(lastAppliedDir)}) then {

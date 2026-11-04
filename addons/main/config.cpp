@@ -7,10 +7,7 @@ class CfgPatches {
         weapons[] = {};
         requiredVersion = REQUIRED_VERSION;
         requiredAddons[] = {
-            "cba_main",
-            "ace_main",
-            "ace_common",
-            "ace_interact_menu"
+            "cba_main"
         };
         author = "Miss Heda";
         url = CSTRING(URL);

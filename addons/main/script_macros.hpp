@@ -1,28 +1,14 @@
 #include "\x\cba\addons\main\script_macros_common.hpp"
 #include "\x\cba\addons\xeh\script_xeh.hpp"
 
-// BEGIN ACE3 reference macros
-// These let us talk to ACE3 (ace_*) while our own PREFIX stays opw_*.
+// The unit being controlled, the player or whoever Zeus is remote controlling.
+#define CURRENT_UNIT (call CBA_fnc_currentUnit)
 
+// ACE3 is optional: all it adds is the interaction at a door, and these are only reached with it
+// loaded - see XEH_postInit in the mirror component.
 #define ACE_PREFIX ace
-
-#define ACE_ADDON(component)        DOUBLES(ACE_PREFIX,component)
-
 #define ACEGVAR(module,var)         TRIPLES(ACE_PREFIX,module,var)
-#define QACEGVAR(module,var)        QUOTE(ACEGVAR(module,var))
-#define QQACEGVAR(module,var)       QUOTE(QACEGVAR(module,var))
-
 #define ACEFUNC(module,function)    TRIPLES(DOUBLES(ACE_PREFIX,module),fnc,function)
-#define QACEFUNC(module,function)   QUOTE(ACEFUNC(module,function))
-
-#define ACELSTRING(module,string)   QUOTE(TRIPLES(STR,DOUBLES(ACE_PREFIX,module),string))
-#define ACELLSTRING(module,string)  localize ACELSTRING(module,string)
-#define ACECSTRING(module,string)   QUOTE(TRIPLES($STR,DOUBLES(ACE_PREFIX,module),string))
-
-#define ACEPATHTOF(component,path)  \z\ace\addons\component\path
-#define QACEPATHTOF(component,path) QUOTE(ACEPATHTOF(component,path))
-
-// END ACE3 reference macros
 
 #define ARR_SELECT(ARRAY,INDEX,DEFAULT) (if (count ARRAY > INDEX) then {ARRAY select INDEX} else {DEFAULT})
 

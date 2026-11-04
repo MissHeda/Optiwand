@@ -10,11 +10,11 @@ device's own housing and screen go out of the aimed view during a peek.
 ## Requirements
 
 * **CBA_A3**
-* **ACE3**
 * **Contact Platform** - free, ships with every Arma 3 install in the `enoch` folder.
   The paid Contact expansion is *not* needed.
 
-No other mod is required. The muzzle slots and the antennas are vanilla and already
+ACE3 is optional. It adds the interaction at a door, and the deploy then runs on ACE's progress
+bar instead of CBA's. No other mod is required. The muzzle slots and the antennas are vanilla and already
 `scope = 2`. Mods that extend the Spectrum Device generally read the fitted attachment for
 its frequency band; the camera declares none, so they leave it alone.
 
@@ -29,7 +29,7 @@ There are three ways to deploy it:
 | | |
 |---|---|
 | **Aim** the device (right mouse button) | the natural one, same reflex the vanilla device trains |
-| **ACE interaction** at a closed door | slides the head under the door leaf |
+| **ACE interaction** at a closed door, with ACE3 loaded | slides the head under the door leaf |
 | **Keybind** | unbound by default, set it under Configure Addons |
 
 At a door the picture is there immediately - you are kneeling in a doorway and want to see
@@ -51,7 +51,8 @@ game entirely.
 
 ## Controls
 
-All of these are CBA keybinds and can be remapped under Configure Addons > Optiwand.
+All of these but the right mouse button are CBA keybinds and can be remapped under Configure
+Addons > Optiwand. The legend on the monitor follows what you bind them to.
 
 | Key | |
 |---|---|
@@ -62,11 +63,6 @@ All of these are CBA keybinds and can be remapped under Configure Addons > Optiw
 | N | night vision |
 | R | recentre |
 | Right mouse button | leave the aimed view, which retracts the camera |
-
-Zoom is on Page Up and Page Down, not the numpad. Numpad + and - are Arma's own zoom, and
-because the overlay is a title layer and takes no input focus, the game went on acting on
-them underneath the picture. They are swallowed while peeking and work normally the rest of
-the time - clear the *Swallow Arma's zoom while peeking* binding to get them back.
 
 Note that Arma binds the arrow keys to movement by default as a duplicate of WASD. If you
 actually walk with the arrow keys, remap one side or the other.

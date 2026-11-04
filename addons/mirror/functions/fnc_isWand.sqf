@@ -15,7 +15,7 @@
  * Counts as a wand <BOOL>
  *
  * Example:
- * [ACE_player] call opw_mirror_fnc_isWand
+ * [CURRENT_UNIT] call opw_mirror_fnc_isWand
  *
  * Public: No
  */

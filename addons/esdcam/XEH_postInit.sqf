@@ -11,7 +11,7 @@ if (!hasInterface) exitWith {};
 [QEGVAR(mirror,deployed), {
     params ["", "", "", ["_mode", -1, [0]]];
 
-    if (!(ESD_WEAPON_PREFIX in (currentWeapon ACE_player))) exitWith {};
+    if (!(ESD_WEAPON_PREFIX in (currentWeapon CURRENT_UNIT))) exitWith {};
 
     GVAR(acquire) = 0;
     GVAR(holding) = false;

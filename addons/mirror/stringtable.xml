@@ -1,178 +1,224 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Item -->
 <Project name="opw">
+    <!-- Item -->
     <Package name="mirror">
-        <!-- Item -->
-
         <!-- Interaction -->
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Action_Deploy">
             <English>Use Optiwand</English>
         </Key>
-        <Key ID="STR_opw_mirror_Progress_Deploy">
-            <English>Sliding mirror under door...</English>
-        </Key>
-
-        <Key ID="STR_opw_mirror_Keybind_Deploy">
-            <English>Deploy / close Optiwand</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_Deploy_Description">
-            <English>Hold the Optiwand, stand at a closed door\nand press to slide the mirror under it.\n\nPress again to close.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Hint_NoDoor">
-            <English>No door in front of the wand</English>
-        </Key>
-
-        <!-- Feed -->
-        <Key ID="STR_opw_mirror_Feed_Hints">
-            <English>&lt;t color='#8fb89a'&gt;ARROWS&lt;/t&gt; aim head      &lt;t color='#8fb89a'&gt;CTRL+UP/DN&lt;/t&gt; extend shaft      &lt;t color='#8fb89a'&gt;CTRL+L/R&lt;/t&gt; slide      &lt;t color='#8fb89a'&gt;PGUP/PGDN&lt;/t&gt; zoom      &lt;t color='#8fb89a'&gt;N&lt;/t&gt; night vision      &lt;t color='#8fb89a'&gt;R&lt;/t&gt; recentre      &lt;t color='#8fb89a'&gt;RMB&lt;/t&gt; close</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Feed_Hints_Free">
-            <English>&lt;t color='#8fb89a'&gt;ARROWS&lt;/t&gt; aim head      &lt;t color='#8fb89a'&gt;CTRL+UP/DN&lt;/t&gt; extend      &lt;t color='#8fb89a'&gt;PGUP/PGDN&lt;/t&gt; zoom      &lt;t color='#8fb89a'&gt;N&lt;/t&gt; night vision      &lt;t color='#8fb89a'&gt;R&lt;/t&gt; recentre      &lt;t color='#8fb89a'&gt;RMB&lt;/t&gt; close</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Feed_Hints_Fault">
-            <English>&lt;t color='#8fb89a'&gt;RMB / ESC&lt;/t&gt; close</English>
-        </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Fault_NoClearance">
             <English>E-02  NO CLEARANCE&lt;br/&gt;&lt;t color='#c9c3b7'&gt;shaft cannot extend - reposition and retry&lt;/t&gt;</English>
         </Key>
+        <!-- Feed -->
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Feed_Hints">
+            <English>&lt;t color='#8fb89a'&gt;%1&lt;/t&gt; aim head      &lt;t color='#8fb89a'&gt;%2&lt;/t&gt; extend shaft      &lt;t color='#8fb89a'&gt;%3&lt;/t&gt; slide      &lt;t color='#8fb89a'&gt;%4&lt;/t&gt; zoom      &lt;t color='#8fb89a'&gt;%5&lt;/t&gt; night vision      &lt;t color='#8fb89a'&gt;%6&lt;/t&gt; recentre      &lt;t color='#8fb89a'&gt;RMB&lt;/t&gt; close</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Feed_Hints_Fault">
+            <English>&lt;t color='#8fb89a'&gt;RMB / ESC&lt;/t&gt; close</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Feed_Hints_Free">
+            <English>&lt;t color='#8fb89a'&gt;%1&lt;/t&gt; aim head      &lt;t color='#8fb89a'&gt;%2&lt;/t&gt; extend      &lt;t color='#8fb89a'&gt;%3&lt;/t&gt; zoom      &lt;t color='#8fb89a'&gt;%4&lt;/t&gt; night vision      &lt;t color='#8fb89a'&gt;%5&lt;/t&gt; recentre      &lt;t color='#8fb89a'&gt;RMB&lt;/t&gt; close</English>
+        </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_HUD_Heading">
             <English>AZ</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_HUD_Tilt">
             <English>TILT</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_HUD_Zoom">
             <English>ZOOM</English>
         </Key>
-
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Hint_NoDoor">
+            <English>No door in front of the wand</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_Deploy">
+            <English>Deploy / close Optiwand</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_Deploy_Description">
+            <English>Hold the Optiwand, stand at a closed door\nand press to slide the mirror under it.\n\nPress again to close.</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_Extend">
+            <English>Extend shaft</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_HeadDown">
+            <English>Mirror head down</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_HeadLeft">
+            <English>Mirror head left</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_HeadRight">
+            <English>Mirror head right</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_HeadUp">
+            <English>Mirror head up</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_NightVision">
+            <English>Toggle night vision</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_Recentre">
+            <English>Recentre head</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_Retract">
+            <English>Retract shaft</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_SlideLeft">
+            <English>Slide left (door)</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_SlideRight">
+            <English>Slide right (door)</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_ZoomIn">
+            <English>Zoom in</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Keybind_ZoomOut">
+            <English>Zoom out</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Progress_Deploy">
+            <English>Sliding mirror under door...</English>
+        </Key>
+        <!-- Item -->
         <!-- Settings -->
         <Key ID="STR_opw_mirror_SettingCategory">
             <English>Optiwand</English>
         </Key>
-        <Key ID="STR_opw_mirror_Setting_RequireItem">
-            <English>Optiwand must be in hand</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_RequireItem_Description">
-            <English>Only offer the mirror when an Optiwand\nis actually in hand.\n\nOff: anyone can use it empty handed.</English>
-        </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_AllowFreehand">
             <English>Freehand peeking</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_AllowFreehand_Description">
             <English>Allow holding the wand out to look over\na wall or round a corner.\n\nOff: doors only.</English>
         </Key>
-        <Key ID="STR_opw_mirror_Setting_DeployTime">
-            <English>Deploy time</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_DeployTime_Description">
-            <English>Seconds spent sliding the mirror into\nposition before the picture appears.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_MaxDepth">
-            <English>Maximum reach</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_MaxDepth_Description">
-            <English>How far the head can be pushed through\na door gap, in metres.</English>
-        </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_CamHeight">
             <English>Mirror head height</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_CamHeight_Description">
             <English>How high the head rides above the floor\nat a door, in metres.\n\nLower sees under lower doors, but scrapes\nthe ground sooner.</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_DefaultFov">
             <English>Starting zoom</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_DefaultFov_Description">
-            <English>Where the view starts, and where R returns to.\n\nAlways pulled into the two limits above, so it\ncan never start somewhere Q and E cannot\nreach again.</English>
+            <English>Where the view starts, and where R returns to.\n\nAlways pulled into the two limits above, so it\ncan never start somewhere the zoom keys\ncannot reach again.</English>
         </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_DeployTime">
+            <English>Deploy time</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_DeployTime_Description">
+            <English>Seconds spent sliding the mirror into\nposition before the picture appears.</English>
+        </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_FreeExtend">
             <English>Freehand reach</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_FreeExtend_Description">
             <English>How much further than the starting position\nthe head can be pushed, in metres.\n\nWalls still stop it earlier.</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_LockInput">
             <English>Lock other keys while peeking</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_LockInput_Description">
             <English>While the camera is out, you stand\nstill: only the Optiwand keys, radio\ntransmit, the mouse buttons and\nEscape still work.\n\nEverything else - walking, stance,\nlean, turning with the mouse, other\nmods' keybinds - is held back.\n\nOff: every key works as usual, and\nyou can move with the camera out.</English>
         </Key>
-        <Key ID="STR_opw_mirror_Setting_RequireClearance">
-            <English>Require clearance</English>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_MaxDepth">
+            <English>Maximum reach</English>
         </Key>
-        <Key ID="STR_opw_mirror_Setting_RequireClearance_Description">
-            <English>Refuse to deploy freehand when there is no\nroom for the head, and say so on screen.\n\nOff: the mirror goes out anywhere. The head\nthen sits wherever it still fits.</English>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_MaxDepth_Description">
+            <English>How far the head can be pushed through\na door gap, in metres.</English>
         </Key>
-        <Key ID="STR_opw_mirror_Setting_ZoomNear">
-            <English>Zoom limit, closest</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_ZoomNear_Description">
-            <English>Narrowest view Q and E can reach.\nLower is more magnified.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_ZoomFar">
-            <English>Zoom limit, widest</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Setting_ZoomFar_Description">
-            <English>Widest view Q and E can reach.\nHigher takes in the whole room but bends\nstraight lines - the fisheye look.\n\nSame value as the closest limit disables\nzooming entirely.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_HeadUp">
-            <English>Mirror head up</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_HeadDown">
-            <English>Mirror head down</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_HeadLeft">
-            <English>Mirror head left</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_HeadRight">
-            <English>Mirror head right</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_Extend">
-            <English>Extend shaft</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_Retract">
-            <English>Retract shaft</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_SlideLeft">
-            <English>Slide left (door)</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_SlideRight">
-            <English>Slide right (door)</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_ZoomIn">
-            <English>Zoom in</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_ZoomOut">
-            <English>Zoom out</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_BlockZoom">
-            <English>Swallow Arma's zoom while peeking</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_BlockZoom_Description">
-            <English>Bound to the numpad + and - keys. While the monitor is up these are swallowed, so the game's own zoom cannot pull the view in and out from under the picture. Outside of peeking they work exactly as before. Clear the binding to get the game's zoom back while peeking too.</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_NightVision">
-            <English>Toggle night vision</English>
-        </Key>
-        <Key ID="STR_opw_mirror_Keybind_Recentre">
-            <English>Recentre head</English>
-        </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_OffsetForward">
             <English>Camera offset, forward</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_OffsetForward_Description">
             <English>How far past the end of the wand the\ncamera sits, in metres.\n\nSet it once and leave it.</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_OffsetRight">
             <English>Camera offset, sideways</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_OffsetRight_Description">
             <English>Sideways offset of the camera from the end\nof the wand, in metres.\n\nPositive is to the right.</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_OffsetUp">
             <English>Camera offset, height</English>
         </Key>
+        <!-- Item -->
         <Key ID="STR_opw_mirror_Setting_OffsetUp_Description">
             <English>Height offset of the camera from the end of\nthe wand, in metres.\n\nPositive is up.</English>
         </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_RequireClearance">
+            <English>Require clearance</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_RequireClearance_Description">
+            <English>Refuse to deploy freehand when there is no\nroom for the head, and say so on screen.\n\nOff: the mirror goes out anywhere. The head\nthen sits wherever it still fits.</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_RequireItem">
+            <English>Optiwand must be in hand</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_RequireItem_Description">
+            <English>Only offer the mirror when an Optiwand\nis actually in hand.\n\nOff: anyone can use it empty handed.</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_ZoomFar">
+            <English>Zoom limit, widest</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_ZoomFar_Description">
+            <English>Widest view the zoom keys can reach.\nHigher takes in the whole room but bends\nstraight lines - the fisheye look.\n\nSame value as the closest limit disables\nzooming entirely.</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_ZoomNear">
+            <English>Zoom limit, closest</English>
+        </Key>
+        <!-- Item -->
+        <Key ID="STR_opw_mirror_Setting_ZoomNear_Description">
+            <English>Narrowest view the zoom keys can reach.\nLower is more magnified.</English>
+        </Key>
+        <!-- Item -->
     </Package>
+    <!-- Item -->
 </Project>

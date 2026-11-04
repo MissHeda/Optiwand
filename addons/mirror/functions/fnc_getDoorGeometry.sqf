@@ -28,7 +28,7 @@ params ["_house", "_door", "_hitASL", "_normal"];
 
 if (isNull _house || {_hitASL isEqualTo []}) exitWith {NO_GEOMETRY};
 
-private _player = ACE_player;
+private _player = CURRENT_UNIT;
 private _camASL = AGLToASL positionCameraToWorld [0, 0, 0];
 private _rayDir = _hitASL vectorDiff _camASL;
 _rayDir set [2, 0];

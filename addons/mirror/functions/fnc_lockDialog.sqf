@@ -16,7 +16,7 @@
  * fnc_lockInput waits out before opening this: the view freezes until the button is clicked again.
  *
  * A dialog also frees the mouse pointer, which on a borderless window could walk out of the
- * game. fnc_update puts it back in the middle of the screen every frame, and the disabled map
+ * game. fnc_update brings it back well before it reaches the edge of the screen, and the disabled map
  * control is there because a map is the only way Arma offers to swap the cursor for a blank one.
  *
  * Arguments:
@@ -52,8 +52,12 @@ GVAR(lockDialogOpen) = true;
 private _dialog = findDisplay IDD_LOCK;
 
 private _cursor = _dialog displayCtrl IDC_LOCK_CURSOR;
-_cursor ctrlMapCursor ["", "ace_common_blank"];
+_cursor ctrlMapCursor ["", QGVAR(blank)];
 _cursor ctrlEnable false;
+
+// First, because the handlers below can end the peek and close this dialog. A key still held when
+// the wait for it timed out comes up here.
+[_dialog] call FUNC(trackHeldKeys);
 
 _dialog displayAddEventHandler ["KeyDown", {
     if ((_this select 1) isEqualTo DIK_ESCAPE) exitWith {true};
@@ -66,6 +70,11 @@ _dialog displayAddEventHandler ["KeyUp", {
         call FUNC(closeView);
         true
     };
+    // A key pressed before this dialog opened and let go here. The mission display's KeyUp will
+    // not see it, and it would stay held back after the peek until it was pressed once more.
+    private _key = _this select 1;
+    GVAR(inputPressed) = GVAR(inputPressed) - [_key];
+    GVAR(inputSwallowed) = GVAR(inputSwallowed) - [_key];
     _this call cba_events_fnc_keyHandlerUp;
     true
 }];

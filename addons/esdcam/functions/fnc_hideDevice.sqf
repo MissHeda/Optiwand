@@ -32,7 +32,7 @@ if (_inHand) exitWith {
         private _display = uiNamespace getVariable [SPECTRUM_DISPLAY, displayNull];
         if (isNull _display) exitWith {GVAR(deviceScales) = []};
 
-        if (!([ACE_player] call EFUNC(mirror,isWand))) exitWith {call FUNC(showDevice)};
+        if (!([CURRENT_UNIT] call EFUNC(mirror,isWand))) exitWith {call FUNC(showDevice)};
 
         {
             private _ctrl = _display displayCtrl _x;

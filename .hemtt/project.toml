@@ -7,6 +7,7 @@ mainprefix = "z"
 include = [
     "mod.cpp",
     "README.md",
+    "logo.paa",
 ]
 
 [version]
@@ -28,4 +29,12 @@ workshop = [
     "463939057",  # ACE3
     "1779063631", # Zeus Enhanced
     "2369477168", # Advanced Developer Tools
+]
+
+# Without ACE3, which is optional.
+#
+#   hemtt launch noace
+[hemtt.launch.noace]
+workshop = [
+    "450814997",  # CBA_A3
 ]

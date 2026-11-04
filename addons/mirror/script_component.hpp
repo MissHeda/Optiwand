@@ -65,8 +65,10 @@
 // The invisible dialog that holds the player still during a locked peek - see fnc_lockDialog.
 #define IDD_LOCK        9140198
 #define IDC_LOCK_CURSOR 9140124
-// How long the dialog waits for keys still held to come up, in seconds.
+// How long the dialog waits for mouse buttons still held to come up, in seconds.
 #define LOCK_DIALOG_WAIT 2
+// How far from the middle the pointer may go during that dialog, as a share of the screen.
+#define MOUSE_RANGE 0.25
 
 // The field monitor, a picture rendered by tools/render_monitor.py. Its proportions and where
 // the screen lies in it, as fractions of the picture - that tool prints them, and they have
@@ -92,7 +94,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 // How far in front of the camera we look for a door (same idea as ACE's door reach)
-#define DOOR_REACH_DISTANCE (((AGLToASL positionCameraToWorld [0, 0, 0]) vectorDistance (ACE_player modelToWorldWorld (ACE_player selectionPosition "Head"))) + 2)
+#define DOOR_REACH_DISTANCE (((AGLToASL positionCameraToWorld [0, 0, 0]) vectorDistance (CURRENT_UNIT modelToWorldWorld (CURRENT_UNIT selectionPosition "Head"))) + 2)
 
 // How far around the player a door is looked for, and at what height.
 // The search deliberately does not depend on where you are looking: standing next to a
@@ -101,6 +103,8 @@
 #define DOOR_SEARCH_RADIUS  3.2
 #define DOOR_SEARCH_HEIGHT  0.9
 #define DOOR_SEARCH_RAYS    12
+// How far the door may lie behind the surface the line hit first, in metres: its own thickness.
+#define DOOR_HIT_TOLERANCE  0.25
 
 // Interact-menu action point sits this far above the bottom edge of the door
 #define ACTION_HEIGHT       0.06
@@ -202,9 +206,10 @@
 #define PROBE_TOLERANCE     0.02
 // Probe window around the expected floor height
 #define PROBE_UP            0.3
+#define PROBE_FIRST         1.4
 #define PROBE_DOWN          0.9
 // Stop this far short of whatever the head ran into
-#define COLLISION_CLEARANCE 0.09
+#define COLLISION_CLEARANCE 0.25
 
 ////////////////////////////////////////////////////////////////////////////////
 // Session

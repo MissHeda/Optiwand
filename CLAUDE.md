@@ -2,7 +2,7 @@
 
 Arma 3 mod by Miss Heda (Mia): an inspection camera ("SD Inspection Camera") as a muzzle
 attachment for the vanilla Spectrum Device. Work happens on branch `camera-model`
-(13+ commits ahead of `main`, version 1.0.1, unreleased). Read `README.md` first - "The
+(ahead of `main`, version 1.0.0, the first release, not out yet). Read `README.md` first - "The
 model" section explains the whole model pipeline.
 
 ## Rules
@@ -10,7 +10,7 @@ model" section explains the whole model pipeline.
 - Chat with Mia in German. Everything in the repo is English: code, comments, commit
   messages, README, stringtables (`<English>` only, no other languages).
 - Bump PATCH in `addons/main/script_version.hpp` with every round of bug fixes, unasked,
-  unless it was already bumped since the last release (last release 1.0.0, now 1.0.1).
+  unless it was already bumped since the last release. Nothing is released yet, and 1.0.0 is the first release (Mia, 2026-11-04), so it stays 1.0.0 until that is out.
 - Every answer that changed the mod ends with this block, which Mia clicks to test on her
   Windows machine (PowerShell: `;`, never `&&`):
 
@@ -58,6 +58,8 @@ The keyboard lock holds back walking, stance and lean too (2026-11-03): a log of
 the lock active with only WASD/QE pressed, which it let through by design, and she counted that
 as not working. Returning true held back WASD but not Q/E or the mouse, so she asked for a layer:
 `fnc_lockDialog` opens an invisible dialog and hands keys to CBA's dispatch. Not yet seen in game.
+The mod no longer needs ACE (2026-11-04). `fnc_startDeploy` uses ACE's bar with ACE loaded and CBA's
+bar, unmoved, without it. The ACE branch is not yet seen in game.
 Things she already decided:
 
 1. **Shape of the cable.** Rejected: a downward curve, and sharp kinks. Wanted: essentially
