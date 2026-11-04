@@ -73,6 +73,7 @@ params [["_lock", false, [false]]];
 if (!_lock) exitWith {
     if (!GVAR(inputLocked)) exitWith {};
     GVAR(inputLocked) = false;
+    [false] call FUNC(lockDialog);
 
     ["peekEnd"] call FUNC(releaseInput);
     if (GVAR(inputPfh) < 0) exitWith {};
@@ -96,7 +97,7 @@ GVAR(inputDrainGen) = GVAR(inputDrainGen) + 1;
 // Engine
 ////////////////////////////////////////////////////////////////////////////////
 
-// Resolved from the player's own bindings at every lock, so a rebound W still walks.
+// Resolved from the player's own bindings at every lock, so a rebound radio key still works.
 // actionKeys packs modifier combos into numbers a float cannot hold exactly, so only the plain
 // keys below 65536 are read - mouse and joystick live above that and never come through
 // KeyDown anyway. A combo like Ctrl+W still passes, because W itself does.
@@ -166,6 +167,18 @@ if (isNil QGVAR(inputEhDown)) then {
     }] call CBA_fnc_addDisplayHandler;
 };
 
+// The dialog waits until nothing is held any more. A release that lands on a dialog never reaches
+// the game, so whatever was down as it opened would stay down as far as the game is concerned: the
+// right click that raised the device left the view frozen after the peek until it had been clicked
+// a few more times. The timeout is for an entry in GVAR(heldKeys) whose release went elsewhere.
+[
+    {GVAR(heldKeys) isEqualTo [] || {!GVAR(inputLocked)}},
+    {if (GVAR(inputLocked)) then {[true] call FUNC(lockDialog)}},
+    [],
+    LOCK_DIALOG_WAIT,
+    {if (GVAR(inputLocked)) then {[true] call FUNC(lockDialog)}}
+] call CBA_fnc_waitUntilAndExecute;
+
 // One frame handler for both halves of the lock's life: while locked it mutes pending
 // releases whose press has ended, while draining it hands back whatever has come free.
 if (GVAR(inputPfh) < 0) then {
@@ -208,8 +221,8 @@ private _fnc_passes = {
 
 // The keys of the keybinds that stay live are not swallowed above either. Those handlers have
 // to run, and a handler that returns true on the mission display can keep CBA's from running at
-// all - which left N, Page Up and Page Down, none of them bound to a walking action, dead while
-// the arrow keys went on working. Letting them through gives nothing to the engine: our own
+// all - which left N, Page Up and Page Down dead while keys with a pass action went on working.
+// Letting them through gives nothing to the engine: our own
 // keybinds return true, and that stops it acting on the key by itself.
 {
     private _key = _forEachIndex;

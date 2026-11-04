@@ -54,6 +54,10 @@ the weapon direction (`fnc_wandBase`), fine offset in the `tipOffset*` settings.
 in game. The monitor sits almost on the bottom edge of the screen (`MONITOR_BOTTOM`), readout and legend
 on its screen, keys labelled with what they do in game, no reflection on the glass: she took
 that for a see-through screen.
+The keyboard lock holds back walking, stance and lean too (2026-11-03): a log of her test showed
+the lock active with only WASD/QE pressed, which it let through by design, and she counted that
+as not working. Returning true held back WASD but not Q/E or the mouse, so she asked for a layer:
+`fnc_lockDialog` opens an invisible dialog and hands keys to CBA's dispatch. Not yet seen in game.
 Things she already decided:
 
 1. **Shape of the cable.** Rejected: a downward curve, and sharp kinks. Wanted: essentially

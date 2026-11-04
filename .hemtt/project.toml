@@ -22,7 +22,7 @@ preset = "Hemtt"
 # command line rather than in here, so the repo stays the same for everyone:
 #
 #   hemtt launch -- -name="Your Profile"
-[hemtt.launch]
+[hemtt.launch.default]
 workshop = [
     "450814997",  # CBA_A3
     "463939057",  # ACE3

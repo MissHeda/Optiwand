@@ -106,6 +106,11 @@ PLUG_V = (0.6890, 0.7212)
 # ------------------------------------------------------------------------------ geometry
 # What is kept of the FBX: faces entirely behind this, on the device's side.
 CONNECTOR_X = -0.0318
+# The connector is a thin shell, open at the sides and towards the device, and its faces only
+# show from outside: looking in, you look straight through it. So it gets a solid core: slabs
+# this long, this far inside the shell.
+CORE_SLAB = 0.003
+CORE_INSET = 0.0012
 
 # The endoscope, as (distance from the mount, radius), in metres. It starts with a core
 # inside the connector, which is open at the sides: without it you look right through.
@@ -806,9 +811,20 @@ def wand_mesh(fixed, detail):
     return mesh
 
 
+def connector_core(fixed, detail):
+    """Closed dark slabs filling the connector, so nothing can be seen through its shell."""
+    hulls, core = [], Mesh()
+    slab_hulls(fixed, hulls, CORE_SLAB, CORE_INSET, 24 if detail else 10, True)
+    for hull in hulls:
+        core.faces += [([(p, n, rubber_uv(0.0, 0.5)) for p, n, _uv in corners], RUBBER_MATERIAL)
+                       for corners, _material in hull.faces]
+    return core
+
+
 def resolution_lod(resolution, fixed, detail):
     lod = Lod(resolution)
     lod.mesh(bent(subdivide(wand_mesh(fixed, detail), detail)))
+    lod.mesh(connector_core(fixed, detail))
     extra = Mesh()
     sides = 8 if detail else 5
     build_coil(extra, CABLE_RADIUS, 10 if detail else 6)
@@ -907,14 +923,15 @@ def components(faces):
     return [groups[k] for k in sorted(groups)]
 
 
-def slab_hulls(mesh, out, gap, inset, bins=None):
+def slab_hulls(mesh, out, gap, inset, bins=None, whole=False):
     """Each piece of the mesh cut into slabs across the wand's axis, every slab replaced by
     its convex hull: closed by construction, and as close to the visible surface as a set
     of convex pieces gets. Appends one Mesh per hull to out. The slabs are bounded where the mesh has its rings of corners,
     no two closer than gap; each hull is pulled in by inset towards the slab's middle, in
     the plane of the cut only, so neighbouring slabs still meet. bins: keep only the
-    outermost point per angle bin and slab side, for a coarse LOD."""
-    for piece in components(mesh.faces):
+    outermost point per angle bin and slab side, for a coarse LOD. whole: the mesh as one
+    piece, whatever is or is not joined up in it."""
+    for piece in ([mesh.faces] if whole else components(mesh.faces)):
         edges = []
         for corners, _material in piece:
             pts = [np.asarray(q[0], float) for q in corners]

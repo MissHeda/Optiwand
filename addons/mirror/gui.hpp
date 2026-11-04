@@ -3,32 +3,66 @@
 // ---------------------------------------------------------------------------------------
 // The overlay: a field monitor over the world, with two lines of text on its screen.
 //
-//   Screen    the monitor's dark screen, there for whenever no picture is on it.
+//   Backing   solid behind the feed, so nothing of the world can come through the picture.
 //   Feed      the camera picture. Arma keeps a render target alive only while something draws
-//             it, and a hidden control draws nothing - so while there is no picture it sits at
-//             full fade, never ctrlShow false. Take it out and the picture goes black.
+//             it, so this one is never hidden: with no picture on, fnc_showFeed in the device
+//             addon parks it at a single pixel. Take it out and the picture goes black.
+//   Screen    the monitor's dark screen, for whenever no picture is on. A solid background
+//             rather than a picture: a coloured picture over the feed still let it show through.
 //   Monitor   the housing and the glass, one picture rendered by tools/render_monitor.py, with
 //             a hole for the feed to show through. Drawn in this order, so last on top.
 //   Acq*      the picture build-up on the dark screen: what to do, then a bar. The device
 //             addon drives them, fnc_openView places them.
+//   Osd*      the dark bands the two lines of text sit on.
 //   Readout   heading, tilt, zoom.
 //   Hints     the key legend, and the no-clearance report when there is one.
 //
 // fnc_openView sizes and places all of them.
 //
-// It is an RscTitles layer and nothing else. There is no dialog class any more, and no full
-// screen map control to blank the cursor either: a title layer never gets a cursor to begin
-// with, but a map control in one tells Arma that a UI wants the mouse, and that released the
-// pointer - on a borderless window with a second monitor it let the mouse walk out of the
-// game. It only ever happened while aiming, because that is when this layer is up.
+// It is an RscTitles layer, and carries no input of its own: a map control in one tells Arma
+// that a UI wants the mouse, and that released the pointer - on a borderless window with a second
+// monitor it let the mouse walk out of the game. Taking the input is the job of the dialog below,
+// which keeps the pointer in the window itself.
 // ---------------------------------------------------------------------------------------
 
 #define OPW_FONT        "RobotoCondensed"
 #define OPW_FONT_BOLD   "RobotoCondensedBold"
 
 #define OPW_NONE        { 0, 0, 0, 0 }
-#define OPW_OSD         { 0, 0, 0, 0.55 }
 #define OPW_DEAD        "#(argb,8,8,3)color(0,0,0,1)"
+
+class ctrlMapEmpty;
+
+// Nothing to see in this one: it only takes keyboard and mouse away from the game during a locked
+// peek - see fnc_lockDialog. The map is disabled there, and only carries a blank cursor.
+class GVAR(lockDialog) {
+    idd = IDD_LOCK;
+    movingEnable = 0;
+    enableSimulation = 1;
+    objects[] = {};
+
+    class controlsBackground {
+        class Cursor: ctrlMapEmpty {
+            idc = IDC_LOCK_CURSOR;
+            moving = 0;
+            fade = 1;
+            font = OPW_FONT;
+            text = "";
+            sizeEx = 0;
+            lineSpacing = 0;
+            style = ST_PICTURE;
+            type = CT_MAP_MAIN;
+            size = 1;
+            colorBackground[] = OPW_NONE;
+            colorText[] = OPW_NONE;
+            x = "safeZoneX";
+            y = "safeZoneY";
+            w = "safeZoneW";
+            h = "safeZoneH";
+        };
+    };
+    class controls {};
+};
 
 class RscTitles {
     class GVAR(layer) {
@@ -43,11 +77,23 @@ class RscTitles {
         onUnload = QUOTE(uiNamespace setVariable [ARR_2(QQGVAR(display),displayNull)];);
 
         class controls {
-            class Screen {
-                idc = IDC_SCREEN;
+            class Backing {
+                idc = IDC_BACKING;
+                type = CT_STATIC;
+                style = ST_LEFT;
+                text = "";
+                colorText[] = { 1, 1, 1, 1 };
+                colorBackground[] = { 0.015, 0.017, 0.02, 1 };
+                font = OPW_FONT;
+                sizeEx = 0.02;
+                x = 0; y = 0; w = 0.001; h = 0.001;
+            };
+
+            class Feed {
+                idc = IDC_FEED;
                 type = CT_STATIC;
                 style = ST_PICTURE;
-                text = "#(argb,8,8,3)color(0.015,0.017,0.02,1)";
+                text = OPW_DEAD;
                 colorText[] = { 1, 1, 1, 1 };
                 colorBackground[] = OPW_NONE;
                 font = OPW_FONT;
@@ -55,23 +101,22 @@ class RscTitles {
                 x = 0; y = 0; w = 0.001; h = 0.001;
             };
 
-            class Feed: Screen {
-                idc = IDC_FEED;
-                text = OPW_DEAD;
+            class Screen: Backing {
+                idc = IDC_SCREEN;
             };
 
-            class Monitor: Screen {
+            class Monitor: Feed {
                 idc = IDC_MONITOR;
                 text = MONITOR_TEXTURE;
             };
 
-            class AcqTrack: Screen {
+            class AcqTrack: Feed {
                 idc = IDC_ACQ_TRACK;
                 text = "#(argb,8,8,3)color(0.10,0.13,0.11,1)";
                 fade = 1;
             };
 
-            class AcqFill: Screen {
+            class AcqFill: Feed {
                 idc = IDC_ACQ_FILL;
                 text = "#(argb,8,8,3)color(0.42,0.82,0.55,1)";
                 fade = 1;
@@ -91,12 +136,21 @@ class RscTitles {
                 x = 0; y = 0; w = 0.001; h = 0.001;
             };
 
+            class OsdTop: Feed {
+                idc = IDC_OSD_TOP;
+                text = "#(argb,8,8,3)color(0,0,0,0.55)";
+            };
+
+            class OsdBottom: OsdTop {
+                idc = IDC_OSD_BOTTOM;
+            };
+
             class Readout {
                 idc = IDC_READOUT;
                 type = CT_STRUCTURED_TEXT;
                 style = ST_CENTER;
                 text = "";
-                colorBackground[] = OPW_OSD;
+                colorBackground[] = OPW_NONE;
                 shadow = 0;
                 size = 0.026;
                 x = 0.3; y = 0.9; w = 0.4; h = 0.03;
@@ -114,7 +168,7 @@ class RscTitles {
                 type = CT_STRUCTURED_TEXT;
                 style = ST_CENTER;
                 text = "";
-                colorBackground[] = OPW_OSD;
+                colorBackground[] = OPW_NONE;
                 shadow = 0;
                 size = 0.026;
                 x = 0.3; y = 0.94; w = 0.4; h = 0.03;

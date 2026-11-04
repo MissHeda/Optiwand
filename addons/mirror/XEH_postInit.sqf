@@ -120,7 +120,7 @@ addMissionEventHandler ["Ended", {call FUNC(closeView)}];
 // The controls run through CBA keybinds rather than display handlers: the overlay is a
 // title layer, which gets no input focus and would never see a key press.
 //
-// It also has to work this way round, because the player keeps moving while peeking. These
+// It also has to work this way round, because the player may keep moving while peeking. These
 // keys share the keyboard with the normal controls, and through CBA every one of them can
 // be remapped.
 //

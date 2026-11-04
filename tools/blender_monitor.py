@@ -83,10 +83,10 @@ def text(body, x, y, z, size, mat, align="CENTER"):
     data.size = size
     data.align_x = align
     data.align_y = "CENTER"
-    data.extrude = 0.001
     data.materials.append(mat)
     obj = bpy.data.objects.new(body, data)
     obj.location = (x / 1000.0, y / 1000.0, z)
+    obj.visible_shadow = False
     bpy.context.scene.collection.objects.link(obj)
 
 
@@ -117,18 +117,20 @@ plate("bumper", rounded(0, 0, w, h, 72), rounded(0, 0, w - 116, h - 116, 34), 0.
 # The hole in this one is the exact edge of the picture, so it has no bevel to eat into it.
 plate("lip", rounded(0, SCREEN_Y, sw + 60, sh + 60, 16), rounded(0, SCREEN_Y, sw, sh, 6), 0.012, 0.05, 0.0, gloss)
 
-row = -h / 2 + 58 + 71
+# The bar under the screen, between the frame round the screen and the bumper. Everything in it
+# sits on its middle line, and the outer two line up with the sides of the screen.
+row = (SCREEN_Y - sh / 2 - 30 + (-h / 2 + 58)) / 2.0
 # What the keys do in game, in a row in the middle of the bar, evenly spaced.
-BUTTONS = ("ZOOM -", "ZOOM +", "IR", "RESET")
+BUTTONS = ("ZOOM +", "ZOOM -", "IR", "RESET")
 BUTTON_W, BUTTON_GAP = 150, 34
 for i, label in enumerate(BUTTONS):
     x = (i - (len(BUTTONS) - 1) / 2.0) * (BUTTON_W + BUTTON_GAP)
     plate("button" + label, rounded(x, row, BUTTON_W, 72, 14), None, 0.06, 0.016, 0.006, orange)
-    text(label, x, row, 0.0875, 0.034, ink)
+    text(label, x, row, 0.0825, 0.034, ink)
 
-text("KAISERKOM", -w / 2 + 92, row + 14, 0.0675, 0.062, print_grey, "LEFT")
-text("FIELD INSPECTION DISPLAY", -w / 2 + 92, row - 30, 0.0675, 0.026, print_grey, "LEFT")
-cylinder(800, row, 0.07, 12, 0.012, led)
+text("KAISERKOM", -sw / 2, row + 14, 0.0675, 0.062, print_grey, "LEFT")
+text("FIELD INSPECTION DISPLAY", -sw / 2, row - 26, 0.0675, 0.026, print_grey, "LEFT")
+cylinder(sw / 2 - 12, row, 0.07, 12, 0.012, led)
 
 for sx in (-1, 1):
     for sy in (-1, 1):

@@ -49,6 +49,9 @@ if (
     // tables swapped would leave the old binding live after the peek.
     || {!isNull findDisplay 49}
     || {!([_player] call FUNC(wandReady))}
+    // Something else closed the dialog holding the player still. Without it they would be
+    // walking round with the keyboard half locked.
+    || {GVAR(lockDialogOpen) && {isNull findDisplay IDD_LOCK}}
 ) exitWith {
     call FUNC(closeView);
 };
@@ -64,6 +67,9 @@ if (_isDoor && {_now > GVAR(nextDoorCheck)}) then {
 };
 
 if (!GVAR(active)) exitWith {};
+
+// The lock's dialog frees the mouse pointer, and it must not wander out of the window.
+if (GVAR(lockDialogOpen)) then {setMousePosition [0.5, 0.5]};
 
 private _delta = (_now - GVAR(lastTick)) min 0.25;
 GVAR(lastTick) = _now;
@@ -95,8 +101,8 @@ if (_inDepth != 0) then {
     // Freehand only goes forward and back to the starting point. Pulling in further would
     // mean pushing the head into the shaft and into your own hand - at which point the
     // camera sits inside the model.
-    private _minDepth = [GVAR(depthDefault), DEPTH_MIN] select _isDoor;
-    private _maxDepth = [GVAR(depthDefault) + GVAR(freeExtend), GVAR(maxDepth)] select _isDoor;
+    private _minDepth = [GVAR(depthDefault), DOOR_DEPTH_MIN] select _isDoor;
+    private _maxDepth = [GVAR(depthDefault) + GVAR(freeExtend), GVAR(maxDepth) max GVAR(depthDefault)] select _isDoor;
     GVAR(depth) = ((GVAR(depth) + _inDepth * RATE_DEPTH * _delta) max _minDepth) min _maxDepth;
 };
 // Zooming out only goes back to the starting point. Beyond that the view gets so wide that
@@ -180,7 +186,7 @@ if (_last isNotEqualTo []) then {
             // keep counting up against a wall and the head jumps once it comes free
             if (_isDoor) then {
                 private _rel = _target vectorDiff GVAR(basePosASL);
-                GVAR(depth) = ((_rel vectorDotProduct GVAR(baseDir)) max DEPTH_MIN) min GVAR(maxDepth);
+                GVAR(depth) = ((_rel vectorDotProduct GVAR(baseDir)) max DOOR_DEPTH_MIN) min (GVAR(maxDepth) max GVAR(depthDefault));
                 if (GVAR(slideLimit) > 0) then {
                     GVAR(slide) = ((_rel vectorDotProduct GVAR(baseRight)) max (-GVAR(slideLimit))) min GVAR(slideLimit);
                 };

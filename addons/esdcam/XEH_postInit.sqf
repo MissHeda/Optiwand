@@ -83,3 +83,11 @@ if (!hasInterface) exitWith {};
     };
     false
 }] call CBA_fnc_addDisplayHandler;
+
+// During a locked peek the mouse goes to the lock's dialog, which passes the buttons on as this.
+[QEGVAR(mirror,lockedMouse), {
+    params ["_button", "_down"];
+    if (_button isEqualTo 0) then {
+        GVAR(holding) = _down && {EGVAR(mirror,active)};
+    };
+}] call CBA_fnc_addEventHandler;

@@ -49,6 +49,10 @@ if (_faulted) then {
     _text = format ["%1<br/>%2", LLSTRING(Fault_NoClearance), LLSTRING(Feed_Hints_Fault)];
 };
 
+private _ctrlBand = _display displayCtrl IDC_OSD_BOTTOM;
+_ctrlBand ctrlSetPosition ([GVAR(osdRect), GVAR(osdRectFault)] select _faulted);
+_ctrlBand ctrlCommit 0;
+
 _ctrlHints ctrlSetPosition ([GVAR(stripRect), GVAR(stripRectFault)] select _faulted);
 _ctrlHints ctrlSetStructuredText parseText _text;
 _ctrlHints ctrlCommit 0;

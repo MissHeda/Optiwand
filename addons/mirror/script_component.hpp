@@ -59,6 +59,14 @@
 #define IDC_ACQ_LABEL   9140112
 #define IDC_ACQ_TRACK   9140114
 #define IDC_ACQ_FILL    9140116
+#define IDC_OSD_TOP     9140118
+#define IDC_OSD_BOTTOM  9140120
+#define IDC_BACKING     9140122
+// The invisible dialog that holds the player still during a locked peek - see fnc_lockDialog.
+#define IDD_LOCK        9140198
+#define IDC_LOCK_CURSOR 9140124
+// How long the dialog waits for keys still held to come up, in seconds.
+#define LOCK_DIALOG_WAIT 2
 
 // The field monitor, a picture rendered by tools/render_monitor.py. Its proportions and where
 // the screen lies in it, as fractions of the picture - that tool prints them, and they have
@@ -74,6 +82,10 @@
 #define MONITOR_WIDTH       0.50
 #define MONITOR_MAX_HEIGHT  0.72
 #define MONITOR_BOTTOM      0.012
+// The dark bands on the monitor's screen, and how far the text sits inside them: structured
+// text hangs from the top of its control, so a band of its own lets it be centred by eye.
+#define OSD_BAND_HEIGHT     0.034
+#define OSD_TEXT_DROP       0.011
 
 ////////////////////////////////////////////////////////////////////////////////
 // Door detection
@@ -156,7 +168,11 @@
 #define FREE_PITCH_MAX      75
 
 #define DEPTH_MIN           0.02
-#define DEPTH_DEFAULT       0.14
+// At a door the depth counts from the leaf's face. The head has to start and stay clear past it:
+// inside the leaf, the sweep in fnc_update sees the leaf's far side as a wall in the way, and
+// throws the head back out in front of the door.
+#define DEPTH_DEFAULT       0.30
+#define DOOR_DEPTH_MIN      0.20
 // camSetFov: a smaller number means more zoomed in.
 //
 // A render target does not behave like the main view, and the usable range sits an order of
@@ -200,16 +216,9 @@
 #define VIEW_GRACE          0.6
 
 // Engine actions that keep working while the keyboard is locked for a peek - see
-// fnc_lockInput. Everything that moves the body or the voice; nothing that uses the hands.
-// Names the engine does not know simply resolve to no keys.
+// fnc_lockInput. Only the voice and the pause menu: with the lock on, a peek means standing
+// still with the device up. Names the engine does not know simply resolve to no keys.
 #define PASS_ACTIONS [ \
-    "MoveForward", "MoveBack", "TurnLeft", "TurnRight", "MoveLeft", "MoveRight", \
-    "MoveFastForward", "MoveSlowForward", "MoveUp", "MoveDown", \
-    "EvasiveForward", "EvasiveBack", "EvasiveLeft", "EvasiveRight", \
-    "Turbo", "TurboToggle", "WalkRunToggle", "WalkRunTemp", "GetOver", \
-    "Stand", "Crouch", "Prone", "AdjustUp", "AdjustDown", "AdjustLeft", "AdjustRight", \
-    "LeanLeft", "LeanRight", "LeanLeftToggle", "LeanRightToggle", \
-    "LookAround", "LookAroundToggle", \
     "PushToTalk", "PushToTalkAll", "PushToTalkSide", "PushToTalkCommand", \
     "PushToTalkGroup", "PushToTalkVehicle", "PushToTalkDirect", "VoiceOverNet", "Chat", \
     "IngamePause" \

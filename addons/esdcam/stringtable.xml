@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project name="Optiwand">
     <Package name="esdcam">
-        <Key ID="STR_opw_esdcam_SettingCategory">
-            <English>Optiwand - ESD Camera</English>
-        </Key>
-
         <Key ID="STR_opw_esdcam_Acquire_Prompt">
             <English>HOLD  LMB  TO  ACQUIRE</English>
         </Key>

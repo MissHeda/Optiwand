@@ -16,12 +16,13 @@
 // makes the camera a real alternative to an antenna rather than a second weapon.
 //
 // The picture is on the mirror component's field monitor, and only the attachment is left of
-// the device: its own housing and screen go out of the aimed view during a peek, see
-// fnc_hideDevice. No config of the device's display is changed, so with an antenna fitted it
-// stays exactly what it is in vanilla.
+// the device: its own housing and screen stay out of the aimed view, see fnc_hideDevice. No
+// config of the device's display is changed, so with an antenna fitted it stays exactly what it
+// is in vanilla.
 // ---------------------------------------------------------------------------------------
 
 // Controls on the mirror component's overlay. Must match addons\mirror\script_component.hpp.
+#define IDC_MONITOR_SCREEN 9140100
 #define IDC_MONITOR_FEED 9140102
 #define IDC_MONITOR_ACQ_LABEL 9140112
 #define IDC_MONITOR_ACQ_TRACK 9140114

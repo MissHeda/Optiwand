@@ -4,8 +4,6 @@ ADDON = false;
 
 #include "XEH_PREP.hpp"
 
-#include "initSettings.inc.sqf"
-
 // Runtime state - all client side, all reset by fnc_closeView
 GVAR(active)     = false;
 GVAR(camera)     = objNull;
@@ -21,6 +19,9 @@ GVAR(nightVision) = false;
 GVAR(faulted)    = false;
 GVAR(stripRect)      = [0, 0, 0, 0];
 GVAR(stripRectFault) = [0, 0, 0, 0];
+GVAR(screenRect)   = [0, 0, 0, 0];
+GVAR(osdRect)      = [0, 0, 0, 0];
+GVAR(osdRectFault) = [0, 0, 0, 0];
 GVAR(hintText)   = "";
 GVAR(defaultFov) = FOV_DEFAULT;
 GVAR(zoomNear)   = 0.10;
@@ -35,6 +36,7 @@ GVAR(aimLatched) = false;
 // Keyboard lock while peeking - see fnc_lockInput.
 GVAR(lockInput) = true;
 GVAR(inputLocked) = false;
+GVAR(lockDialogOpen) = false;
 GVAR(inputAllowedKeys) = [];
 GVAR(inputSwallowed) = [];
 GVAR(inputPreHeld) = [];
@@ -101,5 +103,10 @@ GVAR(panelSpanCache) = createHashMap;
 // A CONTROL cannot be serialized, so it must not live in missionNamespace
 uiNamespace setVariable [QGVAR(display), displayNull];
 uiNamespace setVariable [QGVAR(ctrlReadout), controlNull];
+
+// Last, on purpose. Several variables above carry the same names as settings, as fallbacks for
+// the moment before CBA is ready. With the settings first, those assignments overwrote what the
+// player had set, so changing the keyboard lock in Configure Addons did nothing.
+#include "initSettings.inc.sqf"
 
 ADDON = true;

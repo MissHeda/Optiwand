@@ -6,7 +6,8 @@
  * decides when the picture comes up on the monitor.
  * The camera renders into a texture instead of onto the screen (same technique as
  * ace_viewports_fnc_viewCreate by PabstMirror), so the world keeps rendering normally behind
- * the device. The overlay is a title layer, not a dialog, so the player keeps moving.
+ * the device. The overlay is a title layer, not a dialog, so the keyboard lock decides what the
+ * player can still do.
  *
  * Three modes:
  *   MODE_DOOR   the head sits in the door slit, rides the floor and slides along the gap
@@ -70,7 +71,7 @@ if (_mode isEqualTo MODE_FREE) then {
 
 } else {
     GVAR(basePitch) = PITCH_DEFAULT;
-    GVAR(depthDefault) = DEPTH_DEFAULT min GVAR(maxDepth);
+    GVAR(depthDefault) = DEPTH_DEFAULT;
     GVAR(slideLimit) = 0 max (_halfWidth - SLIDE_MARGIN);
 };
 
@@ -196,17 +197,18 @@ private _monitor = _display displayCtrl IDC_MONITOR;
 _monitor ctrlSetPosition [_monitorX, _monitorY, _monitorW, _monitorH];
 _monitor ctrlCommit 0;
 
-private _screen = _display displayCtrl IDC_SCREEN;
-_screen ctrlSetPosition _screenRect;
-_screen ctrlCommit 0;
+GVAR(screenRect) = _screenRect;
+{
+    private _ctrl = _display displayCtrl _x;
+    _ctrl ctrlSetPosition _screenRect;
+    _ctrl ctrlCommit 0;
+} forEach [IDC_BACKING, IDC_SCREEN];
 
-// Faded out, not hidden. Arma keeps a render target alive only while something draws it, and
-// a hidden control draws nothing - at zero opacity it still counts as a consumer and is
-// invisible all the same.
+// Parked at one pixel until the device addon brings the picture up, and never hidden: Arma
+// keeps a render target alive only while something draws it.
 private _feed = _display displayCtrl IDC_FEED;
 _feed ctrlSetText _feedTexture;
-_feed ctrlSetPosition _screenRect;
-_feed ctrlSetFade 1;
+_feed ctrlSetPosition [_screenRect select 0, _screenRect select 1, 0.001, 0.001];
 _feed ctrlCommit 0;
 
 // The picture build-up, in the middle of the dark screen.
@@ -224,15 +226,28 @@ private _acqBar = [_screenX + 0.2 * _screenW, _screenY + 0.5 * _screenH, 0.6 * _
 // The readout along the top of the monitor's screen, the legend along its bottom, as if the
 // monitor were drawing them. They are controls over the picture rather than part of it: the
 // render target is a camera's output and Arma offers no way to draw into one.
+private _bandH = OSD_BAND_HEIGHT * safezoneH;
+private _drop = OSD_TEXT_DROP * safezoneH;
 private _lineH = 0.028 * safezoneH;
 private _stripW = _screenW;
 private _stripX = _screenX;
-private _legendY = _screenY + _screenH - _lineH;
-private _readoutY = _screenY;
+private _bandY = _screenY + _screenH - _bandH;
+private _legendY = _bandY + _drop;
+private _readoutY = _screenY + _drop;
 
 GVAR(stripRect) = [_stripX, _legendY, _stripW, _lineH];
 // The no-clearance report is two lines, so it takes the readout's row as well.
 GVAR(stripRectFault) = [_stripX, _legendY - _lineH, _stripW, _lineH * 2];
+GVAR(osdRect) = [_stripX, _bandY, _stripW, _bandH];
+GVAR(osdRectFault) = [_stripX, _bandY - _lineH, _stripW, _bandH + _lineH];
+
+private _osdTop = _display displayCtrl IDC_OSD_TOP;
+_osdTop ctrlSetPosition [_stripX, _screenY, _stripW, _bandH];
+_osdTop ctrlCommit 0;
+
+private _osdBottom = _display displayCtrl IDC_OSD_BOTTOM;
+_osdBottom ctrlSetPosition GVAR(osdRect);
+_osdBottom ctrlCommit 0;
 
 private _ctrlReadout = _display displayCtrl IDC_READOUT;
 _ctrlReadout ctrlSetPosition [_stripX, _readoutY, _stripW, _lineH];
@@ -255,7 +270,7 @@ _hints ctrlCommit 0;
 //
 // A title layer gets no input focus, so it could not see a key press in any case. The
 // controls now live on CBA keybinds, registered in XEH_postInit and remappable in the
-// settings - which is necessary here, because the player keeps walking while peeking and
+// settings - which is necessary here, because the player may keep walking while peeking and
 // the keys can collide with the normal bindings.
 //
 // Ending is handled by the aimed view itself: fnc_update closes as soon as the player

@@ -1,7 +1,7 @@
 #include "..\script_component.hpp"
 /*
  * Author: Miss Heda
- * Fades the camera picture on the field monitor in or out.
+ * Brings the camera picture on the field monitor up, or takes it off for the dark screen.
  *
  * Arguments:
  * 0: Show <BOOL>
@@ -17,10 +17,13 @@
 
 params [["_show", false, [false]]];
 
-private _ctrl = (uiNamespace getVariable [QEGVAR(mirror,display), displayNull]) displayCtrl IDC_MONITOR_FEED;
-if (isNull _ctrl) exitWith {};
+private _display = uiNamespace getVariable [QEGVAR(mirror,display), displayNull];
+if (isNull _display) exitWith {};
 
-private _fade = FADE_HIDE;
-if (_show) then {_fade = FADE_SHOW};
-_ctrl ctrlSetFade _fade;
-_ctrl ctrlCommit 0;
+(_display displayCtrl IDC_MONITOR_SCREEN) ctrlShow (!_show);
+
+// Parked rather than hidden while there is no picture: a render target needs something drawing it.
+EGVAR(mirror,screenRect) params ["_x0", "_y0", "_w0", "_h0"];
+private _feed = _display displayCtrl IDC_MONITOR_FEED;
+_feed ctrlSetPosition ([[_x0, _y0, 0.001, 0.001], [_x0, _y0, _w0, _h0]] select _show);
+_feed ctrlCommit 0;

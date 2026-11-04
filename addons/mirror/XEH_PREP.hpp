@@ -8,6 +8,7 @@ PREP(getDoorGeometry);
 PREP(getPanelSpan);
 PREP(handleInteractMenuOpened);
 PREP(isWand);
+PREP(lockDialog);
 PREP(lockInput);
 PREP(muteKeybind);
 PREP(openView);

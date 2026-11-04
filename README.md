@@ -42,7 +42,9 @@ glass painted over it. The readout and the key legend are on its
 screen, as if it were drawing them. Its size and place are `MONITOR_*` in
 `addons/mirror/script_component.hpp`.
 
-You keep moving the whole time. The overlay is an `RscTitles` layer, not a dialog - a dialog
+With *Lock other keys while peeking* on, the default, you stand still while the camera is out,
+and the mouse does not turn you: an invisible dialog takes keyboard and mouse from the game
+(`fnc_lockDialog`). Turn it off to keep moving. The overlay itself is an `RscTitles` layer, not a dialog - a dialog
 would take input focus and pin you in place, and it would hand the mouse cursor back to the
 desktop, which on a borderless window with a second monitor let the pointer walk out of the
 game entirely.
@@ -71,8 +73,8 @@ actually walk with the arrow keys, remap one side or the other.
 
 ### The keyboard is ours while peeking
 
-Everything except the keys above, movement, stance, lean, freelook, voice, radio transmit
-and Escape is held back while the camera is out - the game's own actions and other mods'
+Everything except the keys above, voice, radio transmit and Escape is held back while the
+camera is out, walking, stance and lean included - the game's own actions and other mods'
 keybinds alike. Without that, N switched the player's own goggles (and GGE: NVG Animation
 played its gesture over it, which dropped the aimed view and ended the session), and TFAR's
 SW stereo keys on Ctrl+Up/Left/Right fired together with extend and slide.
@@ -91,13 +93,13 @@ Keys are handed back one by one. A key pressed during the peek and still held wh
 stays locked until it comes up - otherwise its release, armed while muted, would run the
 real thing on the way out - but never longer than three seconds, and opening the pause menu
 ends the peek and the lock on the spot. *Lock other keys while peeking* under
-Optiwand - Mirror turns all of it off.
+Optiwand turns all of it off.
 
 ## Settings
 
-Under Configure Addons, in two groups.
+Under Configure Addons > Optiwand, all in one category.
 
-**Optiwand - Mirror** governs the mechanics: whether the item must be in hand, whether
+The mechanics: whether the item must be in hand, whether
 freehand peeking is allowed, deploy time, reach, head height, zoom limits and starting
 zoom, whether a lack of clearance is reported, and three sliders for the camera offset
 (forward, sideways, height).
@@ -106,7 +108,7 @@ The offset sliders exist because that value can only be judged in game: the came
 neither inside the device model nor floating beside it, and it must not be looking down its
 own shaft. Three axes rather than one, because a single number does not describe the problem.
 
-**Optiwand - ESD Camera** governs the picture: whether it has to be acquired by holding the
+The picture: whether it has to be acquired by holding the
 mouse button, and how long that takes.
 
 ## Layout
