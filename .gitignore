@@ -28,3 +28,6 @@ art/esdcam/*-empty-export.p3d
 __pycache__/
 *.pyc
 art/esdcam/reference/
+
+# Private working notes
+CLAUDE.md
